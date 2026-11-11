@@ -144,8 +144,9 @@ function ubicacion(){return new Promise(function(ok,mal){
     lm.getLocation(function(d){if(!d){return mal(new Error('permiso'))}ok({lat:d.latitude,lon:d.longitude,acc:d.horizontal_accuracy})})})})}
 function sinUbicacion(e,reintentar){vibra('mal');
   if(e.message==='permiso'){pantalla({atras:home,e:'📍🚫',h1:'Falta el permiso de ubicación',p:'Toque el botón y elija <b>Permitir</b>.',
-    ops:[['🔄 DAR PERMISO','b',function(){try{if(tg.LocationManager&&tg.LocationManager.openSettings)tg.LocationManager.openSettings()}catch(x){}reintentar()}],['🏠 Volver','n',home,1]]});return}
-  pantalla({atras:home,e:'🛰️',h1:'Encienda el GPS',p:esc(e.message),ops:[['🔄 INTENTAR OTRA VEZ','b',reintentar],['🏠 Volver','n',home,1]]})}
+    ops:[['🔄 DAR PERMISO','b',function(){try{if(tg.LocationManager&&tg.LocationManager.openSettings)tg.LocationManager.openSettings()}catch(x){}reintentar()}]].concat(BOT&&(F.tipo==='llegada'||F.tipo==='prueba')?[['📍 MANDAR UBICACIÓN POR EL CHAT','a',function(){alBot(F.tipo==='prueba'?{accion:'prueba_chat',n:F.n}:{accion:'ubic_chat'})}]]:[]).concat([['🏠 Volver','n',home,1]])});return}
+  var porChat=BOT&&(F.tipo==='llegada'||F.tipo==='prueba')?[['📍 MANDAR UBICACIÓN POR EL CHAT','a',function(){alBot(F.tipo==='prueba'?{accion:'prueba_chat',n:F.n}:{accion:'ubic_chat'})}]]:[];
+  pantalla({atras:home,e:'🛰️',h1:'Encienda el GPS',p:esc(e.message),ops:[['🔄 INTENTAR OTRA VEZ','b',reintentar]].concat(porChat).concat([['🏠 Volver','n',home,1]])})}
 
 // ------------------------------------------------------------------ 🚗 viaje
 var reloj=null;
