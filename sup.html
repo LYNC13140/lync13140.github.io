@@ -1,0 +1,182 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Panel del supervisor</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+:root{--fondo:#fff8ec;--azul:#123a6b;--txt:#1b2333;--mut:#5a6577;--verde:#2e9e5b;--rojo:#d64545;--ambar:#e39a19;--celeste:#2f80ed;--gris:#e2d6c0}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;min-height:100%;background:var(--fondo);color:var(--txt);font-family:-apple-system,"Segoe UI",Roboto,Arial,sans-serif}
+#app{min-height:100vh;padding:0 0 calc(18px + env(safe-area-inset-bottom))}
+.top{background:var(--azul);color:#fff;padding:calc(12px + env(safe-area-inset-top)) 16px 12px;display:flex;align-items:center;gap:10px;position:sticky;top:0;z-index:2}
+.top .atras{font-size:26px;background:none;border:0;color:#fff;padding:0 6px 0 0}
+.top b{font-size:18px;line-height:1.2;display:block}.top small{font-size:13px;opacity:.85}
+.q{text-align:center;padding:12px 16px 4px}.q .e{font-size:66px;line-height:1.1}.q h1{font-size:25px;line-height:1.15;color:var(--azul);margin:8px 0 4px}.q p{font-size:16px;color:var(--mut);margin:0}
+.kp{display:grid;grid-template-columns:1fr 1fr;gap:9px;padding:10px 14px}
+.k{background:#fff;border:3px solid var(--gris);border-radius:16px;padding:9px 6px;text-align:center}.k b{font-size:28px;display:block;color:var(--azul)}.k span{font-size:14px;color:var(--mut);font-weight:700}
+.k.v{border-color:#9fd8b6;background:#eaf8ef}.k.v b{color:var(--verde)}.k.r{border-color:#f0b0b0;background:#fdeeee}.k.r b{color:var(--rojo)}.k.a{border-color:#f1d08a;background:#fff6df}.k.a b{color:#b87700}
+.ops{padding:6px 14px 0}
+.op{display:block;width:100%;border:0;border-radius:20px;padding:17px 12px;margin:0 0 12px;color:#fff;font-size:21px;font-weight:800;line-height:1.2;box-shadow:0 5px 0 rgba(0,0,0,.2);text-align:center;font-family:inherit;position:relative}
+.op:active{transform:translateY(4px);box-shadow:0 1px 0 rgba(0,0,0,.2)}
+.op.g{background:var(--verde)}.op.r{background:var(--rojo)}.op.a{background:var(--ambar)}.op.b{background:var(--celeste)}.op.n{background:#5b6b82}
+.op.chico{font-size:17px;padding:13px 10px}
+.badge{position:absolute;right:14px;top:50%;transform:translateY(-50%);background:#fff;color:var(--rojo);border-radius:14px;padding:2px 11px;font-size:18px}
+.fil{display:flex;gap:6px;padding:10px 12px 2px;flex-wrap:wrap}
+.fil button{background:#fff;border:2px solid var(--gris);border-radius:14px;padding:7px 11px;font-weight:700;font-size:15px;font-family:inherit;color:var(--txt)}
+.fil .on{background:var(--azul);color:#fff;border-color:var(--azul)}
+.lista{padding:8px 12px}
+.esc{display:block;width:100%;text-align:left;background:#fff;border:0;border-radius:16px;padding:11px 12px;margin-bottom:9px;border-left:9px solid var(--verde);box-shadow:0 2px 0 rgba(0,0,0,.08);font-family:inherit;color:var(--txt)}
+.esc.r{border-left-color:var(--rojo)}.esc.a{border-left-color:var(--ambar)}.esc.n{border-left-color:#aab}
+.esc b{font-size:16px;color:var(--azul)}.esc .s{font-size:16px;margin-top:4px}.esc .m{font-size:13px;color:var(--mut);margin-top:2px}
+.esc input{width:24px;height:24px;vertical-align:middle;margin-right:8px}
+.lin{display:flex;gap:10px;padding:7px 16px;font-size:17px;align-items:flex-start}.lin i{font-style:normal;font-size:22px;width:30px;flex:0 0 30px}.lin small{color:var(--mut);display:block;font-size:14px}
+h3{margin:14px 16px 4px;color:var(--azul);font-size:17px}
+.av{margin:10px 14px 0;padding:12px;border-radius:16px;background:#fdeeee;border:3px dashed #e88;font-size:16px;text-align:center;line-height:1.35}
+.av.am{background:#fff3cd;border-color:#e0b84a}.av.ok{background:#eaf8ef;border-color:#9fd8b6}
+.av b.t{font-size:19px;display:block}
+.fila2{display:flex;gap:8px;padding:8px 14px 0}.fila2 .op{margin:0;font-size:16px;padding:12px 6px}
+.seg{display:flex;gap:8px;padding:6px 14px}.seg button{flex:1;padding:15px 0;border-radius:16px;background:#fff;border:3px solid var(--gris);font-size:22px;font-weight:800;color:var(--azul);font-family:inherit}
+.seg .on{background:var(--azul);color:#fff;border-color:var(--azul)}
+.nota{font-size:14px;color:var(--mut);text-align:center;padding:10px 16px}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+(function(){
+var tg=window.Telegram&&window.Telegram.WebApp,D=null,F={};
+function $(i){return document.getElementById(i)}
+function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
+function vibra(t){try{if(t==='ok')tg.HapticFeedback.notificationOccurred('success');else if(t==='mal')tg.HapticFeedback.notificationOccurred('error');else tg.HapticFeedback.impactOccurred('medium')}catch(e){}}
+if(tg){try{tg.ready();tg.expand();if(tg.setHeaderColor)tg.setHeaderColor('#123a6b');if(tg.setBackgroundColor)tg.setBackgroundColor('#fff8ec')}catch(e){}}
+
+function pantalla(o){window.scrollTo(0,0);
+  var h='<div class="top">'+(o.atras?'<button class="atras" id="bAtras">↩</button>':'')+'<div><b>'+(o.tit||'Supervisor · '+esc(D.g))+'</b><small>'+(o.sub||('Hola, '+esc(D.nm)+' · datos de las '+esc(D.h)))+'</small></div></div>';
+  if(o.e||o.h1)h+='<div class="q">'+(o.e?'<div class="e">'+o.e+'</div>':'')+(o.h1?'<h1>'+o.h1+'</h1>':'')+(o.p?'<p>'+o.p+'</p>':'')+'</div>';
+  h+=o.html||'';
+  if(o.ops){h+='<div class="ops">';o.ops.forEach(function(b,i){h+='<button class="op '+(b[1]||'b')+(b[3]?' chico':'')+'" data-i="'+i+'">'+b[0]+(b[4]?'<span class="badge">'+b[4]+'</span>':'')+'</button>'});h+='</div>'}
+  if(o.nota)h+='<div class="nota">'+o.nota+'</div>';
+  $('app').innerHTML=h;
+  [].forEach.call(document.querySelectorAll('.op[data-i]'),function(el){el.onclick=function(){vibra();o.ops[+el.dataset.i][2]()}});
+  [].forEach.call(document.querySelectorAll('[data-f]'),function(el){el.onclick=function(){vibra();o.fn[el.dataset.f](el)}});
+  if(o.atras)$('bAtras').onclick=function(){vibra();o.atras()};
+}
+function alBot(d){pantalla({e:'📨',h1:'Enviando…',p:'Siga en el chat del bot.'});
+  try{if(!tg||!tg.sendData)throw 0;tg.sendData(JSON.stringify(d))}
+  catch(e){vibra('mal');pantalla({e:'⚠️',h1:'Ábralo desde el bot',p:'Toque <b>📱 ABRIR MI PANEL</b> en el menú de abajo del chat.'})}}
+
+// ------------------------------------------------------------ datos
+function lee(cb){var m=location.search.match(/[?&]z=([^&]+)/);if(!m)return cb(null);
+  var t=m[1].replace(/-/g,'+').replace(/_/g,'/');while(t.length%4)t+='=';
+  var b=atob(t),u=new Uint8Array(b.length);for(var i=0;i<b.length;i++)u[i]=b.charCodeAt(i);
+  if(!window.DecompressionStream)return cb(null,'Actualice Telegram o el teléfono para abrir el panel.');
+  new Response(new Blob([u]).stream().pipeThrough(new DecompressionStream('deflate'))).text().then(function(s){cb(JSON.parse(s))}).catch(function(){cb(null)})}
+function estadoEsc(x){var mal=x.ls==='cer'||x.ls==='no'||x.p.indexOf('m')>=0,am=x.ls==='nov'||x.cm||x.p.indexOf('f')>=0;return mal?'r':!x.ls?'n':am?'a':''}
+function chipsEsc(x){var l=x.l,s='';
+  s+=x.ls==='cer'?'📍🔒 cerrada':x.ls==='no'?'📍⛔ no llegó':l?'📍✅ '+l[0]:x.cm?'📍⬜ 🚧 problema en camino':'📍⬜ sin llegar';
+  x.p.forEach(function(e,i){s+=' · 📶'+(i+1)+' '+(e==='b'?'✅':e==='m'?'❌':e==='f'?'⏰':'⬜')});
+  return s+(x.e==='F'?' · 🔴 caído':'')}
+function notaEsc(x){var n=[];if(x.o)n.push(esc(x.o));
+  var i=x.p.indexOf('m');if(i>=0&&x.pd)n.push('prueba '+(i+1)+': '+esc(x.pd[i][2]||'con problema'));
+  else{i=x.p.indexOf('f');if(i>=0&&x.pd&&x.pd[i][1])n.push('prueba '+(i+1)+' atrasada '+esc(x.pd[i][1]))}
+  if(x.ls==='nov')n.push('llegó con novedades');if(x.cm)n.push('🚧 '+esc(x.cm[1]));return n.join(' · ')}
+function unicas(){var v={};return D.f.filter(function(x){if(v[x.c])return false;v[x.c]=1;return true})}
+function busca(c,pt){return D.f.filter(function(x){return x.c===c&&(!pt||x.pt===pt)})[0]}
+
+// ------------------------------------------------------------ 1 · inicio
+function inicio(){F={};
+  var atr=D.f.filter(function(x){return x.p.indexOf('f')>=0}).length;
+  pantalla({e:'🧑‍✈️📊',h1:'Así va tu grupo',p:'Datos de las <b>'+esc(D.h)+'</b>',
+    html:'<div class="kp"><div class="k v"><b>'+D.t.lleg+'/'+D.t.pts+'</b><span>📍 Llegaron</span></div><div class="k v"><b>'+D.t.oper+'</b><span>✅ Operativos</span></div>'
+      +'<div class="k '+(atr?'a':'v')+'"><b>'+atr+'</b><span>⏰ Pruebas atrasadas</span></div><div class="k '+(D.pr.length?'r':'v')+'"><b>'+D.pr.length+'</b><span>🚨 Con problemas</span></div></div>',
+    ops:[['🚨 PROBLEMAS','r',problemas,0,D.pr.length||''],['🏫 MIS ESCUELAS','b',function(){escuelas('todas')}],['📢 PEDIR PRUEBA','g',pedir],
+      ['📥 POR AUTORIZAR','a',autorizar,0,D.pa.length||''],['🛠️ REPORTAR DAÑO (TICKET)','n',function(){elegirDanio()},1],['🧪 VER COMO LO VE EL OPERADOR / ASISTENTE','n',function(){alBot({accion:'probar'})},1]],
+    nota:'Para ver datos nuevos, cierre y vuelva a tocar <b>📱 ABRIR MI PANEL</b>.'})}
+
+// ------------------------------------------------------------ 2 · mis escuelas
+function escuelas(fl){var filtros=[['todas','Todas'],['mal','🚨 Problemas'],['atr','⏰ Atrasadas'],['sin','⬜ Sin llegar']];
+  var l=D.f.filter(function(x){var e=estadoEsc(x);return fl==='todas'||(fl==='mal'&&e==='r')||(fl==='atr'&&x.p.indexOf('f')>=0)||(fl==='sin'&&!x.ls)});
+  var orden={r:0,a:1,n:2,'':3};l.sort(function(a,b){return orden[estadoEsc(a)]-orden[estadoEsc(b)]});
+  var h='<div class="fil">'+filtros.map(function(f){return '<button data-f="fil" data-v="'+f[0]+'" class="'+(f[0]===fl?'on':'')+'">'+f[1]+'</button>'}).join('')+'</div><div class="lista">';
+  l.forEach(function(x){h+='<button class="esc '+estadoEsc(x)+'" data-f="ver" data-c="'+x.c+'" data-p="'+x.pt+'"><b>'+esc(x.c)+(x.pt>1?' (punto '+x.pt+')':'')+' · '+esc(x.n)+'</b><div class="s">'+chipsEsc(x)+'</div><div class="m">'+(notaEsc(x)||'&nbsp;')+'</div></button>'});
+  if(!l.length)h+='<div class="av ok"><b class="t">✅ Nada por aquí</b></div>';
+  h+='</div>'+(D.mas?'<div class="nota">… y '+D.mas+' escuelas más que están bien.</div>':'');
+  pantalla({atras:inicio,tit:'🏫 Mis escuelas ('+D.t.pts+')',sub:'Toque una para ver todo',html:h,
+    fn:{fil:function(el){escuelas(el.dataset.v)},ver:function(el){escuela(el.dataset.c,+el.dataset.p,function(){escuelas(fl)})}}})}
+
+// ------------------------------------------------------------ 3 · una escuela
+var SN={si:'sí',no:'no'};
+function escuela(c,pt,volver){var x=busca(c,pt);if(!x)return inicio();var l=x.l,h='';
+  h+='<div class="q" style="padding-top:8px"><div class="e" style="font-size:46px">👤</div><h1 style="font-size:21px">'+esc(x.o||'Sin operador en la lista')+'</h1><p>'+(x.e==='F'?'🔴 El monitoreo lo marca CAÍDO':x.e==='A'?'🟢 El monitoreo lo marca ACTIVO':'')+'</p></div><h3>Hoy</h3>';
+  if(l&&l[8])h+='<div class="lin"><i>🚗</i><div>Salió '+esc(l[8])+(l[9]?' · '+esc(l[9])+' km':'')+'</div></div>';
+  if(x.cm)h+='<div class="lin"><i>🚧</i><div>'+esc(x.cm[0])+' · '+esc(x.cm[1])+(x.cm[2]?'<small>km '+esc(x.cm[2])+' de su ruta</small>':'')+'</div></div>';
+  if(x.ls==='no')h+='<div class="lin"><i>⛔</i><div>No pudo llegar '+esc(l[0])+'<small>'+esc(l[10])+'</small></div></div>';
+  else if(l)h+='<div class="lin"><i>'+(x.ls==='cer'?'🔒':'📍')+'</i><div>Llegó '+esc(l[0])+(l[1]!=null?' · a '+esc(l[1])+' m':'')+'<small>'
+    +(x.ls==='cer'?'ESCUELA CERRADA':'Abierta · acceso '+(l[3]==='no'?'⛔ difícil':'fácil')+' · inundación '+(l[4]==='si'?'⚠️ sí':'no')+' · corte en el sector '+(l[5]==='si'?'⚠️ sí':'no')
+    +' · luz en la escuela '+(l[6]==='no'?'⛔ NO':'sí')+' · equipos '+(l[7]==='si'?'prendidos':l[7]==='no/si'?'apagados → ya prendieron':l[7]==='no/no'?'⛔ NO prenden':'—'))+'</small></div></div>';
+  else h+='<div class="lin"><i>⬜</i><div>Todavía no llega</div></div>';
+  x.p.forEach(function(e,i){var d=(x.pd||[])[i]||['','',''];
+    h+='<div class="lin"><i>'+(e==='b'?'✅':e==='m'?'❌':e==='f'?'⏰':'⬜')+'</i><div>Prueba '+(i+1)+(d[0]?' · '+esc(d[0]):'')+(d[1]?' ('+esc(d[1])+')':'')
+      +'<small>'+(e==='b'?'Bien':e==='m'?esc(d[2]||'Con problema'):e==='f'?'Ya le tocaba y no la hace':'Todavía no le toca')+'</small></div></div>'});
+  var sig=x.p.indexOf('m')>=0?x.p.indexOf('m')+1:x.p.indexOf('f')>=0?x.p.indexOf('f')+1:Math.min(3,x.p.lastIndexOf('b')+2||1);
+  pantalla({atras:volver||inicio,tit:esc(x.c)+' · '+esc(x.n),sub:'Punto '+x.pt,html:h,
+    ops:[['📞 LLAMAR AL OPERADOR','g',function(){alBot({accion:'llamar',cod:x.c})}],['📷 VER LAS FOTOS','b',function(){alBot({accion:'fotos',cod:x.c})}],
+      ['📢 PEDIRLE LA PRUEBA '+sig,'a',function(){alBot({accion:'pedir',n:sig,cods:[x.c]})}],['🛠️ REPORTAR DAÑO (TICKET)','r',function(){danio(x.c,function(){escuela(c,pt,volver)})}]],
+    nota:'Teléfonos y fotos le llegan en el chat del bot.'})}
+
+// ------------------------------------------------------------ 4 · problemas
+function problemas(){var h='';
+  if(!D.pr.length)h='<div class="av ok"><b class="t">✅ Sin problemas</b>Todo su grupo va bien.</div>';
+  D.pr.forEach(function(p,i){var am=p[1]==='⚠️'||p[1]==='⏰'||p[1]==='🚧';
+    h+='<div class="av '+(am?'am':'')+'"><b class="t">'+p[1]+' '+esc(p[2])+'</b>'+esc(p[0])+' · '+esc(p[3])+'</div>'
+      +'<div class="fila2"><button class="op g" data-f="llamar" data-c="'+p[0]+'">📞 LLAMAR</button><button class="op b" data-f="ver" data-c="'+p[0]+'">🔎 VER</button>'
+      +(p[1]==='❌'?'<button class="op r" data-f="tk" data-c="'+p[0]+'">🛠️ TICKET</button>':'<button class="op n" data-f="ok" data-c="'+p[0]+'">✅ RESUELTO</button>')+'</div>'});
+  pantalla({atras:inicio,tit:'🚨 Problemas ('+D.pr.length+')',sub:'Lo más urgente primero',html:h+'<div style="height:10px"></div>',
+    fn:{llamar:function(el){alBot({accion:'llamar',cod:el.dataset.c})},ver:function(el){escuela(el.dataset.c,0,problemas)},
+        tk:function(el){danio(el.dataset.c,problemas)},ok:function(el){alBot({accion:'resuelto',cod:el.dataset.c})}}})}
+
+// ------------------------------------------------------------ 5 · pedir prueba
+function pedir(){F.n=F.n||1;F.cods=F.cods||null;
+  var ns=[1,2,3,D.nx],h='<div class="seg">'+ns.map(function(n,i){return '<button data-f="n" data-n="'+n+'" class="'+(F.n===n?'on':'')+'">'+(i===3?'➕'+n:n)+'</button>'}).join('')+'</div>';
+  var falta=D.f.filter(function(x){return x.p[Math.min(F.n,3)-1]!=='b'}).length;
+  h+='<h3>¿A quién?</h3>';
+  pantalla({atras:inicio,tit:'📢 Pedir prueba',sub:'Les llega el aviso al instante',e:'📢📶',h1:'¿Qué prueba?',p:'Horas normales: '+esc((D.hp||[]).join(', ')),html:h,
+    ops:[['👥 A TODO MI GRUPO<br><small style="font-weight:600">(los que no la han hecho'+(F.n<=3?': '+falta:'')+')</small>','b',function(){confirma('todo su grupo',null)}],
+      ['🏫 ELEGIR ESCUELAS','n',elegir]],fn:{n:function(el){F.n=+el.dataset.n;pedir()}}})}
+function elegir(){F.sel=F.sel||{};var h='<div class="lista">';
+  unicas().forEach(function(x){h+='<button class="esc '+estadoEsc(x)+'" data-f="t" data-c="'+x.c+'"><b>'+(F.sel[x.c]?'☑️':'⬜')+' '+esc(x.c)+' · '+esc(x.n)+'</b><div class="s">'+chipsEsc(x)+'</div></button>'});
+  var n=Object.keys(F.sel).length;
+  pantalla({atras:pedir,tit:'🏫 Elegir escuelas',sub:'Prueba '+F.n+' · toque para marcar',html:h+'</div>',
+    ops:n?[['✅ PEDIR A '+n+' ESCUELA'+(n>1?'S':''),'g',function(){confirma(n+' escuela(s)',Object.keys(F.sel))}]]:[],
+    fn:{t:function(el){var c=el.dataset.c;if(F.sel[c])delete F.sel[c];else F.sel[c]=1;var y=window.scrollY;elegir();window.scrollTo(0,y)}}})}
+function confirma(a,cods){pantalla({atras:pedir,tit:'📢 Pedir prueba',e:'📢',h1:'¿Pedir la PRUEBA '+F.n+' ahora?',p:'A '+esc(a)+'.',
+  ops:[['✅ SÍ, ENVIAR AHORA','g',function(){alBot({accion:'pedir',n:F.n,cods:cods||[]})}],['↩ No, volver','n',pedir,1]]})}
+
+// ------------------------------------------------------------ 6 · por autorizar
+var TIPO={fibra:'🧵 Fibra',equipo:'🖥️ Equipo',enlace:'📡 Enlace caído',otro:'❓ Otro'};
+function autorizar(){var h='';
+  if(!D.pa.length)h='<div class="av ok"><b class="t">✅ Nada por autorizar</b>Ningún operador reportó daños.</div>';
+  D.pa.forEach(function(p){h+='<div class="av am" style="text-align:left"><b>'+esc(p[0])+' · '+esc(p[1])+'</b><br>👤 '+esc(p[4])+': '+(TIPO[p[2]]||'')+(p[3]?' <i>«'+esc(p[3])+'»</i>':'')
+    +'<br>📡 El monitoreo marca: <b>'+esc(p[5]||'—')+'</b> · espera '+esc(p[6])+'</div>'
+    +'<div class="fila2"><button class="op g" data-f="a" data-v="si" data-c="'+p[0]+'">✅ CREAR</button><button class="op r" data-f="a" data-v="no" data-c="'+p[0]+'">❌ NO</button><button class="op n" data-f="a" data-v="lu" data-c="'+p[0]+'">⏸️ DESPUÉS</button></div>'});
+  pantalla({atras:inicio,tit:'📥 Por autorizar ('+D.pa.length+')',sub:'Daños que reportaron los operadores',e:D.pa.length?'🛠️🌐':'',h1:D.pa.length?'¿Se crea el ticket?':'',html:h+'<div style="height:10px"></div>',
+    fn:{a:function(el){alBot({accion:'autorizar',cod:el.dataset.c,val:el.dataset.v})}}})}
+
+// ------------------------------------------------------------ 🛠️ daño
+function elegirDanio(){var h='<div class="lista">';
+  unicas().forEach(function(x){h+='<button class="esc '+estadoEsc(x)+'" data-f="c" data-c="'+x.c+'"><b>'+esc(x.c)+' · '+esc(x.n)+'</b><div class="s">'+chipsEsc(x)+'</div></button>'});
+  pantalla({atras:inicio,tit:'🛠️ Reportar daño',sub:'¿En qué escuela?',html:h+'</div>',fn:{c:function(el){danio(el.dataset.c,elegirDanio)}}})}
+function danio(c,volver){var x=busca(c)||{n:''};
+  pantalla({atras:volver,tit:'🛠️ '+esc(c)+' · '+esc(x.n),sub:'El ticket se genera solo',e:'🛠️❓',h1:'¿Qué se dañó?',
+    ops:[['🧵 FIBRA','r',function(){danioOk(c,'fibra',volver)}],['🖥️ EQUIPO','r',function(){danioOk(c,'equipo',volver)}],['📡 ENLACE CAÍDO','a',function(){danioOk(c,'enlace',volver)}],['❓ OTRO','n',function(){danioOk(c,'otro',volver)}]]})}
+function danioOk(c,t,volver){pantalla({atras:function(){danio(c,volver)},tit:'🛠️ '+esc(c),e:'🎫',h1:'¿Generar el ticket?',p:esc(TIPO[t])+' en la escuela <b>'+esc(c)+'</b>.',
+  ops:[['✅ SÍ, GENERAR TICKET','g',function(){alBot({accion:'danio',cod:c,tipo:t})}],['↩ No, volver','n',function(){danio(c,volver)},1]]})}
+
+window.__sup={inicio:inicio};
+lee(function(d,err){if(!d){$('app').innerHTML='<div class="q" style="padding-top:60px"><div class="e">📱</div><h1>Abra el panel desde el bot</h1><p>'+(err||'En Telegram, toque <b>📱 ABRIR MI PANEL</b>.')+'</p></div>';return}D=d;inicio()});
+})();
+</script>
+</body>
+</html>
