@@ -1,0 +1,276 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Monitoreo CNE</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+:root{--fondo:#fff8ec;--azul:#123a6b;--txt:#1b2333;--mut:#5a6577;--verde:#2e9e5b;--rojo:#d64545;--ambar:#e39a19;--celeste:#2f80ed;--gris:#e2d6c0}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;min-height:100%;background:var(--fondo);color:var(--txt);font-family:-apple-system,"Segoe UI",Roboto,Arial,sans-serif}
+#app{min-height:100vh;display:flex;flex-direction:column;padding:0 0 calc(16px + env(safe-area-inset-bottom))}
+.top{background:var(--azul);color:#fff;padding:calc(12px + env(safe-area-inset-top)) 16px 12px;display:flex;align-items:center;gap:10px}
+.top .atras{font-size:26px;background:none;border:0;color:#fff;padding:0 6px 0 0}
+.top b{font-size:18px;line-height:1.2;display:block}.top small{font-size:13px;opacity:.85}
+.prog{display:flex;gap:5px;padding:14px 16px 2px}.prog i{flex:1;height:11px;border-radius:6px;background:#d9dee6}.prog i.on{background:var(--verde)}
+.paso{font-size:15px;font-weight:700;color:var(--azul);padding:4px 16px 0}
+.q{text-align:center;padding:14px 18px 6px}
+.q .e{font-size:92px;line-height:1.1}
+.q h1{font-size:29px;line-height:1.15;color:var(--azul);margin:10px 0 6px}
+.q p{font-size:18px;color:var(--mut);margin:0;line-height:1.35}
+.ops{padding:6px 16px 0}
+.op{display:block;width:100%;border:0;border-radius:22px;padding:22px 14px;margin:0 0 14px;color:#fff;font-size:24px;font-weight:800;line-height:1.2;
+  box-shadow:0 6px 0 rgba(0,0,0,.2);text-align:center;font-family:inherit}
+.op:active{transform:translateY(4px);box-shadow:0 2px 0 rgba(0,0,0,.2)}
+.op.g{background:var(--verde)}.op.r{background:var(--rojo)}.op.a{background:var(--ambar)}.op.b{background:var(--celeste)}.op.n{background:#5b6b82}
+.op.chico{font-size:19px;padding:15px 12px}
+.estado{display:flex;justify-content:center;gap:8px;flex-wrap:wrap;padding:12px 16px 0}
+.chip{background:#fff;border:3px solid var(--gris);border-radius:16px;padding:8px 12px;font-size:17px;font-weight:700}
+.chip.ok{border-color:#9fd8b6;background:#eaf8ef}.chip.mal{border-color:#f0b0b0;background:#fdeeee}
+.aviso{margin:12px 16px 0;padding:14px;border-radius:18px;background:#fff3cd;border:3px dashed #e0b84a;font-size:18px;line-height:1.35;text-align:center}
+.aviso.mal{background:#fdeeee;border-color:#e88}
+.grande{font-size:44px;font-weight:900;color:var(--azul);text-align:center;margin:4px 0}
+.cam{position:fixed;inset:0;background:#000;display:flex;flex-direction:column;z-index:9}
+.cam video,.cam img{flex:1;width:100%;object-fit:contain;min-height:0}
+.cam .barra{display:flex;gap:12px;justify-content:center;align-items:center;padding:16px 16px calc(18px + env(safe-area-inset-bottom));background:#000}
+.disparo{width:92px;height:92px;border-radius:50%;border:8px solid #fff;background:#ffffff33}
+.disparo:active{background:#ffffffaa}
+.cam .op{margin:0;flex:1}
+.cam .tit{color:#fff;text-align:center;font-size:20px;font-weight:700;padding:calc(12px + env(safe-area-inset-top)) 12px 8px}
+.girar{display:inline-block;animation:g 1.2s linear infinite}@keyframes g{to{transform:rotate(360deg)}}
+.oculto{display:none!important}
+.sup{font-size:22px;text-align:center;line-height:1.5;padding:10px 16px}.sup a{color:var(--celeste);font-weight:800;font-size:28px;text-decoration:none}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div id="cam" class="cam oculto"><div class="tit" id="camTit"></div><video id="vid" playsinline muted autoplay></video><img id="prev" class="oculto" alt="">
+  <div class="barra" id="bTomar"><button class="op n chico" id="camCancel" style="flex:0 0 90px">✕</button><button class="disparo" id="disparo" aria-label="Tomar foto"></button><span style="flex:0 0 90px"></span></div>
+  <div class="barra oculto" id="bRev"><button class="op n" id="repetir">🔄 Otra vez</button><button class="op g" id="usar">✅ Usar foto</button></div>
+</div>
+<input id="archivo" type="file" accept="image/*" capture="environment" class="oculto">
+<canvas id="cv" class="oculto"></canvas>
+<script>
+(function(){
+var tg=window.Telegram&&window.Telegram.WebApp, initData=tg?tg.initData:'';
+var E=null, F={};   // E = estado del servidor, F = flujo en curso
+var S0=(location.search.match(/[?&]s=([^&]+)/)||[])[1], BOT=!!S0;   // BOT = página fija (GitHub): sin servidor, responde por Telegram
+function leerS(t){t=t.replace(/-/g,'+').replace(/_/g,'/');while(t.length%4)t+='=';var b=atob(t),u=new Uint8Array(b.length);for(var i=0;i<b.length;i++)u[i]=b.charCodeAt(i);
+  var d=JSON.parse(new TextDecoder().decode(u));
+  return {nombre:d.nm,demo:!!d.dm,codigo:d.c,escuela:d.e,que:d.q,n:d.k,capacitacion:!!d.cap,co:d.co,lim:d.lim,t:d.t,
+    pruebas:(d.p||[]).map(function(x){return {n:x[0],hora:x[1],pedida:!!x[2],estado:x[3]==='b'?'bien':x[3]==='m'?'mal':''}}),
+    llegada:d.l?{hora:d.l[0],llego:!!d.l[1],abierta:!!d.l[2]}:null,viaje:{activo:d.q==='viaje'},supervisores:[],quien:''}}
+function metros(a,b,c,d){var R=6371000,r=Math.PI/180,x=Math.sin((c-a)*r/2),y=Math.sin((d-b)*r/2);return 2*R*Math.asin(Math.sqrt(x*x+Math.cos(a*r)*Math.cos(c*r)*y*y))}
+function alBot(d){   // manda las respuestas al chat del bot y se cierra la app
+  pantalla({e:'📨',h1:'Enviando…',p:'Siga en el chat del bot.'});
+  try{if(!tg||!tg.sendData)throw 0;tg.sendData(JSON.stringify(d))}
+  catch(e){error('Abra esta pantalla con el botón 📱 ABRIR MI MONITOREO de abajo del chat.',function(){alBot(d)})}
+  return new Promise(function(){})}
+function $(i){return document.getElementById(i)}
+function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
+function km(m){return m==null?'':(m>=1000?(m/1000).toFixed(1).replace('.',',')+' km':Math.round(m)+' m')}
+function vibra(t){try{if(t==='ok')tg.HapticFeedback.notificationOccurred('success');else if(t==='mal')tg.HapticFeedback.notificationOccurred('error');else tg.HapticFeedback.impactOccurred('heavy')}catch(e){}}
+function pad(n){return (n<10?'0':'')+n}
+function ahora(){var d=new Date();return pad(d.getDate())+'/'+pad(d.getMonth()+1)+'/'+d.getFullYear()+' '+pad(d.getHours())+':'+pad(d.getMinutes())}
+if(tg){try{tg.ready();tg.expand();if(tg.disableVerticalSwipes)tg.disableVerticalSwipes();if(tg.setHeaderColor)tg.setHeaderColor('#123a6b');if(tg.setBackgroundColor)tg.setBackgroundColor('#fff8ec')}catch(e){}}
+
+function api(url,cuerpo,tipo){return fetch(url,{method:'POST',headers:{'X-Init-Data':initData,'Content-Type':tipo||'application/json'},body:tipo?cuerpo:JSON.stringify(cuerpo||{})})
+  .then(function(r){return r.json().then(function(j){if(!r.ok)throw new Error(j.error||('Error '+r.status));return j})})}
+function accion(d){
+  if(!BOT)return api('/tg/app/accion',d);
+  if(d.accion==='ubic'){F.u={lat:d.lat,lon:d.lon,acc:d.acc};
+    if(!E.co||E.demo)return Promise.resolve({ok:true,distancia_m:null});
+    var m=Math.round(metros(E.co[0],E.co[1],d.lat,d.lon)),ok=m-Math.min(d.acc||0,50)<=E.lim;
+    return Promise.resolve({ok:ok,distancia_m:m,error:ok?'':'Está a '+km(m)+' de '+(E.capacitacion?'el CPE':'su recinto')+'. Debe estar a '+E.lim+' m o menos.'})}
+  if(d.accion==='llegada'||d.accion==='prueba'){if(F.u&&d.lat==null){d.lat=F.u.lat;d.lon=F.u.lon;d.acc=F.u.acc}}
+  return alBot(d)}
+
+// ------------------------------------------------------------------ pantallas
+var pilaAtras=[];
+function pantalla(o){   // o: {atras, titulo, paso:[i,n], e, h1, p, ops:[[texto,color,fn]], extra, aviso, avisoMal}
+  window.scrollTo(0,0);
+  var h='<div class="top">'+(o.atras?'<button class="atras" id="bAtras">↩</button>':'')+'<div><b>'+esc(E?E.codigo+' · '+E.escuela:'Monitoreo CNE')+'</b><small>'+esc(o.titulo||'Monitoreo CNE')+(E&&E.demo?' · 🧪 PRUEBA':'')+'</small></div></div>';
+  if(o.paso&&BOT){var mp=o.paso[1]===10?{1:1,3:2,4:3,5:4,6:5,8:6,9:7}:{1:1,2:2};o.paso=[mp[o.paso[0]]||o.paso[0],o.paso[1]===10?8:3]}
+  if(o.paso){h+='<div class="prog">';for(var i=0;i<o.paso[1];i++)h+='<i class="'+(i<o.paso[0]?'on':'')+'"></i>';h+='</div><div class="paso">Paso '+o.paso[0]+' de '+o.paso[1]+'</div>'}
+  h+='<div class="q"><div class="e">'+o.e+'</div>'+(o.h1?'<h1>'+o.h1+'</h1>':'')+(o.p?'<p>'+o.p+'</p>':'')+'</div>'+(o.extra||'');
+  if(o.aviso)h+='<div class="aviso'+(o.avisoMal?' mal':'')+'">'+o.aviso+'</div>';
+  h+='<div class="ops">';(o.ops||[]).forEach(function(b,i){h+='<button class="op '+(b[1]||'b')+(b[3]?' chico':'')+'" data-i="'+i+'">'+b[0]+'</button>'});h+='</div>';
+  $('app').innerHTML=h;
+  [].forEach.call(document.querySelectorAll('.op[data-i]'),function(el){el.onclick=function(){vibra();var b=o.ops[+el.dataset.i];el.disabled=true;setTimeout(function(){el.disabled=false},900);b[2]()}});
+  if(o.atras&&$('bAtras'))$('bAtras').onclick=function(){vibra();o.atras()};
+}
+function cargando(t){pantalla({e:'<span class="girar">⏳</span>',h1:t||'Un momento…'})}
+function error(t,reintentar){vibra('mal');pantalla({e:'⚠️',h1:'No se pudo',p:esc(t),ops:[['🔄 Intentar otra vez','b',reintentar||inicio],['🏠 Volver al inicio','n',inicio,1]]})}
+
+// ------------------------------------------------------------------ inicio
+function inicio(){
+  F={};pararViaje();
+  if(BOT){try{E=leerS(S0)}catch(e){return pantalla({e:'📱',h1:'Abra esta pantalla desde el bot',p:'En Telegram, toque <b>📱 ABRIR MI MONITOREO</b>.'})}return home()}
+  cargando('Cargando…');
+  api('/tg/app/estado',{}).then(function(j){E=j;home()}).catch(function(e){
+    if(!tg||!initData){pantalla({e:'📱',h1:'Abra esta pantalla desde el bot',p:'En Telegram, toque <b>📱 ABRIR MI MONITOREO</b>.'});return}
+    error(e.message)})
+}
+function chips(){var h='<div class="estado">';var l=E.llegada;
+  h+='<span class="chip '+(l&&l.llego&&l.abierta?'ok':l?'mal':'')+'">📍 '+(l?(l.llego?(l.abierta?l.hora:'🔒'):'⛔'):'⬜')+'</span>';
+  E.pruebas.forEach(function(p){h+='<span class="chip '+(p.estado==='bien'?'ok':p.estado==='mal'?'mal':'')+'">📶'+p.n+' '+(p.estado==='bien'?'✅':p.estado==='mal'?'❌':'⬜')+'</span>'});
+  return h+'</div>'}
+function home(){
+  var q=E.que,n=E.n,ops=[],o={titulo:'Hola, '+E.nombre,extra:chips()};
+  var p=E.pruebas.filter(function(x){return x.n===n})[0]||{};
+  if(q==='salgo'){o.e='🌅';o.h1='¡Buenos días!';o.p='¿Ya sale para su trabajo?';ops=[['▶️ INICIAR MI DÍA','g',destino],['📍 YA ESTOY EN MI RECINTO','b',llegada]]}
+  else if(q==='viaje'){if(!BOT)return viaje();o.e='🚗';o.h1='Va en camino';o.p='Use el <b>botón azul</b> del chat para decir dónde está.';
+    ops=[['🏁 YA LLEGUÉ','g',llegada],['⚠️ PROBLEMA EN EL CAMINO','a',camino],['⛔ NO PUEDO LLEGAR','r',function(){noLlego()}]]}
+  else if(q==='salgo_rec'){o.e='🏢';o.h1='Está en el CPE';o.p='Cuando salga hacia su recinto, toque el botón.';ops=[['🚗 YA SALGO A MI RECINTO','g',function(){elegirDestino('recinto')}]]}
+  else if(q==='llegada'){o.e='🏫';o.h1='¿Ya llegó a su recinto?';ops=[['📍 YA ESTOY EN MI RECINTO','g',llegada],['⛔ NO PUEDO LLEGAR','r',noLlego]]}
+  else if(q==='reabrio'){o.e='🔒';o.h1='La escuela estaba cerrada';o.p='Cuando la abran, toque el botón.';ops=[['🔓 YA ABRIERON LA ESCUELA','g',llegada]]}
+  else if(q==='prueba'){o.e='📶';o.h1='Prueba de conexión '+n;o.p=p.hora?(p.pedida?'Su supervisor la pidió a las <b>'+p.hora+'</b>':'Le toca a las <b>'+p.hora+'</b>'):'';ops=[['📶 HACER LA PRUEBA '+n,'g',function(){prueba(n)}]]}
+  else if(q==='repetir'){o.e='🔁';o.h1='La prueba '+n+' salió mal';o.p='Apague el equipo, espere 30 segundos y préndalo. Luego repita.';ops=[['🔁 REPETIR LA PRUEBA '+n,'a',function(){prueba(n)}]]}
+  else {o.e='🎉';o.h1='¡Listo por hoy!';o.p='Muchas gracias por su trabajo.'}
+  ops.push(['📞 MI SUPERVISOR','n',supervisor,1]);o.ops=ops;pantalla(o)}
+function supervisor(){if(BOT)return alBot({accion:'supervisor'});var s=E.supervisores||[];pantalla({atras:home,e:'📞',h1:'Su supervisor',
+  extra:'<div class="sup">'+(s.length?s.map(function(x){return esc(x.nombre)+'<br><a href="tel:'+esc(x.celular)+'">'+esc(x.celular)+'</a>'}).join('<br><br>'):'No está registrado. Pregunte en la Delegación.')+'</div>',
+  ops:[['🏠 VOLVER','n',home]]})}
+
+// ------------------------------------------------------------------ ubicación (Telegram o el teléfono)
+function ubicacion(){return new Promise(function(ok,mal){
+  var lm=tg&&tg.LocationManager&&tg.isVersionAtLeast&&tg.isVersionAtLeast('8.0')?tg.LocationManager:null;
+  function porNavegador(){if(!navigator.geolocation)return mal(new Error('Este teléfono no da la ubicación.'));
+    navigator.geolocation.getCurrentPosition(function(p){ok({lat:p.coords.latitude,lon:p.coords.longitude,acc:p.coords.accuracy})},
+      function(e){mal(new Error(e.code===1?'permiso':'No se pudo saber dónde está. Encienda el GPS.'))},{enableHighAccuracy:true,timeout:25000,maximumAge:0})}
+  if(!lm)return porNavegador();
+  lm.init(function(){if(!lm.isLocationAvailable)return porNavegador();
+    lm.getLocation(function(d){if(!d){return mal(new Error('permiso'))}ok({lat:d.latitude,lon:d.longitude,acc:d.horizontal_accuracy})})})})}
+function sinUbicacion(e,reintentar){vibra('mal');
+  if(e.message==='permiso'){pantalla({atras:home,e:'📍🚫',h1:'Falta el permiso de ubicación',p:'Toque el botón y elija <b>Permitir</b>.',
+    ops:[['🔄 DAR PERMISO','b',function(){try{if(tg.LocationManager&&tg.LocationManager.openSettings)tg.LocationManager.openSettings()}catch(x){}reintentar()}],['🏠 Volver','n',home,1]]});return}
+  pantalla({atras:home,e:'🛰️',h1:'Encienda el GPS',p:esc(e.message),ops:[['🔄 INTENTAR OTRA VEZ','b',reintentar],['🏠 Volver','n',home,1]]})}
+
+// ------------------------------------------------------------------ 🚗 viaje
+var reloj=null;
+function pararViaje(){if(reloj){clearInterval(reloj);reloj=null}}
+function destino(){pantalla({atras:home,e:'🚗❓',h1:'¿A dónde va AHORA?',ops:[['🏫 A MI RECINTO','g',function(){elegirDestino('recinto')}],['🏢 AL CPE (Delegación)','b',function(){elegirDestino('cpe')}]]})}
+function elegirDestino(d){cargando('Un momento…');accion({accion:'destino',destino:d}).then(function(){E.viaje={activo:true,destino:d};viaje(true)}).catch(function(e){error(e.message)})}
+function viaje(primero){
+  pantalla({e:'<span class="girar">📍</span>',h1:'Buscando dónde está…',p:'Si el teléfono pregunta, toque <b>Permitir</b>.'});
+  var tomar=function(){ubicacion().then(function(u){return accion({accion:'punto',lat:u.lat,lon:u.lon,acc:u.acc}).then(function(r){
+      if(r.llego){pararViaje();vibra('ok');pantalla({e:'🎉',h1:'¡Llegó!',p:'Ahora unas preguntas rápidas.'});setTimeout(function(){llegada(u)},1500);return}
+      if(r.llego_cpe){pararViaje();vibra('ok');E.que='salgo_rec';pantalla({e:'🏢🎉',h1:'¡Llegó al CPE!',ops:[['🏠 CONTINUAR','g',inicio]]});return}
+      if(r.cerca){vibra();return cerca(u,r.falta_m)}
+      enCamino(r.falta_m,r.nombre)})}).catch(function(e){if(!reloj)sinUbicacion(e,function(){viaje()})})};
+  tomar();pararViaje();reloj=setInterval(tomar,60000)}
+function enCamino(falta,nombre){
+  if(F.problema)return;
+  pantalla({titulo:'En camino',e:'🚗',extra:falta!=null?'<div class="grande">Faltan '+km(falta)+'</div><p style="text-align:center;font-size:18px;color:#5a6577;margin:0 16px">para llegar a '+esc(nombre||'su recinto')+'<br>Deje esta pantalla abierta: se actualiza sola.</p>':'',
+    ops:[['🏁 YA LLEGUÉ','g',function(){viaje()}],['⚠️ PROBLEMA EN EL CAMINO','a',camino],['🏠 Inicio','n',inicio,1]]})}
+function cerca(u,falta){F.problema=true;pantalla({e:'🚗🏫',h1:'Ya está CERCA',p:'Le faltan <b>'+km(falta)+'</b>. ¿Cómo está el camino?',ops:[
+  ['✅ TODO BIEN, YA LLEGO','g',function(){F.problema=false;enCamino(falta)}],
+  ['🌊 ESTÁ INUNDADO','r',function(){avisarCamino('inundacion',u,true)}],
+  ['🚧 DIFÍCIL ACCESO','a',function(){avisarCamino('acceso',u,true)}],
+  ['⛔ NO PUEDO LLEGAR','r',function(){noLlego(u)}]]})}
+function camino(){F.problema=true;pantalla({atras:function(){F.problema=false;inicio()},e:'⚠️🚗',h1:'¿Qué pasa en el camino?',ops:[
+  ['🌊 INUNDACIÓN','r',function(){avisarCamino('inundacion')}],['🚧 DIFÍCIL ACCESO','a',function(){avisarCamino('acceso')}],
+  ['⛔ NO SE PUEDE PASAR','r',function(){avisarCamino('paso')}],['💡 CORTE DE LUZ','a',function(){avisarCamino('luz')}],['📝 OTRO','b',function(){avisarCamino('otro')}]]})}
+function avisarCamino(tipo,u,preguntarIgual){
+  var seguir=function(u){if(BOT)return enviar(u);pantalla({e:'📷',h1:'¿Puede tomar una foto?',p:'Solo si es seguro.',ops:[
+    ['📷 TOMAR FOTO','b',function(){camara('camino','PROBLEMA EN EL CAMINO',function(){enviar(u)})}],['⏭️ SIN FOTO','n',function(){enviar(u)}]]})};
+  var enviar=function(u){cargando('Avisando a su supervisor…');accion({accion:'camino',tipo:tipo,lat:u&&u.lat,lon:u&&u.lon}).then(function(){vibra('ok');
+    if(preguntarIgual)return pantalla({e:'🤔🚗',h1:'¿Puede LLEGAR igual?',p:'Ya se avisó a su supervisor.',ops:[['✅ SÍ, SIGO','g',function(){F.problema=false;viaje()}],['⛔ NO PUEDO LLEGAR','r',function(){noLlego(u,tipo)}]]});
+    pantalla({e:'📨',h1:'Su supervisor ya sabe',p:'Cuídese. Si puede seguir, continúe.',ops:[['🚗 SEGUIR','g',function(){F.problema=false;viaje()}],['⛔ NO PUEDO LLEGAR','r',function(){noLlego(u,tipo)}]]})}).catch(function(e){error(e.message)})};
+  if(u)return seguir(u);cargando('Marcando el lugar…');ubicacion().then(seguir).catch(function(){seguir(null)})}
+function noLlego(u,motivo){pararViaje();
+  var mandar=function(m){cargando('Avisando a su supervisor…');accion({accion:'llegada',llegada:'no',problemas:[m],lat:u&&u.lat,lon:u&&u.lon}).then(function(){vibra('ok');
+    pantalla({e:'📞',h1:'Su supervisor ya sabe',p:'Por favor <b>comuníquese con su supervisor o administrador</b>.',extra:supTxt(),ops:[['🏠 INICIO','n',inicio]]})}).catch(function(e){error(e.message)})};
+  var mot={inundacion:'lluvia',acceso:'camino'}[motivo];if(mot)return mandar(mot);
+  pantalla({atras:inicio,e:'⛔🚗',h1:'¿Por qué NO puede llegar?',ops:[['🚓 INSEGURIDAD','r',function(){mandar('inseguridad')}],['🌊 LLUVIA O INUNDACIÓN','r',function(){mandar('lluvia')}],
+    ['🚧 CAMINO CERRADO / SIN TRANSPORTE','a',function(){mandar('camino')}],['📝 OTRO','b',function(){mandar('otro')}]]})}
+function supTxt(){var s=(E&&E.supervisores)||[];return s.length?'<div class="sup">'+s.map(function(x){return esc(x.nombre)+'<br><a href="tel:'+esc(x.celular)+'">'+esc(x.celular)+'</a>'}).join('<br>')+'</div>':''}
+
+// ------------------------------------------------------------------ 📍 llegada
+function llegada(u){pararViaje();F={tipo:'llegada',check:{}};
+  var validar=function(u){cargando('Revisando que esté en su recinto…');accion({accion:'ubic',para:'llegada',lat:u.lat,lon:u.lon,acc:u.acc}).then(function(r){
+    if(!r.ok){vibra('mal');return pantalla({atras:inicio,e:'📍⛔',h1:'Todavía no está en su recinto',p:esc(r.error),ops:[['🔄 YA ESTOY, PROBAR OTRA VEZ','b',function(){llegada()}],['⛔ NO PUEDO LLEGAR','r',function(){noLlego(u)}]]})}
+    F.dist=r.distancia_m;vibra('ok');BOT?pregunta(0):fotoEntrada()}).catch(function(e){error(e.message)})};
+  if(u)return validar(u);
+  pantalla({paso:[1,10],e:'<span class="girar">📍</span>',h1:'Buscando dónde está…',p:'Si el teléfono pregunta, toque <b>Permitir</b>.'});
+  ubicacion().then(validar).catch(function(e){sinUbicacion(e,function(){llegada()})})}
+function fotoEntrada(){pantalla({paso:[2,10],e:'📷🏫',h1:'Foto de la ENTRADA',p:'Que se vea el lugar.',ops:[['📷 TOMAR LA FOTO','b',function(){camara('llegada','LLEGADA',function(){pregunta(0)})}]]})}
+var PREG=[['abierta','🏫','¿La escuela está ABIERTA?','Mire la puerta principal',[['✅ SÍ, ESTÁ ABIERTA','g','si'],['🔒 NO, ESTÁ CERRADA','r','no']]],
+  ['acceso','🚪🚶','¿Hay FÁCIL ACCESO para entrar?','',[['✅ SÍ, FÁCIL ACCESO','g','si'],['⛔ NO, ES DIFÍCIL','r','no']]],
+  ['inundacion','🌊','¿Hay INUNDACIÓN?','',[['✅ NO HAY INUNDACIÓN','g','no'],['🌊 SÍ HAY INUNDACIÓN','r','si']]],
+  ['corte','🏘️💡','¿Hay CORTE DE LUZ en el sector?','Afuera, en el barrio',[['✅ NO, HAY LUZ','g','no'],['🕯️ SÍ, HAY CORTE','r','si']]]];
+function pregunta(i){var P=PREG[i];pantalla({atras:i?function(){pregunta(i-1)}:(BOT?inicio:fotoEntrada),paso:[3+i,10],e:P[1],h1:P[2],p:P[3],
+  ops:P[4].map(function(b){return [b[0],b[1],function(){F.check[P[0]]=b[2];
+    if(P[0]==='abierta'&&b[2]==='no')return mandarLlegada();
+    if(i<PREG.length-1)return pregunta(i+1);militares()}]})})}
+function militares(){if(BOT)return equipos();pantalla({atras:function(){pregunta(PREG.length-1)},paso:[7,10],e:'🪖📦',h1:'Foto con los MILITARES',p:'Busque a los militares y tome una foto recibiendo el equipo.',
+  ops:[['📷 TOMAR LA FOTO','b',function(){camara('militares','ENTREGA DEL EQUIPO (MILITARES)',equipos)}]]})}
+function equipos(){pantalla({atras:BOT?function(){pregunta(PREG.length-1)}:militares,paso:[8,10],e:'🚶➡️🖥️',h1:'¿Los EQUIPOS están prendidos?',p:'Vaya a donde están los equipos.',
+  ops:[['🟢 PRENDIDOS','g',function(){F.equipos='si';F.prendieron='';luz()}],['⚫ APAGADOS','r',function(){F.equipos='no';prender()}]]})}
+function prender(){pantalla({atras:equipos,paso:[8,10],e:'🔌👆',h1:'Préndalos ahora',p:'Botón de encendido. Espere un momento.',
+  ops:[['🟢 SÍ, YA PRENDIERON','g',function(){F.prendieron='si';luz()}],['⛔ NO PRENDEN','r',function(){F.prendieron='no';luz()}]]})}
+function luz(){pantalla({atras:equipos,paso:[9,10],e:'🏫💡',h1:'¿La ESCUELA tiene luz?',p:'Aunque el barrio no tenga, la escuela puede tener.',
+  ops:[['💡 SÍ TIENE LUZ','g',function(){F.luz='si';fotoPunto()}],['🕯️ NO TIENE LUZ','r',function(){F.luz='no';fotoPunto()}]]})}
+function fotoPunto(){if(BOT)return mandarLlegada();pantalla({atras:luz,paso:[10,10],e:'🖥️📷',h1:'Foto del PUNTO',p:'Que se vean los equipos.',ops:[['📷 TOMAR LA FOTO','b',function(){camara('punto','PUNTO OPERATIVO',mandarLlegada)}]]})}
+function mandarLlegada(){cargando('Enviando…');accion({accion:'llegada',llegada:'si',check:F.check,equipos:F.equipos,prendieron:F.prendieron,luz:F.luz}).then(function(r){
+  if(r.resultado==='cerrada'){vibra('mal');return pantalla({e:'🔒📞',h1:'Escuela CERRADA',p:'Ya se avisó a su supervisor. Por favor <b>comuníquese con su supervisor o administrador</b>.',extra:supTxt(),ops:[['🏠 INICIO','n',inicio]]})}
+  vibra('ok');pantalla({e:r.resultado==='operativo'?'✅🎉':'⚠️',h1:r.resultado==='operativo'?'¡PUNTO OPERATIVO!':'Llegada guardada',
+    p:r.resultado==='operativo'?'Ya no tiene que hacer nada hasta la <b>prueba de conexión 1</b>.':'Su supervisor ya fue avisado y le dirá qué hacer.',ops:[['🏠 LISTO','g',inicio]]})})
+  .catch(function(e){error(e.message,mandarLlegada)})}
+
+// ------------------------------------------------------------------ 📶 prueba
+function prueba(n){F={tipo:'prueba',n:n};
+  pantalla({paso:[1,3],titulo:'Prueba '+n,e:'<span class="girar">📍</span>',h1:'¿Está en el punto?',p:'Revisando su ubicación…'});
+  ubicacion().then(function(u){return accion({accion:'ubic',para:'prueba',lat:u.lat,lon:u.lon,acc:u.acc}).then(function(r){
+    if(!r.ok){vibra('mal');return pantalla({atras:inicio,e:'📍⛔',h1:'No está en el punto',p:esc(r.error)+'<br>La prueba se hace en el punto.',ops:[['🔄 PROBAR OTRA VEZ','b',function(){prueba(n)}],['🏠 Inicio','n',inicio,1]]})}
+    F.dist=r.distancia_m;pantallaPrueba()})}).catch(function(e){sinUbicacion(e,function(){prueba(n)})})}
+function pantallaPrueba(){pantalla({atras:inicio,paso:[2,3],titulo:'Prueba '+F.n,e:'💻👀',h1:'¿Qué salió en la PANTALLA?',p:'Haga la prueba en el equipo y toque el mismo mensaje.',ops:[
+  ['✅ «Test realizado con éxito»','g',function(){F.test='ok';fotoPantalla()}],['⚠️ «Su usuario ya realizó el test»','a',function(){F.test='ya';fotoPantalla()}],
+  ['⛔ «El servidor rechazó la solicitud»','r',function(){F.test='rechazo';fotoPantalla()}],['❌ NO HAY INTERNET / NO ABRE','r',function(){F.test='sin';fotoPantalla()}],
+  ['〰️ MUY LENTO O SE CORTA','a',function(){F.test='lento';fotoPantalla()}]]})}
+function fotoPantalla(){if(BOT)return F.test==='sin'||F.test==='lento'?equipoMal():mandarPrueba();pantalla({atras:pantallaPrueba,paso:[3,3],titulo:'Prueba '+F.n,e:'📷💻',h1:'Foto de la PANTALLA',p:'Que se lea el mensaje.',
+  ops:[['📷 TOMAR LA FOTO','b',function(){camara('prueba','PRUEBA DE CONEXIÓN '+F.n,function(){F.test==='sin'||F.test==='lento'?equipoMal():mandarPrueba()})}]]})}
+function equipoMal(){pantalla({atras:BOT?pantallaPrueba:fotoPantalla,titulo:'Prueba '+F.n,e:'🔎🖥️',h1:'¿Cómo está el EQUIPO?',ops:[
+  ['🔌 NO PRENDE','r',function(){F.causa='noenciende';mandarPrueba()}],['🔴 PRENDE PERO SIN INTERNET','r',function(){F.causa='rojo';mandarPrueba()}],
+  ['💡 NO HAY LUZ EN LA ESCUELA','a',function(){F.causa='sinluz';mandarPrueba()}],['❓ NO SÉ','b',function(){F.causa='nosabe';mandarPrueba()}]]})}
+function mandarPrueba(){cargando('Enviando…');accion({accion:'prueba',n:F.n,test_msg:F.test,causa:F.causa||''}).then(function(r){
+  if(r.resultado==='bien'){vibra('ok');return pantalla({e:'✅📶',h1:'¡Prueba '+r.n+' lista!',p:esc(r.atraso||''),ops:[['🏠 LISTO','g',inicio]]})}
+  vibra('mal');pantalla({e:'📨🔧',h1:'Su supervisor ya sabe',p:'Apague el equipo, espere <b>30 segundos</b>, préndalo y repita la prueba.',ops:[['🏠 LISTO','g',inicio]]})})
+  .catch(function(e){error(e.message,mandarPrueba)})}
+
+// ------------------------------------------------------------------ 📷 cámara (en vivo; si no, la del teléfono)
+var stream=null,blob=null,camCfg=null;
+function camara(parte,titulo,luego){camCfg={parte:parte,titulo:titulo,luego:luego};blob=null;
+  $('camTit').textContent='📷 '+titulo;$('cam').classList.remove('oculto');$('prev').classList.add('oculto');$('vid').classList.remove('oculto');
+  $('bTomar').classList.remove('oculto');$('bRev').classList.add('oculto');
+  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia)return camaraTelefono();
+  navigator.mediaDevices.getUserMedia({audio:false,video:{facingMode:{ideal:'environment'},width:{ideal:1920},height:{ideal:1080}}})
+   .then(function(s){stream=s;$('vid').srcObject=s;var p=$('vid').play();if(p&&p.catch)p.catch(function(){})})
+   .catch(function(){navigator.mediaDevices.getUserMedia({video:true}).then(function(s){stream=s;$('vid').srcObject=s}).catch(camaraTelefono)})}
+function cerrarCam(){if(stream){stream.getTracks().forEach(function(t){t.stop()});stream=null}$('cam').classList.add('oculto')}
+function camaraTelefono(){cerrarCam();$('archivo').value='';$('archivo').click()}
+$('archivo').onchange=function(e){var f=e.target.files&&e.target.files[0];if(!f)return;
+  if(Date.now()-(f.lastModified||Date.now())>5*60*1000){return error('Esa foto es vieja (de la galería). Tome una foto NUEVA.',function(){camara(camCfg.parte,camCfg.titulo,camCfg.luego)})}
+  var img=new Image();img.onload=function(){$('cam').classList.remove('oculto');procesar(img,img.naturalWidth,img.naturalHeight)};img.src=URL.createObjectURL(f)};
+function marca(ctx,w,h){var l=['CNE · MONITOREO TÉCNICO 2027 · foto en el sitio',E.codigo+' · '+E.escuela,camCfg.titulo+' · '+ahora(),E.quien+(F.dist!=null?' · a '+F.dist+' m':'')];
+  var fs=Math.max(16,Math.round(w/50)),alto=fs*1.35*l.length+fs;ctx.fillStyle='rgba(0,0,0,0.62)';ctx.fillRect(0,h-alto,w,alto);
+  ctx.fillStyle='#fff';ctx.font='bold '+fs+'px Arial, sans-serif';ctx.textBaseline='top';
+  l.forEach(function(t,i){while(ctx.measureText(t).width>w-fs&&t.length>8)t=t.slice(0,-2);ctx.fillText(t,fs/2,h-alto+fs/2+i*fs*1.35)})}
+function procesar(src,sw,sh){var k=Math.min(1,1600/Math.max(sw,sh)),w=Math.round(sw*k),h=Math.round(sh*k),cv=$('cv');cv.width=w;cv.height=h;
+  var ctx=cv.getContext('2d');ctx.drawImage(src,0,0,w,h);marca(ctx,w,h);
+  cv.toBlob(function(b){blob=b;$('prev').src=URL.createObjectURL(b);$('prev').classList.remove('oculto');$('vid').classList.add('oculto');
+    $('bTomar').classList.add('oculto');$('bRev').classList.remove('oculto')},'image/jpeg',0.85)}
+$('disparo').onclick=function(){var v=$('vid');if(!v.videoWidth)return;vibra();procesar(v,v.videoWidth,v.videoHeight)};
+$('repetir').onclick=function(){vibra();if(stream){$('prev').classList.add('oculto');$('vid').classList.remove('oculto');$('bTomar').classList.remove('oculto');$('bRev').classList.add('oculto')}else camaraTelefono()};
+$('camCancel').onclick=function(){cerrarCam()};
+$('usar').onclick=function(){if(!blob)return;var b=$('usar');b.disabled=true;b.textContent='Enviando…';
+  api('/tg/app/foto?parte='+camCfg.parte,blob,'image/jpeg').then(function(){b.disabled=false;b.textContent='✅ Usar foto';cerrarCam();vibra('ok');camCfg.luego()})
+   .catch(function(e){b.disabled=false;b.textContent='✅ Usar foto';cerrarCam();error(e.message,function(){camara(camCfg.parte,camCfg.titulo,camCfg.luego)})})};
+
+window.__app={inicio:inicio,home:home,llegada:llegada,prueba:prueba,viaje:viaje};
+inicio();
+})();
+</script>
+</body>
+</html>
