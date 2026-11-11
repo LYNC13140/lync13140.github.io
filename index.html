@@ -84,6 +84,8 @@ function accion(d){
     var m=Math.round(metros(E.co[0],E.co[1],d.lat,d.lon)),ok=m-Math.min(d.acc||0,50)<=E.lim;
     return Promise.resolve({ok:ok,distancia_m:m,error:ok?'':'Está a '+km(m)+' de '+(E.capacitacion?'el CPE':'su recinto')+'. Debe estar a '+E.lim+' m o menos.'})}
   if(d.accion==='llegada'||d.accion==='prueba'){if(F.u&&d.lat==null){d.lat=F.u.lat;d.lon=F.u.lon;d.acc=F.u.acc}}
+  if((d.accion==='llegada'||d.accion==='camino')&&TR&&TR.pts&&TR.pts.length){d.ruta={ini:Math.round(TR.ini/1000),dest:TR.dest,pts:TR.pts.slice(-120)}}
+  if(d.accion==='llegada'){trBorrar()}
   return alBot(d)}
 
 // ------------------------------------------------------------------ pantallas
@@ -118,6 +120,8 @@ function chips(){var h='<div class="estado">';var l=E.llegada;
   return h+'</div>'}
 function home(){
   var q=E.que,n=E.n,ops=[],o={titulo:'Hola, '+E.nombre,extra:chips()};
+  if(BOT){TR=trCargar();if(TR&&!TR.llego&&!TR.enCpe&&['salgo','llegada','salgo_rec','viaje'].indexOf(q)>=0)return viajeBot();
+    if(TR&&TR.enCpe&&q==='salgo')q='salgo_rec'}
   var p=E.pruebas.filter(function(x){return x.n===n})[0]||{};
   if(q==='salgo'){o.e='🌅';o.h1='¡Buenos días!';o.p='¿Ya sale para su trabajo?';ops=[['▶️ INICIAR MI DÍA','g',destino],['📍 YA ESTOY EN MI RECINTO','b',llegada]]}
   else if(q==='viaje'){if(!BOT)return viaje();o.e='🚗';o.h1='Va en camino';o.p='Use el <b>botón azul</b> del chat para decir dónde está.';
@@ -152,7 +156,7 @@ function sinUbicacion(e,reintentar){vibra('mal');
 var reloj=null;
 function pararViaje(){if(reloj){clearInterval(reloj);reloj=null}}
 function destino(){pantalla({atras:home,e:'🚗❓',h1:'¿A dónde va AHORA?',ops:[['🏫 A MI RECINTO','g',function(){elegirDestino('recinto')}],['🏢 AL CPE (Delegación)','b',function(){elegirDestino('cpe')}]]})}
-function elegirDestino(d){cargando('Un momento…');accion({accion:'destino',destino:d}).then(function(){E.viaje={activo:true,destino:d};viaje(true)}).catch(function(e){error(e.message)})}
+function elegirDestino(d){if(BOT)return viajeBot(d);cargando('Un momento…');accion({accion:'destino',destino:d}).then(function(){E.viaje={activo:true,destino:d};viaje(true)}).catch(function(e){error(e.message)})}
 function viaje(primero){
   pantalla({e:'<span class="girar">📍</span>',h1:'Buscando dónde está…',p:'Si el teléfono pregunta, toque <b>Permitir</b>.'});
   var tomar=function(){ubicacion().then(function(u){return accion({accion:'punto',lat:u.lat,lon:u.lon,acc:u.acc}).then(function(r){
@@ -166,7 +170,7 @@ function enCamino(falta,nombre){
   pantalla({titulo:'En camino',e:'🚗',extra:falta!=null?'<div class="grande">Faltan '+km(falta)+'</div><p style="text-align:center;font-size:18px;color:#5a6577;margin:0 16px">para llegar a '+esc(nombre||'su recinto')+'<br>Deje esta pantalla abierta: se actualiza sola.</p>':'',
     ops:[['🏁 YA LLEGUÉ','g',function(){viaje()}],['⚠️ PROBLEMA EN EL CAMINO','a',camino],['🏠 Inicio','n',inicio,1]]})}
 function cerca(u,falta){F.problema=true;pantalla({e:'🚗🏫',h1:'Ya está CERCA',p:'Le faltan <b>'+km(falta)+'</b>. ¿Cómo está el camino?',ops:[
-  ['✅ TODO BIEN, YA LLEGO','g',function(){F.problema=false;enCamino(falta)}],
+  ['✅ TODO BIEN, YA LLEGO','g',function(){F.problema=false;BOT?pantallaViaje(falta,'👍 Siga con cuidado.'):enCamino(falta)}],
   ['🌊 ESTÁ INUNDADO','r',function(){avisarCamino('inundacion',u,true)}],
   ['🚧 DIFÍCIL ACCESO','a',function(){avisarCamino('acceso',u,true)}],
   ['⛔ NO PUEDO LLEGAR','r',function(){noLlego(u)}]]})}
@@ -186,12 +190,64 @@ function noLlego(u,motivo){pararViaje();
   var mot={inundacion:'lluvia',acceso:'camino'}[motivo];if(mot)return mandar(mot);
   pantalla({atras:inicio,e:'⛔🚗',h1:'¿Por qué NO puede llegar?',ops:[['🚓 INSEGURIDAD','r',function(){mandar('inseguridad')}],['🌊 LLUVIA O INUNDACIÓN','r',function(){mandar('lluvia')}],
     ['🚧 CAMINO CERRADO / SIN TRANSPORTE','a',function(){mandar('camino')}],['📝 OTRO','b',function(){mandar('otro')}]]})}
+// ---- 🚗 viaje dentro de la app (modo GitHub): la app sigue el camino sola, no se cierra
+var TR=null;
+function hoyS(){var d=new Date();return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())}
+function trClave(){return 'mon_viaje_'+(E&&E.codigo)}
+function trCargar(){try{var x=JSON.parse(localStorage.getItem(trClave())||'null');if(x&&x.dia===hoyS())return x}catch(e){}return null}
+function trGuardar(){try{if(TR)localStorage.setItem(trClave(),JSON.stringify(TR))}catch(e){}}
+function trBorrar(){try{localStorage.removeItem(trClave())}catch(e){}}
+function destC(){if(TR&&TR.dest==='cpe'&&!E.capacitacion)return E.cpe?[E.cpe[0],E.cpe[1],E.cpe[2]||300]:null;return E.co?[E.co[0],E.co[1],E.lim||300]:null}
+function destNom(){return TR&&TR.dest==='cpe'&&!E.capacitacion?'el CPE':'su recinto'}
+function minutos(){return TR?Math.round((Date.now()-TR.ini)/60000):0}
+function explicar(u,d){   // por qué no lo deja: compara con cómo va el viaje
+  var l=[],c=destC();if(d==null&&c)d=metros(c[0],c[1],u.lat,u.lon);
+  if(u&&u.acc>100)l.push('📶 Su GPS está <b>débil</b> (±'+Math.round(u.acc)+' m): salga a un lugar abierto, espere 1 minuto y pruebe otra vez.');
+  if(TR&&TR.pts&&TR.pts.length){var p0=TR.pts[0],mov=metros(p0[1],p0[2],u.lat,u.lon),m=minutos();
+    if(m>=5&&mov<200)l.push('🤔 <b>No se ha movido</b> desde que inició el viaje (hace '+m+' min, sigue a '+Math.round(mov)+' m del inicio).');
+    else l.push('🚗 Salió hace <b>'+m+' min</b> y ha recorrido <b>'+km((TR.km||0)*1000)+'</b>.');
+    if(TR.min!=null&&d!=null&&d>TR.min+500)l.push('↩️ <b>Se está alejando</b>: llegó a estar a '+km(TR.min)+' y ahora está a '+km(d)+'.')}
+  if(d!=null)l.push('📍 Le faltan <b>'+km(d)+'</b> para '+destNom()+'.');
+  return l.join('<br>')}
+function viajeBot(dest){
+  if(dest){TR={dia:hoyS(),dest:dest,ini:Date.now(),pts:[],km:0,min:null,cerca:0};trGuardar()}else TR=TR||trCargar();
+  if(!TR)return home();
+  pararViaje();F={tipo:'viaje'};
+  pantalla({titulo:'En camino',e:'<span class="girar">📍</span>',h1:'Buscando dónde está…',p:'Si el teléfono pregunta, toque <b>Permitir</b>.'});
+  puntoViaje(true);reloj=setInterval(function(){puntoViaje(false)},30000)}
+function puntoViaje(primero){ubicacion().then(function(u){
+    var now=Date.now(),p=TR.pts,ult=p[p.length-1];
+    if(!ult||metros(ult[1],ult[2],u.lat,u.lon)>=40||now/1000-ult[0]>=120){
+      if(ult&&u.acc<150)TR.km=(TR.km||0)+metros(ult[1],ult[2],u.lat,u.lon)/1000;
+      p.push([Math.round(now/1000),+u.lat.toFixed(6),+u.lon.toFixed(6)]);if(p.length>150)p.splice(1,1)}
+    var c=destC(),d=c?metros(c[0],c[1],u.lat,u.lon):null,m=minutos(),mov=metros(p[0][1],p[0][2],u.lat,u.lon),msg,mal=false;
+    if(u.acc>150){msg='📶 Su GPS está <b>débil</b> (±'+Math.round(u.acc)+' m). Salga a un lugar abierto.';mal=true}
+    else if(d!=null&&TR.min!=null&&d>TR.min+500){msg='↩️ <b>Se está alejando</b> de '+destNom()+': estuvo a '+km(TR.min)+', ahora a '+km(d)+'. Revise la ruta.';mal=true}
+    else if(m>=10&&mov<200){msg='🤔 <b>No se ha movido</b> desde que salió (hace '+m+' min). Si tiene un problema, avíselo.';mal=true}
+    else msg='✅ <b>Va bien</b> · '+m+' min'+((TR.km||0)>=0.1?' · lleva '+km(TR.km*1000):'');
+    if(d!=null&&u.acc<150)TR.min=TR.min==null?d:Math.min(TR.min,d);
+    TR.u=u;TR.d=d;trGuardar();
+    if(d!=null&&d-Math.min(u.acc||0,50)<=c[2]){pararViaje();vibra('ok');
+      if(TR.dest==='cpe'&&!E.capacitacion){TR.enCpe=1;trGuardar();return pantalla({e:'🏢🎉',h1:'¡Llegó al CPE!',p:'Cuando salga hacia su recinto, toque el botón.',ops:[['🚗 YA SALGO A MI RECINTO','g',function(){viajeBot('recinto')}]]})}
+      TR.llego=1;trGuardar();pantalla({e:'🎉',h1:'¡Llegó!',p:'Ahora unas preguntas rápidas.'});return setTimeout(function(){llegada(u)},1500)}
+    if(d!=null&&d<=2000&&!TR.cerca&&TR.dest!=='cpe'){TR.cerca=1;trGuardar();vibra();return cerca(u,d)}
+    if(!F.problema)pantallaViaje(d,msg,mal)
+  }).catch(function(e){if(primero)return sinUbicacion(e,function(){viajeBot()});if(!F.problema)pantallaViaje(TR.d,'📶 No se pudo leer el GPS ahora. Seguimos intentando.',true)})}
+function pantallaViaje(d,msg,mal){
+  pantalla({titulo:'En camino',e:'🚗',extra:(d!=null?'<div class="grande">Faltan '+km(d)+'</div><p style="text-align:center;font-size:17px;color:#5a6577;margin:0 16px">para llegar a '+destNom()+'<br>Deje esta pantalla abierta: se actualiza sola.</p>':'')
+    ,aviso:msg,avisoMal:mal,ops:[['🏁 YA LLEGUÉ','g',yaLlegue],['⚠️ PROBLEMA EN EL CAMINO','a',camino],['⛔ NO PUEDO LLEGAR','r',function(){noLlego(TR&&TR.u)}],['📞 MI SUPERVISOR','n',supervisor,1]]})}
+function yaLlegue(){pararViaje();cargando('Revisando dónde está…');
+  ubicacion().then(function(u){var c=destC(),d=c?metros(c[0],c[1],u.lat,u.lon):null;
+    if(d==null||d-Math.min(u.acc||0,50)<=c[2]||E.demo){TR.llego=1;trGuardar();return llegada(u)}
+    vibra('mal');pantalla({titulo:'En camino',e:'📍⛔',h1:'Todavía NO llega',aviso:explicar(u,d),avisoMal:true,
+      ops:[['🚗 SEGUIR EL VIAJE','g',function(){viajeBot()}],['🔄 PROBAR OTRA VEZ','b',yaLlegue],['⛔ NO PUEDO LLEGAR','r',function(){noLlego(u)}]]})
+  }).catch(function(e){sinUbicacion(e,yaLlegue)})}
 function supTxt(){var s=(E&&E.supervisores)||[];return s.length?'<div class="sup">'+s.map(function(x){return esc(x.nombre)+'<br><a href="tel:'+esc(x.celular)+'">'+esc(x.celular)+'</a>'}).join('<br>')+'</div>':''}
 
 // ------------------------------------------------------------------ 📍 llegada
 function llegada(u){pararViaje();F={tipo:'llegada',check:{}};
   var validar=function(u){cargando('Revisando que esté en su recinto…');accion({accion:'ubic',para:'llegada',lat:u.lat,lon:u.lon,acc:u.acc}).then(function(r){
-    if(!r.ok){vibra('mal');return pantalla({atras:inicio,e:'📍⛔',h1:'Todavía no está en su recinto',p:esc(r.error),ops:[['🔄 YA ESTOY, PROBAR OTRA VEZ','b',function(){llegada()}],['⛔ NO PUEDO LLEGAR','r',function(){noLlego(u)}]]})}
+    if(!r.ok){vibra('mal');return pantalla({atras:inicio,e:'📍⛔',h1:'Todavía no está en su recinto',p:esc(r.error),aviso:BOT?explicar(u,r.distancia_m):'',avisoMal:true,ops:[['🔄 YA ESTOY, PROBAR OTRA VEZ','b',function(){llegada()}],['⛔ NO PUEDO LLEGAR','r',function(){noLlego(u)}]]})}
     F.dist=r.distancia_m;vibra('ok');BOT?pregunta(0):fotoEntrada()}).catch(function(e){error(e.message)})};
   if(u)return validar(u);
   pantalla({paso:[1,10],e:'<span class="girar">📍</span>',h1:'Buscando dónde está…',p:'Si el teléfono pregunta, toque <b>Permitir</b>.'});
