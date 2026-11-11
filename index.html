@@ -65,7 +65,7 @@ function metros(a,b,c,d){var R=6371000,r=Math.PI/180,x=Math.sin((c-a)*r/2),y=Mat
 function alBot(d){   // manda las respuestas al chat del bot y se cierra la app
   pantalla({e:'📨',h1:'Enviando…',p:'Siga en el chat del bot.'});
   try{if(!tg||!tg.sendData)throw 0;tg.sendData(JSON.stringify(d))}
-  catch(e){error('Abra esta pantalla con el botón 📱 ABRIR MI MONITOREO de abajo del chat.',function(){alBot(d)})}
+  catch(e){error('Abra esta pantalla con el botón ▶️ INICIAR de abajo del chat.',function(){alBot(d)})}
   return new Promise(function(){})}
 function $(i){return document.getElementById(i)}
 function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]})}
@@ -108,10 +108,10 @@ function error(t,reintentar){vibra('mal');pantalla({e:'⚠️',h1:'No se pudo',p
 // ------------------------------------------------------------------ inicio
 function inicio(){
   F={};pararViaje();
-  if(BOT){try{E=leerS(S0)}catch(e){return pantalla({e:'📱',h1:'Abra esta pantalla desde el bot',p:'En Telegram, toque <b>📱 ABRIR MI MONITOREO</b>.'})}return home()}
+  if(BOT){try{E=leerS(S0)}catch(e){return pantalla({e:'📱',h1:'Abra esta pantalla desde el bot',p:'En Telegram, toque <b>▶️ INICIAR</b>.'})}return home()}
   cargando('Cargando…');
   api('/tg/app/estado',{}).then(function(j){E=j;home()}).catch(function(e){
-    if(!tg||!initData){pantalla({e:'📱',h1:'Abra esta pantalla desde el bot',p:'En Telegram, toque <b>📱 ABRIR MI MONITOREO</b>.'});return}
+    if(!tg||!initData){pantalla({e:'📱',h1:'Abra esta pantalla desde el bot',p:'En Telegram, toque <b>▶️ INICIAR</b>.'});return}
     error(e.message)})
 }
 function chips(){var h='<div class="estado">';var l=E.llegada;
@@ -132,17 +132,31 @@ function home(){
   else if(q==='prueba'){o.e='📶';o.h1='Prueba de conexión '+n;o.p=p.hora?(p.pedida?'Su supervisor la pidió a las <b>'+p.hora+'</b>':'Le toca a las <b>'+p.hora+'</b>'):'';ops=[['📶 HACER LA PRUEBA '+n,'g',function(){prueba(n)}]]}
   else if(q==='repetir'){o.e='🔁';o.h1='La prueba '+n+' salió mal';o.p='Apague el equipo, espere 30 segundos y préndalo. Luego repita.';ops=[['🔁 REPETIR LA PRUEBA '+n,'a',function(){prueba(n)}]]}
   else {o.e='🎉';o.h1='¡Listo por hoy!';o.p='Muchas gracias por su trabajo.'}
-  ops.push(['📞 MI SUPERVISOR','n',supervisor,1]);o.ops=ops;pantalla(o)}
+  ops.push(['📞 MI SUPERVISOR','n',supervisor,1]);if(BOT)ops.push(['❓ AYUDA','n',ayuda,1]);
+  if(BOT&&E.demo)ops.push(['🚪 SALIR DE LA PRUEBA','n',function(){trBorrar();alBot({accion:'salir_prueba'})},1]);o.ops=ops;pantalla(o)}
+function ayuda(){pantalla({atras:home,e:'❓',h1:'¿Cómo se usa?',extra:'<div class="sup" style="text-align:left;font-size:18px;line-height:1.5">'
+  +'1️⃣ Al salir de casa toque <b>▶️ INICIAR MI DÍA</b>. Deje la pantalla abierta: le dice cuánto le falta.<br>'
+  +'2️⃣ Al llegar contesta unas preguntas de <b>Sí o No</b> y toma 3 fotos.<br>'
+  +'3️⃣ Hace las <b>3 pruebas de conexión</b> a la hora que le toca (o cuando su supervisor las pida).<br><br>'
+  +'📍 Si no toma la ubicación: encienda el <b>GPS</b> y toque <b>Permitir</b>.<br>📞 Si tiene un problema: toque <b>MI SUPERVISOR</b>.</div>',
+  ops:[['🏠 VOLVER','g',home]]})}
 function supervisor(){if(BOT)return alBot({accion:'supervisor'});var s=E.supervisores||[];pantalla({atras:home,e:'📞',h1:'Su supervisor',
   extra:'<div class="sup">'+(s.length?s.map(function(x){return esc(x.nombre)+'<br><a href="tel:'+esc(x.celular)+'">'+esc(x.celular)+'</a>'}).join('<br><br>'):'No está registrado. Pregunte en la Delegación.')+'</div>',
   ops:[['🏠 VOLVER','n',home]]})}
 
 // ------------------------------------------------------------------ ubicación (Telegram o el teléfono)
-function ubicacion(){return new Promise(function(ok,mal){
+var ULT=null;   // última ubicación buena (para no esperar otra vez)
+function ubicacion(fresca){
+  if(fresca===false&&ULT&&Date.now()-ULT.ts<45000)return Promise.resolve(ULT);
+  var t0=Date.now(),cont=setInterval(function(){var h=document.querySelector('.q h1');if(h&&/Buscando|Revisando/.test(h.textContent))h.textContent='Buscando su GPS… '+Math.round((Date.now()-t0)/1000)+' s'},1000);
+  return ubicacion0(fresca!==false).then(function(u){clearInterval(cont);u.ts=Date.now();ULT=u;return u},function(e){clearInterval(cont);throw e})}
+function ubicacion0(fresca){return new Promise(function(ok,mal){
   var lm=tg&&tg.LocationManager&&tg.isVersionAtLeast&&tg.isVersionAtLeast('8.0')?tg.LocationManager:null;
   function porNavegador(){if(!navigator.geolocation)return mal(new Error('Este teléfono no da la ubicación.'));
-    navigator.geolocation.getCurrentPosition(function(p){ok({lat:p.coords.latitude,lon:p.coords.longitude,acc:p.coords.accuracy})},
-      function(e){mal(new Error(e.code===1?'permiso':'No se pudo saber dónde está. Encienda el GPS.'))},{enableHighAccuracy:true,timeout:25000,maximumAge:0})}
+    var bien=function(p){ok({lat:p.coords.latitude,lon:p.coords.longitude,acc:p.coords.accuracy})};
+    navigator.geolocation.getCurrentPosition(bien,function(e){if(e.code===1)return mal(new Error('permiso'));
+      navigator.geolocation.getCurrentPosition(bien,function(e2){mal(new Error(e2.code===1?'permiso':'No se pudo saber dónde está. Encienda el GPS.'))},{enableHighAccuracy:false,timeout:15000,maximumAge:60000})},
+      {enableHighAccuracy:true,timeout:12000,maximumAge:fresca?0:10000})}
   if(!lm)return porNavegador();
   lm.init(function(){if(!lm.isLocationAvailable)return porNavegador();
     lm.getLocation(function(d){if(!d){return mal(new Error('permiso'))}ok({lat:d.latitude,lon:d.longitude,acc:d.horizontal_accuracy})})})})}
@@ -199,12 +213,13 @@ function trGuardar(){try{if(TR)localStorage.setItem(trClave(),JSON.stringify(TR)
 function trBorrar(){try{localStorage.removeItem(trClave())}catch(e){}}
 function destC(){if(TR&&TR.dest==='cpe'&&!E.capacitacion)return E.cpe?[E.cpe[0],E.cpe[1],E.cpe[2]||300]:null;return E.co?[E.co[0],E.co[1],E.lim||300]:null}
 function destNom(){return TR&&TR.dest==='cpe'&&!E.capacitacion?'el CPE':'su recinto'}
+function horaDe(ms){var d=new Date(ms);return pad(d.getHours())+':'+pad(d.getMinutes())}
 function minutos(){return TR?Math.round((Date.now()-TR.ini)/60000):0}
 function explicar(u,d){   // por qué no lo deja: compara con cómo va el viaje
   var l=[],c=destC();if(d==null&&c)d=metros(c[0],c[1],u.lat,u.lon);
   if(u&&u.acc>100)l.push('📶 Su GPS está <b>débil</b> (±'+Math.round(u.acc)+' m): salga a un lugar abierto, espere 1 minuto y pruebe otra vez.');
   if(TR&&TR.pts&&TR.pts.length){var p0=TR.pts[0],mov=metros(p0[1],p0[2],u.lat,u.lon),m=minutos();
-    if(m>=5&&mov<200)l.push('🤔 <b>No se ha movido</b> desde que inició el viaje (hace '+m+' min, sigue a '+Math.round(mov)+' m del inicio).');
+    if(m>=5&&mov<200)l.push('🤔 <b>No se ha movido'+(mov<15?' ni un metro':'')+'</b> desde que inició el viaje a las '+horaDe(TR.ini)+' (hace '+m+' min; sigue a '+Math.round(mov)+' m de donde salió).');
     else l.push('🚗 Salió hace <b>'+m+' min</b> y ha recorrido <b>'+km((TR.km||0)*1000)+'</b>.');
     if(TR.min!=null&&d!=null&&d>TR.min+500)l.push('↩️ <b>Se está alejando</b>: llegó a estar a '+km(TR.min)+' y ahora está a '+km(d)+'.')}
   if(d!=null)l.push('📍 Le faltan <b>'+km(d)+'</b> para '+destNom()+'.');
@@ -220,10 +235,12 @@ function puntoViaje(primero){ubicacion().then(function(u){
     if(!ult||metros(ult[1],ult[2],u.lat,u.lon)>=40||now/1000-ult[0]>=120){
       if(ult&&u.acc<150)TR.km=(TR.km||0)+metros(ult[1],ult[2],u.lat,u.lon)/1000;
       p.push([Math.round(now/1000),+u.lat.toFixed(6),+u.lon.toFixed(6)]);if(p.length>150)p.splice(1,1)}
-    var c=destC(),d=c?metros(c[0],c[1],u.lat,u.lon):null,m=minutos(),mov=metros(p[0][1],p[0][2],u.lat,u.lon),msg,mal=false;
+    var c=destC(),d=c?metros(c[0],c[1],u.lat,u.lon):null,m=minutos(),msg,mal=false;
+    if(!TR.anc||metros(TR.anc[1],TR.anc[2],u.lat,u.lon)>Math.max(40,Math.min(u.acc||0,100)))TR.anc=[now,u.lat,u.lon];
+    var quieto=Math.round((now-TR.anc[0])/60000),mov=Math.round(metros(TR.anc[1],TR.anc[2],u.lat,u.lon));
     if(u.acc>150){msg='📶 Su GPS está <b>débil</b> (±'+Math.round(u.acc)+' m). Salga a un lugar abierto.';mal=true}
     else if(d!=null&&TR.min!=null&&d>TR.min+500){msg='↩️ <b>Se está alejando</b> de '+destNom()+': estuvo a '+km(TR.min)+', ahora a '+km(d)+'. Revise la ruta.';mal=true}
-    else if(m>=10&&mov<200){msg='🤔 <b>No se ha movido</b> desde que salió (hace '+m+' min). Si tiene un problema, avíselo.';mal=true}
+    else if(quieto>=5){msg='🤔 <b>No se ha movido'+(mov<15?' ni un metro':'')+'</b> en <b>'+quieto+' min</b> (desde las '+horaDe(TR.anc[0])+'). ¿Pasa algo? Si tiene un problema, toque <b>⚠️ PROBLEMA EN EL CAMINO</b>.';mal=true;vibra('mal')}
     else msg='✅ <b>Va bien</b> · '+m+' min'+((TR.km||0)>=0.1?' · lleva '+km(TR.km*1000):'');
     if(d!=null&&u.acc<150)TR.min=TR.min==null?d:Math.min(TR.min,d);
     TR.u=u;TR.d=d;trGuardar();
@@ -236,11 +253,12 @@ function puntoViaje(primero){ubicacion().then(function(u){
 function pantallaViaje(d,msg,mal){
   pantalla({titulo:'En camino',e:'🚗',extra:(d!=null?'<div class="grande">Faltan '+km(d)+'</div><p style="text-align:center;font-size:17px;color:#5a6577;margin:0 16px">para llegar a '+destNom()+'<br>Deje esta pantalla abierta: se actualiza sola.</p>':'')
     ,aviso:msg,avisoMal:mal,ops:[['🏁 YA LLEGUÉ','g',yaLlegue],['⚠️ PROBLEMA EN EL CAMINO','a',camino],['⛔ NO PUEDO LLEGAR','r',function(){noLlego(TR&&TR.u)}],['📞 MI SUPERVISOR','n',supervisor,1]]})}
-function yaLlegue(){pararViaje();cargando('Revisando dónde está…');
-  ubicacion().then(function(u){var c=destC(),d=c?metros(c[0],c[1],u.lat,u.lon):null;
+function yaLlegue(fresca){pararViaje();cargando('Revisando dónde está…');
+  var c0=destC(),rapido=!fresca&&ULT&&c0&&Date.now()-ULT.ts<45000&&metros(c0[0],c0[1],ULT.lat,ULT.lon)-Math.min(ULT.acc||0,50)<=c0[2];
+  ubicacion(rapido?false:true).then(function(u){var c=destC(),d=c?metros(c[0],c[1],u.lat,u.lon):null;
     if(d==null||d-Math.min(u.acc||0,50)<=c[2]||E.demo){TR.llego=1;trGuardar();return llegada(u)}
     vibra('mal');pantalla({titulo:'En camino',e:'📍⛔',h1:'Todavía NO llega',aviso:explicar(u,d),avisoMal:true,
-      ops:[['🚗 SEGUIR EL VIAJE','g',function(){viajeBot()}],['🔄 PROBAR OTRA VEZ','b',yaLlegue],['⛔ NO PUEDO LLEGAR','r',function(){noLlego(u)}]]})
+      ops:[['🚗 SEGUIR EL VIAJE','g',function(){viajeBot()}],['🔄 PROBAR OTRA VEZ','b',function(){yaLlegue(true)}],['⛔ NO PUEDO LLEGAR','r',function(){noLlego(u)}]]})
   }).catch(function(e){sinUbicacion(e,yaLlegue)})}
 function supTxt(){var s=(E&&E.supervisores)||[];return s.length?'<div class="sup">'+s.map(function(x){return esc(x.nombre)+'<br><a href="tel:'+esc(x.celular)+'">'+esc(x.celular)+'</a>'}).join('<br>')+'</div>':''}
 

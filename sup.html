@@ -90,8 +90,8 @@ function inicio(){F={};
   pantalla({e:'🧑‍✈️📊',h1:'Así va tu grupo',p:'Datos de las <b>'+esc(D.h)+'</b>',
     html:'<div class="kp"><div class="k v"><b>'+D.t.act+'/'+D.t.esc+'</b><span>🟢 Enlaces activos</span></div><div class="k '+(D.t.cai?'r':'v')+'"><b>'+D.t.cai+'</b><span>🔴 Enlaces caídos</span></div>'
       +'<div class="k '+(D.t.lleg?'v':'')+'"><b>'+D.t.lleg+'/'+D.t.esc+'</b><span>📍 Operadores llegaron</span></div><div class="k '+(D.pr.length?'r':'v')+'"><b>'+(D.npr||D.pr.length)+'</b><span>🚨 Problemas</span></div></div>',
-    ops:[['🚨 PROBLEMAS','r',problemas,0,(D.npr||D.pr.length)||''],['🏫 MIS ESCUELAS ('+D.t.esc+')','b',function(){escuelas('todas')}],['📢 PEDIR PRUEBA','g',pedir],
-      ['📥 POR AUTORIZAR','a',autorizar,0,D.pa.length||''],['🛠️ REPORTAR DAÑO (TICKET)','n',function(){elegirDanio()},1],['🧪 VER COMO LO VE EL OPERADOR / ASISTENTE','n',function(){alBot({accion:'probar'})},1]],
+    ops:[['🚨 PROBLEMAS','r',problemas,0,(D.npr||D.pr.length)||''],['🏫 MIS ESCUELAS ('+D.t.esc+')','b',function(){escuelas('todas')}],].concat(D.pp?[['📢 PEDIR PRUEBA DE CONEXIÓN','g',pedir]]:[]).concat([
+      ['📥 POR AUTORIZAR','a',autorizar,0,D.pa.length||''],['🛠️ REPORTAR DAÑO (TICKET)','n',function(){elegirDanio()},1],['🧪 VER COMO LO VE EL OPERADOR / ASISTENTE','n',function(){alBot({accion:'probar'})},1]]),
     nota:'Para ver datos nuevos, cierre y vuelva a tocar <b>📱 ABRIR MI PANEL</b>.'})}
 
 // ------------------------------------------------------------ 2 · mis escuelas
@@ -122,7 +122,7 @@ function escuela(c,pt,volver){var x=busca(c,pt);if(!x)return inicio();var l=x.l,
   var sig=x.p.indexOf('m')>=0?x.p.indexOf('m')+1:x.p.indexOf('f')>=0?x.p.indexOf('f')+1:Math.min(3,x.p.lastIndexOf('b')+2||1);
   pantalla({atras:volver||inicio,tit:esc(x.c)+' · '+esc(x.n),sub:'Punto '+x.pt,html:h,
     ops:[['📞 LLAMAR AL OPERADOR','g',function(){alBot({accion:'llamar',cod:x.c})}],['📷 VER LAS FOTOS','b',function(){alBot({accion:'fotos',cod:x.c})}],
-      ['📢 PEDIRLE LA PRUEBA '+sig,'a',function(){alBot({accion:'pedir',n:sig,cods:[x.c]})}],['🛠️ REPORTAR DAÑO (TICKET)','r',function(){danio(x.c,function(){escuela(c,pt,volver)})}]],
+      ].concat(D.pp?[['📢 PEDIRLE LA PRUEBA '+sig,'a',function(){alBot({accion:'pedir',n:sig,cods:[x.c]})}]]:[]).concat([['🛠️ REPORTAR DAÑO (TICKET)','r',function(){danio(x.c,function(){escuela(c,pt,volver)})}]]),
     nota:'Teléfonos y fotos le llegan en el chat del bot.'})}
 
 // ------------------------------------------------------------ 4 · problemas
@@ -143,7 +143,7 @@ function pedir(){F.n=F.n||1;F.cods=F.cods||null;
   var falta=D.f.filter(function(x){return x.p[Math.min(F.n,3)-1]!=='b'}).length;
   h+='<h3>¿A quién?</h3>';
   pantalla({atras:inicio,tit:'📢 Pedir prueba',sub:'Les llega el aviso al instante',e:'📢📶',h1:'¿Qué prueba?',p:'Horas normales: '+esc((D.hp||[]).join(', ')),html:h,
-    ops:[['👥 A TODO MI GRUPO<br><small style="font-weight:600">(los que no la han hecho'+(F.n<=3?': '+falta:'')+')</small>','b',function(){confirma('todo su grupo',null)}],
+    ops:[['👥 A TODOS<br><small style="font-weight:600">(solo a los que ya están en su recinto; de los demás le digo quiénes son)</small>','b',function(){confirma('todo su grupo',null)}],
       ['🏫 ELEGIR ESCUELAS','n',elegir]],fn:{n:function(el){F.n=+el.dataset.n;pedir()}}})}
 function elegir(){F.sel=F.sel||{};var h='<div class="lista">';
   unicas().forEach(function(x){h+='<button class="esc '+estadoEsc(x)+'" data-f="t" data-c="'+x.c+'"><b>'+(F.sel[x.c]?'☑️':'⬜')+' '+esc(x.c)+' · '+esc(x.n)+'</b><div class="s">'+chipsEsc(x)+'</div></button>'});
