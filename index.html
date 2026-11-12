@@ -148,6 +148,7 @@ function supervisor(){if(BOT)return alBot({accion:'supervisor'});var s=E.supervi
 var ULT=null;   // última ubicación buena (para no esperar otra vez)
 function ubicacion(fresca){
   if(fresca===false&&ULT&&Date.now()-ULT.ts<45000)return Promise.resolve(ULT);
+  if(fresca!==true&&WATCH!=null&&ULT&&Date.now()-ULT.ts<20000)return Promise.resolve(ULT);
   var t0=Date.now(),cont=setInterval(function(){var h=document.querySelector('.q h1');if(h&&/Buscando|Revisando/.test(h.textContent))h.textContent='Buscando su GPS… '+Math.round((Date.now()-t0)/1000)+' s'},1000);
   var tope=new Promise(function(_,mal){setTimeout(function(){mal(new Error('El GPS no respondió en 30 segundos. Salga a un lugar abierto, revise que la Ubicación esté encendida y pruebe otra vez.'))},30000)});
   return Promise.race([ubicacion0(fresca!==false),tope]).then(function(u){clearInterval(cont);u.ts=Date.now();ULT=u;return u},function(e){clearInterval(cont);throw e})}
@@ -233,7 +234,11 @@ function viajeBot(dest){
   pararViaje();F={tipo:'viaje'};
   pantalla({titulo:'En camino',e:'<span class="girar">📍</span>',h1:'Buscando dónde está…',p:'Si el teléfono pregunta, toque <b>Permitir</b>.'});
   puntoViaje(true);reloj=setInterval(function(){puntoViaje(false)},30000)}
-function puntoViaje(primero){ubicacion().then(function(u){
+var WATCH=null;
+function seguirGPS(){if(WATCH!=null||!navigator.geolocation)return;
+  try{WATCH=navigator.geolocation.watchPosition(function(p){ULT={lat:p.coords.latitude,lon:p.coords.longitude,acc:p.coords.accuracy,ts:Date.now()}},function(){},{enableHighAccuracy:true,maximumAge:15000,timeout:60000})}catch(e){}}
+function soltarGPS(){try{if(WATCH!=null)navigator.geolocation.clearWatch(WATCH)}catch(e){}WATCH=null}
+function puntoViaje(primero){seguirGPS();(primero?ubicacion():ubicacion(false)).then(function(u){
     var now=Date.now(),p=TR.pts,ult=p[p.length-1];
     if(!ult||metros(ult[1],ult[2],u.lat,u.lon)>=40||now/1000-ult[0]>=120){
       if(ult&&u.acc<150)TR.km=(TR.km||0)+metros(ult[1],ult[2],u.lat,u.lon)/1000;
