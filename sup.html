@@ -90,9 +90,18 @@ function inicio(){F={};
   pantalla({e:'🧑‍✈️📊',h1:'Así va tu grupo',p:'Datos de las <b>'+esc(D.h)+'</b>',
     html:'<div class="kp"><div class="k v"><b>'+D.t.act+'/'+D.t.esc+'</b><span>🟢 Enlaces activos</span></div><div class="k '+(D.t.cai?'r':'v')+'"><b>'+D.t.cai+'</b><span>🔴 Enlaces caídos</span></div>'
       +'<div class="k '+(D.t.lleg?'v':'')+'"><b>'+D.t.lleg+'/'+D.t.esc+'</b><span>📍 Operadores llegaron</span></div><div class="k '+(D.pr.length?'r':'v')+'"><b>'+(D.npr||D.pr.length)+'</b><span>🚨 Problemas</span></div></div>',
-    ops:[['🚨 PROBLEMAS','r',problemas,0,(D.npr||D.pr.length)||''],['🏫 MIS ESCUELAS ('+D.t.esc+')','b',function(){escuelas('todas')}],].concat(D.pp?[['📢 PEDIR PRUEBA DE CONEXIÓN','g',pedir]]:[]).concat([
+    ops:[['🚨 PROBLEMAS','r',problemas,0,(D.npr||D.pr.length)||''],['🏫 MIS ESCUELAS ('+D.t.esc+')','b',function(){escuelas('todas')}],].concat(D.pp?[[activarTxt(),'g',activar],['📢 Pedir test solo a unas escuelas','g',pedir,1]]:[]).concat([
       ['📥 POR AUTORIZAR','a',autorizar,0,D.pa.length||''],['🛠️ REPORTAR DAÑO (TICKET)','n',function(){elegirDanio()},1],['🧪 VER COMO LO VE EL OPERADOR / ASISTENTE','n',function(){alBot({accion:'probar'})},1]]),
     nota:'Para ver datos nuevos, cierre y vuelva a tocar <b>📱 ABRIR MI PANEL</b>.'})}
+
+// ------------------------------------------------------------ 📶 activar test 1 → 2 → 3 (solo supervisor nacional y administrador)
+function sigTest(){var h={};(D.ord||[]).forEach(function(o){h[o[0]]=o[1]});for(var n=1;n<=3;n++)if(!h[n])return n;var m=3;for(var k in h)m=Math.max(m,+k);return m+1}
+function activarTxt(){var n=sigTest();return (n<=3?'📶 ACTIVAR TEST DE CONEXIÓN '+n:'➕ ACTIVAR TEST EXTRA '+n)}
+function activar(){var n=sigTest(),hechos=(D.ord||[]).map(function(o){return '📶'+o[0]+' ✅ '+esc(o[1])}).join(' · ');
+  pantalla({atras:inicio,tit:'📶 Test de conexión',sub:'Les llega el aviso al instante',e:'📶📢',h1:'¿Activar el TEST '+n+' ahora?',
+    p:'Se avisa a los operadores que <b>ya están en su recinto</b>. De los que no llegaron le digo quiénes son, para que los llame.',
+    html:hechos?'<div class="av ok"><b>Ya activados hoy:</b><br>'+hechos+'</div>':'',
+    ops:[['✅ SÍ, ACTIVAR TEST '+n,'g',function(){alBot({accion:'pedir',n:n,cods:[]})}],['↩ No, volver','n',inicio,1]]})}
 
 // ------------------------------------------------------------ 2 · mis escuelas
 function escuelas(fl){var filtros=[['todas','Todas'],['cai','🔴 Caídos'],['mal','🚨 Problemas'],['atr','⏰ Atrasadas'],['sin','⬜ Sin llegar']];

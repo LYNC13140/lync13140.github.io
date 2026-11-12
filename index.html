@@ -55,15 +55,17 @@ html,body{margin:0;min-height:100%;background:var(--fondo);color:var(--txt);font
 (function(){
 var tg=window.Telegram&&window.Telegram.WebApp, initData=tg?tg.initData:'';
 var E=null, F={};   // E = estado del servidor, F = flujo en curso
-var S0=(location.search.match(/[?&]s=([^&]+)/)||[])[1], BOT=!!S0;   // BOT = página fija (GitHub): sin servidor, responde por Telegram
+var S0=(location.search.match(/[?&]s=([^&]+)/)||[])[1], BOT=!!S0, RELAY=false;   // BOT = página fija (GitHub): sin servidor, responde por Telegram
 function leerS(t){t=t.replace(/-/g,'+').replace(/_/g,'/');while(t.length%4)t+='=';var b=atob(t),u=new Uint8Array(b.length);for(var i=0;i<b.length;i++)u[i]=b.charCodeAt(i);
   var d=JSON.parse(new TextDecoder().decode(u));
-  return {nombre:d.nm,demo:!!d.dm,codigo:d.c,escuela:d.e,que:d.q,n:d.k,capacitacion:!!d.cap,co:d.co,lim:d.lim,t:d.t,
+  RELAY=!!d.ft;
+  return {ft:d.ft,fr:d.fr||'https://ntfy.sh',nombre:d.nm,demo:!!d.dm,codigo:d.c,escuela:d.e,que:d.q,n:d.k,capacitacion:!!d.cap,co:d.co,lim:d.lim,t:d.t,
     pruebas:(d.p||[]).map(function(x){return {n:x[0],hora:x[1],pedida:!!x[2],estado:x[3]==='b'?'bien':x[3]==='m'?'mal':''}}),
-    llegada:d.l?{hora:d.l[0],llego:!!d.l[1],abierta:!!d.l[2]}:null,viaje:{activo:d.q==='viaje'},supervisores:[],quien:''}}
+    llegada:d.l?{hora:d.l[0],llego:!!d.l[1],abierta:!!d.l[2]}:null,viaje:{activo:d.q==='viaje'},supervisores:[],quien:d.qn||d.nm||''}}
 function metros(a,b,c,d){var R=6371000,r=Math.PI/180,x=Math.sin((c-a)*r/2),y=Math.sin((d-b)*r/2);return 2*R*Math.asin(Math.sqrt(x*x+Math.cos(a*r)*Math.cos(c*r)*y*y))}
 function alBot(d){   // manda las respuestas al chat del bot y se cierra la app
   pantalla({e:'📨',h1:'Enviando…',p:'Siga en el chat del bot.'});
+  if(F.fotos&&(d.accion==='llegada'||d.accion==='prueba'||d.accion==='camino'))d.fotos=F.fotos;
   try{if(!tg||!tg.sendData)throw 0;tg.sendData(JSON.stringify(d))}
   catch(e){error('Abra esta pantalla con el botón ▶️ INICIAR de abajo del chat.',function(){alBot(d)})}
   return new Promise(function(){})}
@@ -93,7 +95,7 @@ var pilaAtras=[];
 function pantalla(o){   // o: {atras, titulo, paso:[i,n], e, h1, p, ops:[[texto,color,fn]], extra, aviso, avisoMal}
   window.scrollTo(0,0);
   var h='<div class="top">'+(o.atras?'<button class="atras" id="bAtras">↩</button>':'')+'<div><b>'+esc(E?E.codigo+' · '+E.escuela:'Monitoreo CNE')+'</b><small>'+esc(o.titulo||'Monitoreo CNE')+(E&&E.demo?' · 🧪 PRUEBA':'')+'</small></div></div>';
-  if(o.paso&&BOT){var mp=o.paso[1]===10?{1:1,3:2,4:3,5:4,6:5,8:6,9:7}:{1:1,2:2};o.paso=[mp[o.paso[0]]||o.paso[0],o.paso[1]===10?8:3]}
+  if(o.paso&&BOT&&!RELAY){var mp=o.paso[1]===10?{1:1,3:2,4:3,5:4,6:5,8:6,9:7}:{1:1,2:2};o.paso=[mp[o.paso[0]]||o.paso[0],o.paso[1]===10?8:3]}
   if(o.paso){h+='<div class="prog">';for(var i=0;i<o.paso[1];i++)h+='<i class="'+(i<o.paso[0]?'on':'')+'"></i>';h+='</div><div class="paso">Paso '+o.paso[0]+' de '+o.paso[1]+'</div>'}
   h+='<div class="q"><div class="e">'+o.e+'</div>'+(o.h1?'<h1>'+o.h1+'</h1>':'')+(o.p?'<p>'+o.p+'</p>':'')+'</div>'+(o.extra||'');
   if(o.aviso)h+='<div class="aviso'+(o.avisoMal?' mal':'')+'">'+o.aviso+'</div>';
@@ -196,7 +198,7 @@ function camino(){F.problema=true;pantalla({atras:function(){F.problema=false;in
   ['🌊 INUNDACIÓN','r',function(){avisarCamino('inundacion')}],['🚧 DIFÍCIL ACCESO','a',function(){avisarCamino('acceso')}],
   ['⛔ NO SE PUEDE PASAR','r',function(){avisarCamino('paso')}],['💡 CORTE DE LUZ','a',function(){avisarCamino('luz')}],['📝 OTRO','b',function(){avisarCamino('otro')}]]})}
 function avisarCamino(tipo,u,preguntarIgual){
-  var seguir=function(u){if(BOT)return enviar(u);pantalla({e:'📷',h1:'¿Puede tomar una foto?',p:'Solo si es seguro.',ops:[
+  var seguir=function(u){if(BOT&&!RELAY)return enviar(u);pantalla({e:'📷',h1:'¿Puede tomar una foto?',p:'Solo si es seguro.',ops:[
     ['📷 TOMAR FOTO','b',function(){camara('camino','PROBLEMA EN EL CAMINO',function(){enviar(u)})}],['⏭️ SIN FOTO','n',function(){enviar(u)}]]})};
   var enviar=function(u){cargando('Avisando a su supervisor…');accion({accion:'camino',tipo:tipo,lat:u&&u.lat,lon:u&&u.lon}).then(function(){vibra('ok');
     if(preguntarIgual)return pantalla({e:'🤔🚗',h1:'¿Puede LLEGAR igual?',p:'Ya se avisó a su supervisor.',ops:[['✅ SÍ, SIGO','g',function(){F.problema=false;viaje()}],['⛔ NO PUEDO LLEGAR','r',function(){noLlego(u,tipo)}]]});
@@ -276,7 +278,7 @@ function llegada(u){pararViaje();F={tipo:'llegada',check:{}};
   var validar=function(u){cargando('Revisando que esté en su recinto…');accion({accion:'ubic',para:'llegada',lat:u.lat,lon:u.lon,acc:u.acc}).then(function(r){
     if(!r.ok){vibra('mal');return pantalla({atras:inicio,e:'📍⛔',h1:'Todavía no está en su recinto',p:esc(r.error),aviso:BOT?explicar(u,r.distancia_m):'',avisoMal:true,
       ops:[['🔄 YA ESTOY, PROBAR OTRA VEZ','b',function(){llegada()}],['⛔ NO PUEDO LLEGAR','r',function(){noLlego(u)}]].concat(r.demo?[['🧪 SEGUIR IGUAL (solo en prueba)','n',function(){F.dist=r.distancia_m;BOT?pregunta(0):fotoEntrada()},1]]:[])})}
-    F.dist=r.distancia_m;vibra('ok');BOT?pregunta(0):fotoEntrada()}).catch(function(e){error(e.message)})};
+    F.dist=r.distancia_m;vibra('ok');BOT&&!RELAY?pregunta(0):fotoEntrada()}).catch(function(e){error(e.message)})};
   if(u)return validar(u);
   pantalla({paso:[1,10],e:'<span class="girar">📍</span>',h1:'Buscando dónde está…',p:'Si el teléfono pregunta, toque <b>Permitir</b>.'});
   ubicacion().then(validar).catch(function(e){sinUbicacion(e,function(){llegada()})})}
@@ -285,19 +287,19 @@ var PREG=[['abierta','🏫','¿La escuela está ABIERTA?','Mire la puerta princi
   ['acceso','🚪🚶','¿Hay FÁCIL ACCESO para entrar?','',[['✅ SÍ, FÁCIL ACCESO','g','si'],['⛔ NO, ES DIFÍCIL','r','no']]],
   ['inundacion','🌊','¿Hay INUNDACIÓN?','',[['✅ NO HAY INUNDACIÓN','g','no'],['🌊 SÍ HAY INUNDACIÓN','r','si']]],
   ['corte','🏘️💡','¿Hay CORTE DE LUZ en el sector?','Afuera, en el barrio',[['✅ NO, HAY LUZ','g','no'],['🕯️ SÍ, HAY CORTE','r','si']]]];
-function pregunta(i){var P=PREG[i];pantalla({atras:i?function(){pregunta(i-1)}:(BOT?inicio:fotoEntrada),paso:[3+i,10],e:P[1],h1:P[2],p:P[3],
+function pregunta(i){var P=PREG[i];pantalla({atras:i?function(){pregunta(i-1)}:(BOT&&!RELAY?inicio:fotoEntrada),paso:[3+i,10],e:P[1],h1:P[2],p:P[3],
   ops:P[4].map(function(b){return [b[0],b[1],function(){F.check[P[0]]=b[2];
     if(P[0]==='abierta'&&b[2]==='no')return mandarLlegada();
     if(i<PREG.length-1)return pregunta(i+1);militares()}]})})}
-function militares(){if(BOT)return equipos();pantalla({atras:function(){pregunta(PREG.length-1)},paso:[7,10],e:'🪖📦',h1:'Foto con los MILITARES',p:'Busque a los militares y tome una foto recibiendo el equipo.',
+function militares(){if(BOT&&!RELAY)return equipos();pantalla({atras:function(){pregunta(PREG.length-1)},paso:[7,10],e:'🪖📦',h1:'Foto con los MILITARES',p:'Busque a los militares y tome una foto recibiendo el equipo.',
   ops:[['📷 TOMAR LA FOTO','b',function(){camara('militares','ENTREGA DEL EQUIPO (MILITARES)',equipos)}]]})}
-function equipos(){pantalla({atras:BOT?function(){pregunta(PREG.length-1)}:militares,paso:[8,10],e:'🚶➡️🖥️',h1:'¿Los EQUIPOS están prendidos?',p:'Vaya a donde están los equipos.',
+function equipos(){pantalla({atras:BOT&&!RELAY?function(){pregunta(PREG.length-1)}:militares,paso:[8,10],e:'🚶➡️🖥️',h1:'¿Los EQUIPOS están prendidos?',p:'Vaya a donde están los equipos.',
   ops:[['🟢 PRENDIDOS','g',function(){F.equipos='si';F.prendieron='';luz()}],['⚫ APAGADOS','r',function(){F.equipos='no';prender()}]]})}
 function prender(){pantalla({atras:equipos,paso:[8,10],e:'🔌👆',h1:'Préndalos ahora',p:'Botón de encendido. Espere un momento.',
   ops:[['🟢 SÍ, YA PRENDIERON','g',function(){F.prendieron='si';luz()}],['⛔ NO PRENDEN','r',function(){F.prendieron='no';luz()}]]})}
 function luz(){pantalla({atras:equipos,paso:[9,10],e:'🏫💡',h1:'¿La ESCUELA tiene luz?',p:'Aunque el barrio no tenga, la escuela puede tener.',
   ops:[['💡 SÍ TIENE LUZ','g',function(){F.luz='si';fotoPunto()}],['🕯️ NO TIENE LUZ','r',function(){F.luz='no';fotoPunto()}]]})}
-function fotoPunto(){if(BOT)return mandarLlegada();pantalla({atras:luz,paso:[10,10],e:'🖥️📷',h1:'Foto del PUNTO',p:'Que se vean los equipos.',ops:[['📷 TOMAR LA FOTO','b',function(){camara('punto','PUNTO OPERATIVO',mandarLlegada)}]]})}
+function fotoPunto(){if(BOT&&!RELAY)return mandarLlegada();pantalla({atras:luz,paso:[10,10],e:'🖥️📷',h1:'Foto del PUNTO',p:'Que se vean los equipos.',ops:[['📷 TOMAR LA FOTO','b',function(){camara('punto','PUNTO OPERATIVO',mandarLlegada)}]]})}
 function mandarLlegada(){cargando('Enviando…');accion({accion:'llegada',llegada:'si',check:F.check,equipos:F.equipos,prendieron:F.prendieron,luz:F.luz}).then(function(r){
   if(r.resultado==='cerrada'){vibra('mal');return pantalla({e:'🔒📞',h1:'Escuela CERRADA',p:'Ya se avisó a su supervisor. Por favor <b>comuníquese con su supervisor o administrador</b>.',extra:supTxt(),ops:[['🏠 INICIO','n',inicio]]})}
   vibra('ok');pantalla({e:r.resultado==='operativo'?'✅🎉':'⚠️',h1:r.resultado==='operativo'?'¡PUNTO OPERATIVO!':'Llegada guardada',
@@ -314,9 +316,9 @@ function pantallaPrueba(){pantalla({atras:inicio,paso:[2,3],titulo:'Prueba '+F.n
   ['✅ «Test realizado con éxito»','g',function(){F.test='ok';fotoPantalla()}],['⚠️ «Su usuario ya realizó el test»','a',function(){F.test='ya';fotoPantalla()}],
   ['⛔ «El servidor rechazó la solicitud»','r',function(){F.test='rechazo';fotoPantalla()}],['❌ NO HAY INTERNET / NO ABRE','r',function(){F.test='sin';fotoPantalla()}],
   ['〰️ MUY LENTO O SE CORTA','a',function(){F.test='lento';fotoPantalla()}]]})}
-function fotoPantalla(){if(BOT)return F.test==='sin'||F.test==='lento'?equipoMal():mandarPrueba();pantalla({atras:pantallaPrueba,paso:[3,3],titulo:'Prueba '+F.n,e:'📷💻',h1:'Foto de la PANTALLA',p:'Que se lea el mensaje.',
+function fotoPantalla(){if(BOT&&!RELAY)return F.test==='sin'||F.test==='lento'?equipoMal():mandarPrueba();pantalla({atras:pantallaPrueba,paso:[3,3],titulo:'Prueba '+F.n,e:'📷💻',h1:'Foto de la PANTALLA',p:'Que se lea el mensaje.',
   ops:[['📷 TOMAR LA FOTO','b',function(){camara('prueba','PRUEBA DE CONEXIÓN '+F.n,function(){F.test==='sin'||F.test==='lento'?equipoMal():mandarPrueba()})}]]})}
-function equipoMal(){pantalla({atras:BOT?pantallaPrueba:fotoPantalla,titulo:'Prueba '+F.n,e:'🔎🖥️',h1:'¿Cómo está el EQUIPO?',ops:[
+function equipoMal(){pantalla({atras:BOT&&!RELAY?pantallaPrueba:fotoPantalla,titulo:'Prueba '+F.n,e:'🔎🖥️',h1:'¿Cómo está el EQUIPO?',ops:[
   ['🔌 NO PRENDE','r',function(){F.causa='noenciende';mandarPrueba()}],['🔴 PRENDE PERO SIN INTERNET','r',function(){F.causa='rojo';mandarPrueba()}],
   ['💡 NO HAY LUZ EN LA ESCUELA','a',function(){F.causa='sinluz';mandarPrueba()}],['❓ NO SÉ','b',function(){F.causa='nosabe';mandarPrueba()}]]})}
 function mandarPrueba(){cargando('Enviando…');accion({accion:'prueba',n:F.n,test_msg:F.test,causa:F.causa||''}).then(function(r){
@@ -349,8 +351,14 @@ function procesar(src,sw,sh){var k=Math.min(1,1600/Math.max(sw,sh)),w=Math.round
 $('disparo').onclick=function(){var v=$('vid');if(!v.videoWidth)return;vibra();procesar(v,v.videoWidth,v.videoHeight)};
 $('repetir').onclick=function(){vibra();if(stream){$('prev').classList.add('oculto');$('vid').classList.remove('oculto');$('bTomar').classList.remove('oculto');$('bRev').classList.add('oculto')}else camaraTelefono()};
 $('camCancel').onclick=function(){cerrarCam()};
+function subirRelay(parte,b){   // la foto pasa por ntfy.sh (gratis, se borra sola en 3 h); la PC la baja y la borra
+  var ctl=window.AbortController?new AbortController():null,t=setTimeout(function(){if(ctl)ctl.abort()},60000);
+  return fetch(E.fr+'/'+E.ft,{method:'PUT',headers:{'Filename':parte+'.jpg','Title':E.codigo+' '+parte},body:b,signal:ctl?ctl.signal:undefined})
+    .then(function(r){clearTimeout(t);return r.json().then(function(j){if(!r.ok||!j.attachment||!j.attachment.url)throw new Error(j.error||'No se pudo subir');
+      F.fotos=F.fotos||{};F.fotos[parte]=j.attachment.url+'#'+j.id;return j})})
+    .catch(function(e){clearTimeout(t);throw new Error('No se pudo enviar la foto (revise el internet). Toque «Usar foto» otra vez.')})}
 $('usar').onclick=function(){if(!blob)return;var b=$('usar');b.disabled=true;b.textContent='Enviando…';
-  api('/tg/app/foto?parte='+camCfg.parte,blob,'image/jpeg').then(function(){b.disabled=false;b.textContent='✅ Usar foto';cerrarCam();vibra('ok');camCfg.luego()})
+  (BOT?subirRelay(camCfg.parte,blob):api('/tg/app/foto?parte='+camCfg.parte,blob,'image/jpeg')).then(function(){b.disabled=false;b.textContent='✅ Usar foto';cerrarCam();vibra('ok');camCfg.luego()})
    .catch(function(e){b.disabled=false;b.textContent='✅ Usar foto';cerrarCam();error(e.message,function(){camara(camCfg.parte,camCfg.titulo,camCfg.luego)})})};
 
 window.__app={inicio:inicio,home:home,llegada:llegada,prueba:prueba,viaje:viaje};
