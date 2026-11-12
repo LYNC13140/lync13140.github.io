@@ -132,6 +132,7 @@ function home(){
   else if(q==='llegada'){o.e='🏫';o.h1='¿Ya llegó a su recinto?';ops=[['📍 YA ESTOY EN MI RECINTO','g',llegada],['⛔ NO PUEDO LLEGAR','r',noLlego]]}
   else if(q==='reabrio'){o.e='🔒';o.h1='La escuela estaba cerrada';o.p='Cuando la abran, toque el botón.';ops=[['🔓 YA ABRIERON LA ESCUELA','g',llegada]]}
   else if(q==='prueba'){o.e='📶';o.h1='Prueba de conexión '+n;o.p=p.hora?(p.pedida?'Su supervisor la pidió a las <b>'+p.hora+'</b>':'Le toca a las <b>'+p.hora+'</b>'):'';ops=[['📶 HACER LA PRUEBA '+n,'g',function(){prueba(n)}]]}
+  else if(q==='espera'){o.e='⏳📶';o.h1='Espere a su supervisor';o.p='Él le avisará cuándo hacer la <b>PRUEBA DE CONEXIÓN '+n+'</b>. Le llegará un mensaje; entonces toque <b>▶️ INICIAR</b> otra vez.'}
   else if(q==='repetir'){o.e='🔁';o.h1='La prueba '+n+' salió mal';o.p='Apague el equipo, espere 30 segundos y préndalo. Luego repita.';ops=[['🔁 REPETIR LA PRUEBA '+n,'a',function(){prueba(n)}]]}
   else {o.e='🎉';o.h1='¡Listo por hoy!';o.p='Muchas gracias por su trabajo.'}
   ops.push(['📞 MI SUPERVISOR','n',supervisor,1]);if(BOT)ops.push(['❓ AYUDA','n',ayuda,1]);

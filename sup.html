@@ -53,7 +53,7 @@ function vibra(t){try{if(t==='ok')tg.HapticFeedback.notificationOccurred('succes
 if(tg){try{tg.ready();tg.expand();if(tg.setHeaderColor)tg.setHeaderColor('#123a6b');if(tg.setBackgroundColor)tg.setBackgroundColor('#fff8ec')}catch(e){}}
 
 function pantalla(o){window.scrollTo(0,0);
-  var h='<div class="top">'+(o.atras?'<button class="atras" id="bAtras">↩</button>':'')+'<div><b>'+(o.tit||'Supervisor · '+esc(D.g))+'</b><small>'+(o.sub||('Hola, '+esc(D.nm)+' · datos de las '+esc(D.h)))+'</small></div></div>';
+  var h=(D&&D.dv?'<div style="background:#e39a19;color:#fff;text-align:center;font-weight:800;padding:6px">🧪 VIENDO COMO '+esc(D.dv).toUpperCase()+'</div>':'')+'<div class="top">'+(o.atras?'<button class="atras" id="bAtras">↩</button>':'')+'<div><b>'+(o.tit||'Supervisor · '+esc(D.g))+'</b><small>'+(o.sub||('Hola, '+esc(D.nm)+' · datos de las '+esc(D.h)))+'</small></div></div>';
   if(o.e||o.h1)h+='<div class="q">'+(o.e?'<div class="e">'+o.e+'</div>':'')+(o.h1?'<h1>'+o.h1+'</h1>':'')+(o.p?'<p>'+o.p+'</p>':'')+'</div>';
   h+=o.html||'';
   if(o.ops){h+='<div class="ops">';o.ops.forEach(function(b,i){h+='<button class="op '+(b[1]||'b')+(b[3]?' chico':'')+'" data-i="'+i+'">'+b[0]+(b[4]?'<span class="badge">'+b[4]+'</span>':'')+'</button>'});h+='</div>'}
@@ -91,7 +91,7 @@ function inicio(){F={};
     html:'<div class="kp"><div class="k v"><b>'+D.t.act+'/'+D.t.esc+'</b><span>🟢 Enlaces activos</span></div><div class="k '+(D.t.cai?'r':'v')+'"><b>'+D.t.cai+'</b><span>🔴 Enlaces caídos</span></div>'
       +'<div class="k '+(D.t.lleg?'v':'')+'"><b>'+D.t.lleg+'/'+D.t.esc+'</b><span>📍 Operadores llegaron</span></div><div class="k '+(D.pr.length?'r':'v')+'"><b>'+(D.npr||D.pr.length)+'</b><span>🚨 Problemas</span></div></div>',
     ops:[['🚨 PROBLEMAS','r',problemas,0,(D.npr||D.pr.length)||''],['🏫 MIS ESCUELAS ('+D.t.esc+')','b',function(){escuelas('todas')}],].concat(D.pp?[[activarTxt(),'g',activar],['📢 Pedir test solo a unas escuelas','g',pedir,1]]:[]).concat([
-      ['📥 POR AUTORIZAR','a',autorizar,0,D.pa.length||''],['🛠️ REPORTAR DAÑO (TICKET)','n',function(){elegirDanio()},1],['🧪 VER COMO LO VE EL OPERADOR / ASISTENTE','n',function(){alBot({accion:'probar'})},1],['☰ MÁS OPCIONES (incidencias, reportes, QR…)','n',function(){alBot({accion:'mas'})},1]]),
+      ['📥 POR AUTORIZAR','a',autorizar,0,D.pa.length||''],['🛠️ REPORTAR DAÑO (TICKET)','n',function(){elegirDanio()},1],D.dv?['🚪 SALIR DE LA PRUEBA (volver a mi panel)','r',function(){alBot({accion:'salir'})}]:['🧪 VER COMO LO VE…','n',verComo,1],['☰ MÁS OPCIONES (incidencias, reportes, QR…)','n',function(){alBot({accion:'mas'})},1]]),
     nota:'Para ver datos nuevos, cierre y vuelva a tocar <b>📱 ABRIR MI PANEL</b>.'})}
 
 // ------------------------------------------------------------ 📶 activar test 1 → 2 → 3 (solo supervisor nacional y administrador)
@@ -102,6 +102,12 @@ function activar(){var n=sigTest(),hechos=(D.ord||[]).map(function(o){return '�
     p:'Se avisa a los operadores que <b>ya están en su recinto</b>. De los que no llegaron le digo quiénes son, para que los llame.',
     html:hechos?'<div class="av ok"><b>Ya activados hoy:</b><br>'+hechos+'</div>':'',
     ops:[['✅ SÍ, ACTIVAR TEST '+n,'g',function(){alBot({accion:'pedir',n:n,cods:[]})}],['↩ No, volver','n',inicio,1]]})}
+
+// ------------------------------------------------------------ 🧪 ver como lo ve otro rol
+function verComo(){pantalla({atras:inicio,tit:'🧪 Ver como lo ve…',sub:'Es solo para revisar: no cambia nada de nadie',e:'🧪👀',h1:'¿Cómo quiere verlo?',
+  ops:[['👷 OPERADOR / ASISTENTE','b',function(){alBot({accion:'probar'})}],['🧑‍✈️ SUPERVISOR DE GRUPO','b',elegirGrupo]].concat(D.adm?[['🧑‍💼 SUPERVISOR NACIONAL','b',function(){alBot({accion:'ver_como',como:'nacional'})}]]:[])})}
+function elegirGrupo(){var h='<div class="lista">';(D.gl||[]).forEach(function(g,i){h+='<button class="esc n" data-f="g" data-i="'+i+'"><b>🧑‍✈️ '+esc(g)+'</b></button>'});
+  pantalla({atras:verComo,tit:'🧑‍✈️ Supervisor de grupo',sub:'¿Qué grupo?',html:h+'</div>',fn:{g:function(el){alBot({accion:'ver_como',como:'grupo',grupo:D.gl[+el.dataset.i]})}}})}
 
 // ------------------------------------------------------------ 2 · mis escuelas
 function escuelas(fl){var filtros=[['todas','Todas'],['cai','🔴 Caídos'],['mal','🚨 Problemas'],['atr','⏰ Atrasadas'],['sin','⬜ Sin llegar']];
