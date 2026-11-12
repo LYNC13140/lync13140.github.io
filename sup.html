@@ -91,7 +91,7 @@ function inicio(){F={};
     html:'<div class="kp"><div class="k v"><b>'+D.t.act+'/'+D.t.esc+'</b><span>🟢 Enlaces activos</span></div><div class="k '+(D.t.cai?'r':'v')+'"><b>'+D.t.cai+'</b><span>🔴 Enlaces caídos</span></div>'
       +'<div class="k '+(D.t.lleg?'v':'')+'"><b>'+D.t.lleg+'/'+D.t.esc+'</b><span>📍 Operadores llegaron</span></div><div class="k '+(D.pr.length?'r':'v')+'"><b>'+(D.npr||D.pr.length)+'</b><span>🚨 Problemas</span></div></div>',
     ops:[['🚨 PROBLEMAS','r',problemas,0,(D.npr||D.pr.length)||''],['🏫 MIS ESCUELAS ('+D.t.esc+')','b',function(){escuelas('todas')}],].concat(D.pp?[[activarTxt(),'g',activar],['📢 Pedir test solo a unas escuelas','g',pedir,1]]:[]).concat([
-      ['📥 POR AUTORIZAR','a',autorizar,0,D.pa.length||''],['🛠️ REPORTAR DAÑO (TICKET)','n',function(){elegirDanio()},1],['🧪 VER COMO LO VE EL OPERADOR / ASISTENTE','n',function(){alBot({accion:'probar'})},1]]),
+      ['📥 POR AUTORIZAR','a',autorizar,0,D.pa.length||''],['🛠️ REPORTAR DAÑO (TICKET)','n',function(){elegirDanio()},1],['🧪 VER COMO LO VE EL OPERADOR / ASISTENTE','n',function(){alBot({accion:'probar'})},1],['☰ MÁS OPCIONES (incidencias, reportes, QR…)','n',function(){alBot({accion:'mas'})},1]]),
     nota:'Para ver datos nuevos, cierre y vuelva a tocar <b>📱 ABRIR MI PANEL</b>.'})}
 
 // ------------------------------------------------------------ 📶 activar test 1 → 2 → 3 (solo supervisor nacional y administrador)

@@ -277,28 +277,38 @@ function supTxt(){var s=(E&&E.supervisores)||[];return s.length?'<div class="sup
 function llegada(u){pararViaje();F={tipo:'llegada',check:{}};
   var validar=function(u){cargando('Revisando que esté en su recinto…');accion({accion:'ubic',para:'llegada',lat:u.lat,lon:u.lon,acc:u.acc}).then(function(r){
     if(!r.ok){vibra('mal');return pantalla({atras:inicio,e:'📍⛔',h1:'Todavía no está en su recinto',p:esc(r.error),aviso:BOT?explicar(u,r.distancia_m):'',avisoMal:true,
-      ops:[['🔄 YA ESTOY, PROBAR OTRA VEZ','b',function(){llegada()}],['⛔ NO PUEDO LLEGAR','r',function(){noLlego(u)}]].concat(r.demo?[['🧪 SEGUIR IGUAL (solo en prueba)','n',function(){F.dist=r.distancia_m;BOT?pregunta(0):fotoEntrada()},1]]:[])})}
-    F.dist=r.distancia_m;vibra('ok');BOT&&!RELAY?pregunta(0):fotoEntrada()}).catch(function(e){error(e.message)})};
+      ops:[['🔄 YA ESTOY, PROBAR OTRA VEZ','b',function(){llegada()}],['⛔ NO PUEDO LLEGAR','r',function(){noLlego(u)}]].concat(r.demo?[['🧪 SEGUIR IGUAL (solo en prueba)','n',function(){F.dist=r.distancia_m;pregunta(0)},1]]:[])})}
+    F.dist=r.distancia_m;vibra('ok');pregunta(0)}).catch(function(e){error(e.message)})};
   if(u)return validar(u);
   pantalla({paso:[1,10],e:'<span class="girar">📍</span>',h1:'Buscando dónde está…',p:'Si el teléfono pregunta, toque <b>Permitir</b>.'});
   ubicacion().then(validar).catch(function(e){sinUbicacion(e,function(){llegada()})})}
-function fotoEntrada(){pantalla({paso:[2,10],e:'📷🏫',h1:'Foto de la ENTRADA',p:'Que se vea el lugar.',ops:[['📷 TOMAR LA FOTO','b',function(){camara('llegada','LLEGADA',function(){pregunta(0)})}]]})}
+function fotoEntrada(){pantalla({atras:function(){pregunta(0)},paso:[3,10],e:'📷🏫',h1:'Foto de la ENTRADA',p:'Que se vea el lugar.',ops:[['📷 TOMAR LA FOTO','b',function(){camara('llegada','LLEGADA',function(){pregunta(1)})}]]})}
 var PREG=[['abierta','🏫','¿La escuela está ABIERTA?','Mire la puerta principal',[['✅ SÍ, ESTÁ ABIERTA','g','si'],['🔒 NO, ESTÁ CERRADA','r','no']]],
-  ['acceso','🚪🚶','¿Hay FÁCIL ACCESO para entrar?','',[['✅ SÍ, FÁCIL ACCESO','g','si'],['⛔ NO, ES DIFÍCIL','r','no']]],
   ['inundacion','🌊','¿Hay INUNDACIÓN?','',[['✅ NO HAY INUNDACIÓN','g','no'],['🌊 SÍ HAY INUNDACIÓN','r','si']]],
   ['corte','🏘️💡','¿Hay CORTE DE LUZ en el sector?','Afuera, en el barrio',[['✅ NO, HAY LUZ','g','no'],['🕯️ SÍ, HAY CORTE','r','si']]]];
-function pregunta(i){var P=PREG[i];pantalla({atras:i?function(){pregunta(i-1)}:(BOT&&!RELAY?inicio:fotoEntrada),paso:[3+i,10],e:P[1],h1:P[2],p:P[3],
+var SINFOTO=function(){return BOT&&!RELAY};   // sin servidor de fotos: las fotos se piden después en el chat
+function pregunta(i){var P=PREG[i];pantalla({atras:i?function(){pregunta(i-1)}:inicio,paso:[2+i*2,10],e:P[1],h1:P[2],p:P[3],
   ops:P[4].map(function(b){return [b[0],b[1],function(){F.check[P[0]]=b[2];
-    if(P[0]==='abierta'&&b[2]==='no')return mandarLlegada();
-    if(i<PREG.length-1)return pregunta(i+1);militares()}]})})}
+    var sig=function(){if(i<PREG.length-1)return pregunta(i+1);militares()};
+    if(P[0]==='abierta'&&b[2]==='no')return SINFOTO()?mandarLlegada():fotoCerrada();          // 🔒 cerrada: foto y aviso rápido
+    if(P[0]==='abierta')return SINFOTO()?sig():fotoEntrada();                                 // abierta: foto de la entrada
+    if(P[0]==='inundacion'&&b[2]==='si'&&!SINFOTO())return fotoInundacion(sig);              // 🌊 solo si HAY inundación
+    sig()}]})})}
+function fotoCerrada(){pantalla({atras:function(){pregunta(0)},paso:[3,10],e:'📷🔒',h1:'Foto de la escuela CERRADA',p:'Que se vea la puerta cerrada. Se avisa enseguida a su supervisor.',
+  ops:[['📷 TOMAR LA FOTO','r',function(){camara('llegada','ESCUELA CERRADA',mandarLlegada)}]]})}
+function fotoInundacion(luego){pantalla({atras:function(){pregunta(1)},paso:[5,10],e:'📷🌊',h1:'Foto de la INUNDACIÓN',p:'Sin arriesgarse.',
+  ops:[['📷 TOMAR LA FOTO','b',function(){camara('inundacion','INUNDACIÓN',luego)}]]})}
 function militares(){if(BOT&&!RELAY)return equipos();pantalla({atras:function(){pregunta(PREG.length-1)},paso:[7,10],e:'🪖📦',h1:'Foto con los MILITARES',p:'Busque a los militares y tome una foto recibiendo el equipo.',
   ops:[['📷 TOMAR LA FOTO','b',function(){camara('militares','ENTREGA DEL EQUIPO (MILITARES)',equipos)}]]})}
 function equipos(){pantalla({atras:BOT&&!RELAY?function(){pregunta(PREG.length-1)}:militares,paso:[8,10],e:'🚶➡️🖥️',h1:'¿Los EQUIPOS están prendidos?',p:'Vaya a donde están los equipos.',
-  ops:[['🟢 PRENDIDOS','g',function(){F.equipos='si';F.prendieron='';luz()}],['⚫ APAGADOS','r',function(){F.equipos='no';prender()}]]})}
+  ops:[['🟢 PRENDIDOS','g',function(){F.equipos='si';F.prendieron='';fotoEquipos()}],['⚫ APAGADOS','r',function(){F.equipos='no';prender()}]]})}
 function prender(){pantalla({atras:equipos,paso:[8,10],e:'🔌👆',h1:'Préndalos ahora',p:'Botón de encendido. Espere un momento.',
-  ops:[['🟢 SÍ, YA PRENDIERON','g',function(){F.prendieron='si';luz()}],['⛔ NO PRENDEN','r',function(){F.prendieron='no';luz()}]]})}
-function luz(){pantalla({atras:equipos,paso:[9,10],e:'🏫💡',h1:'¿La ESCUELA tiene luz?',p:'Aunque el barrio no tenga, la escuela puede tener.',
-  ops:[['💡 SÍ TIENE LUZ','g',function(){F.luz='si';fotoPunto()}],['🕯️ NO TIENE LUZ','r',function(){F.luz='no';fotoPunto()}]]})}
+  ops:[['🟢 SÍ, YA PRENDIERON','g',function(){F.prendieron='si';fotoEquipos()}],['⛔ NO PRENDEN','r',function(){F.prendieron='no';fotoEquipos()}]]})}
+function fotoEquipos(){if(SINFOTO())return luz();var est=F.equipos==='si'?'PRENDIDOS':F.prendieron==='si'?'PRENDIDOS (los prendió)':'APAGADOS (no prenden)';
+  pantalla({atras:equipos,paso:[9,10],e:'📷🖥️',h1:'Foto de los EQUIPOS',p:'Que se vea si están <b>'+est.split(' ')[0].toLowerCase()+'</b> (las luces del equipo).',
+    ops:[['📷 TOMAR LA FOTO','b',function(){camara('punto','EQUIPOS '+est,luz)}]]})}
+function luz(){pantalla({atras:equipos,paso:[10,10],e:'🏫💡',h1:'¿La ESCUELA tiene luz?',p:'Aunque el barrio no tenga, la escuela puede tener.',
+  ops:[['💡 SÍ TIENE LUZ','g',function(){F.luz='si';mandarLlegada()}],['🕯️ NO TIENE LUZ','r',function(){F.luz='no';mandarLlegada()}]]})}
 function fotoPunto(){if(BOT&&!RELAY)return mandarLlegada();pantalla({atras:luz,paso:[10,10],e:'🖥️📷',h1:'Foto del PUNTO',p:'Que se vean los equipos.',ops:[['📷 TOMAR LA FOTO','b',function(){camara('punto','PUNTO OPERATIVO',mandarLlegada)}]]})}
 function mandarLlegada(){cargando('Enviando…');accion({accion:'llegada',llegada:'si',check:F.check,equipos:F.equipos,prendieron:F.prendieron,luz:F.luz}).then(function(r){
   if(r.resultado==='cerrada'){vibra('mal');return pantalla({e:'🔒📞',h1:'Escuela CERRADA',p:'Ya se avisó a su supervisor. Por favor <b>comuníquese con su supervisor o administrador</b>.',extra:supTxt(),ops:[['🏠 INICIO','n',inicio]]})}
