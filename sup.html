@@ -40,6 +40,7 @@ h3{margin:14px 16px 4px;color:var(--azul);font-size:17px}
 .seg{display:flex;gap:8px;padding:6px 14px}.seg button{flex:1;padding:15px 0;border-radius:16px;background:#fff;border:3px solid var(--gris);font-size:22px;font-weight:800;color:var(--azul);font-family:inherit}
 .seg .on{background:var(--azul);color:#fff;border-color:var(--azul)}
 .nota{font-size:14px;color:var(--mut);text-align:center;padding:10px 16px}
+.girar{display:inline-block;animation:g 1.2s linear infinite}@keyframes g{to{transform:rotate(360deg)}}
 </style>
 </head>
 <body>
@@ -67,9 +68,31 @@ function alBot(d){pantalla({e:'📨',h1:'Enviando…',p:'Siga en el chat del bot
   try{if(!tg||!tg.sendData)throw 0;tg.sendData(JSON.stringify(d))}
   catch(e){vibra('mal');pantalla({e:'⚠️',h1:'Ábralo desde el bot',p:'Toque <b>📱 ABRIR MI PANEL</b> en el menú de abajo del chat.'})}}
 
+// 🔁 canal de ida y vuelta: la app NO se cierra (el pedido va a la PC por el servidor de paso y la respuesta vuelve aquí)
+function canal(CH,CI,FR,d){
+  var id=Math.random().toString(36).slice(2,10)+Date.now().toString(36),t0=Math.floor(Date.now()/1000)-3;
+  return fetch(FR+'/'+CH.c,{method:'POST',body:JSON.stringify({chat:CI,k:CH.k,id:id,d:d})}).then(function(r){if(!r.ok)throw new Error('envío');
+    return new Promise(function(ok,mal){var n=0;(function mira(){n++;
+      fetch(FR+'/'+CH.r+'/json?poll=1&since='+t0).then(function(r){return r.text()}).then(function(tx){var hallado=null;
+        tx.split('\n').forEach(function(l){try{var e=JSON.parse(l);if(e.event!=='message')return;
+          if(e.title===id&&e.attachment)hallado=fetch(e.attachment.url).then(function(r){return r.json()});
+          else{var m=JSON.parse(e.message);if(m.id===id)hallado=Promise.resolve(m)}}catch(x){}});
+        if(hallado)return hallado.then(ok,mal);
+        if(n>30)return mal(new Error('La PC no respondió (¿está prendida?)'));setTimeout(mira,2000)})
+      .catch(function(){if(n>30)return mal(new Error('Sin internet'));setTimeout(mira,2500)})})()})})}
+
+function hacer(d){   // acciones del panel: con canal, se queda en la app y muestra el resultado
+  if(!D.ch)return alBot(d);
+  pantalla({e:'<span class="girar">⏳</span>',h1:'Enviando…',p:'Su PC lo está haciendo. Unos segundos.'});
+  canal(D.ch,D.ci,D.fr,d).then(function(res){vibra(res.ok?'ok':'mal');
+    pantalla({e:res.ok?'✅':'⚠️',h1:res.ok?'Listo':'No se pudo',html:'<div class="av '+(res.ok?'ok':'')+'" style="text-align:left;font-size:16px">'+(res.txt||'')+'</div>',
+      ops:[['🏠 VOLVER AL PANEL','g',function(){if(!res.z)return inicio();cargarZ(res.z,function(d2){if(d2)D=d2;inicio()})}]]})})
+  .catch(function(e){vibra('mal');pantalla({e:'📶⚠️',h1:'No llegó la respuesta',p:esc(e.message),ops:[['🔄 INTENTAR OTRA VEZ','b',function(){hacer(d)}],['📨 Mandar por Telegram (se cierra la app)','n',function(){alBot(d)},1],['🏠 Volver','n',inicio,1]]})})}
+
 // ------------------------------------------------------------ datos
-function lee(cb){var m=location.search.match(/[?&]z=([^&]+)/);if(!m)return cb(null);
-  var t=m[1].replace(/-/g,'+').replace(/_/g,'/');while(t.length%4)t+='=';
+function lee(cb){var m=location.search.match(/[?&]z=([^&]+)/);if(!m)return cb(null);cargarZ(m[1],cb)}
+function cargarZ(z,cb){
+  var t=z.replace(/-/g,'+').replace(/_/g,'/');while(t.length%4)t+='=';
   var b=atob(t),u=new Uint8Array(b.length);for(var i=0;i<b.length;i++)u[i]=b.charCodeAt(i);
   if(!window.DecompressionStream)return cb(null,'Actualice Telegram o el teléfono para abrir el panel.');
   new Response(new Blob([u]).stream().pipeThrough(new DecompressionStream('deflate'))).text().then(function(s){cb(JSON.parse(s))}).catch(function(){cb(null)})}
@@ -77,12 +100,15 @@ function estadoEsc(x){var mal=x.e==='F'||x.ls==='cer'||x.ls==='no'||x.p.indexOf(
 function chipsEsc(x){var l=x.l,s='';
   s+=x.ls==='cer'?'📍🔒 cerrada':x.ls==='no'?'📍⛔ no llegó':l?'📍✅ '+l[0]:x.cm?'📍⬜ 🚧 problema en camino':'📍⬜ sin llegar';
   x.p.forEach(function(e,i){s+=' · 📶'+(i+1)+' '+(e==='b'?'✅':e==='m'?'❌':e==='f'?'⏰':'⬜')});
-  return (x.e==='F'?'🔴 <b>CAÍDO</b>'+(x.ed?' '+x.ed:'')+' · ':x.e==='A'?'🟢 · ':'')+s}
+  return (x.e==='F'?'🔴 <b>CAÍDO '+(x.es!=null?'hace '+dura(x.es):x.ed||'')+'</b> · ':x.e==='A'?'🟢 · ':'')+s}
 function notaEsc(x){var n=[];if(x.o)n.push(esc(x.o));
   var i=x.p.indexOf('m');if(i>=0&&x.pd)n.push('prueba '+(i+1)+': '+esc(x.pd[i][2]||'con problema'));
   else{i=x.p.indexOf('f');if(i>=0&&x.pd&&x.pd[i][1])n.push('prueba '+(i+1)+' atrasada '+esc(x.pd[i][1]))}
   if(x.ls==='nov')n.push('llegó con novedades');if(x.cm)n.push('🚧 '+esc(x.cm[1]));return n.join(' · ')}
 function unicas(){var v={};return D.f.filter(function(x){if(v[x.c])return false;v[x.c]=1;return true})}
+var TKE={por_autorizar:'⏳ por autorizar',consulta_op:'📞 preguntando al operador',por_crear:'🆕 por crear',creado:'🎫 creado',seguimiento:'🔁 seguimiento',intermitente:'〰️ intermitente',reabrir:'↩️ se reabre',en_revision:'🔎 en revisión'};
+function dura(seg){if(seg==null)return '';var m=Math.round(seg/60),h=Math.floor(m/60),d=Math.floor(h/24);return d?d+' d '+(h%24)+' h':h?h+' h '+(m%60)+' min':m+' min'}
+function tkTxt(x){return x.tk?'🎫 '+(x.tk[1]?'<b>'+esc(x.tk[1])+'</b> · ':'')+(TKE[x.tk[0]]||esc(x.tk[0])):(x.e==='F'?'🚫 <b>sin ticket</b>':'')}
 function busca(c,pt){return D.f.filter(function(x){return x.c===c&&(!pt||x.pt===pt)})[0]}
 
 // ------------------------------------------------------------ 1 · inicio
@@ -90,7 +116,7 @@ function inicio(){F={};
   pantalla({e:'🧑‍✈️📊',h1:'Así va tu grupo',p:'Datos de las <b>'+esc(D.h)+'</b>',
     html:'<div class="kp"><div class="k v"><b>'+D.t.act+'/'+D.t.esc+'</b><span>🟢 Enlaces activos</span></div><div class="k '+(D.t.cai?'r':'v')+'"><b>'+D.t.cai+'</b><span>🔴 Enlaces caídos</span></div>'
       +'<div class="k '+(D.t.lleg?'v':'')+'"><b>'+D.t.lleg+'/'+D.t.esc+'</b><span>📍 Operadores llegaron</span></div><div class="k '+(D.pr.length?'r':'v')+'"><b>'+(D.npr||D.pr.length)+'</b><span>🚨 Problemas</span></div></div>',
-    ops:[['🚨 PROBLEMAS','r',problemas,0,(D.npr||D.pr.length)||''],['🏫 MIS ESCUELAS ('+D.t.esc+')','b',function(){escuelas('todas')}],].concat(D.pp?[[activarTxt(),'g',activar],['📢 Pedir test solo a unas escuelas','g',pedir,1]]:[]).concat([
+    ops:[['🚨 PROBLEMAS','r',problemas,0,(D.npr||D.pr.length)||''],['🔴 ENLACES CAÍDOS ('+D.t.cai+')','r',function(){escuelas('cai')}],['🏫 MIS ESCUELAS ('+D.t.esc+')','b',function(){escuelas('todas')}],].concat(D.pp?[[activarTxt(),'g',activar],['📢 Pedir test solo a unas escuelas','g',pedir,1]]:[]).concat([
       ['📥 POR AUTORIZAR','a',autorizar,0,D.pa.length||''],['🛠️ REPORTAR DAÑO (TICKET)','n',function(){elegirDanio()},1],D.dv?['🚪 SALIR DE LA PRUEBA (volver a mi panel)','r',function(){alBot({accion:'salir'})}]:['🧪 VER COMO LO VE…','n',verComo,1],['☰ MÁS OPCIONES (incidencias, reportes, QR…)','n',function(){alBot({accion:'mas'})},1]]),
     nota:'Para ver datos nuevos, cierre y vuelva a tocar <b>📱 ABRIR MI PANEL</b>.'})}
 
@@ -101,7 +127,7 @@ function activar(){var n=sigTest(),hechos=(D.ord||[]).map(function(o){return '�
   pantalla({atras:inicio,tit:'📶 Test de conexión',sub:'Les llega el aviso al instante',e:'📶📢',h1:'¿Activar el TEST '+n+' ahora?',
     p:'Se avisa a los operadores que <b>ya están en su recinto</b>. De los que no llegaron le digo quiénes son, para que los llame.',
     html:hechos?'<div class="av ok"><b>Ya activados hoy:</b><br>'+hechos+'</div>':'',
-    ops:[['✅ SÍ, ACTIVAR TEST '+n,'g',function(){alBot({accion:'pedir',n:n,cods:[]})}],['↩ No, volver','n',inicio,1]]})}
+    ops:[['✅ SÍ, ACTIVAR TEST '+n,'g',function(){hacer({accion:'pedir',n:n,cods:[]})}],['↩ No, volver','n',inicio,1]]})}
 
 // ------------------------------------------------------------ 🧪 ver como lo ve otro rol
 function verComo(){pantalla({atras:inicio,tit:'🧪 Ver como lo ve…',sub:'Es solo para revisar: no cambia nada de nadie',e:'🧪👀',h1:'¿Cómo quiere verlo?',
@@ -112,9 +138,10 @@ function elegirGrupo(){var h='<div class="lista">';(D.gl||[]).forEach(function(g
 // ------------------------------------------------------------ 2 · mis escuelas
 function escuelas(fl){var filtros=[['todas','Todas'],['cai','🔴 Caídos'],['mal','🚨 Problemas'],['atr','⏰ Atrasadas'],['sin','⬜ Sin llegar']];
   var l=D.f.filter(function(x){var e=estadoEsc(x);return fl==='todas'||(fl==='cai'&&x.e==='F')||(fl==='mal'&&e==='r')||(fl==='atr'&&x.p.indexOf('f')>=0)||(fl==='sin'&&!x.ls)});
-  var orden={r:0,a:1,n:2,'':3};l.sort(function(a,b){return orden[estadoEsc(a)]-orden[estadoEsc(b)]});
+  var orden={r:0,a:1,n:2,'':3};l.sort(function(a,b){return fl==='cai'?(b.es||0)-(a.es||0):orden[estadoEsc(a)]-orden[estadoEsc(b)]});
   var h='<div class="fil">'+filtros.map(function(f){return '<button data-f="fil" data-v="'+f[0]+'" class="'+(f[0]===fl?'on':'')+'">'+f[1]+'</button>'}).join('')+'</div><div class="lista">';
-  l.forEach(function(x){h+='<button class="esc '+estadoEsc(x)+'" data-f="ver" data-c="'+x.c+'" data-p="'+x.pt+'"><b>'+esc(x.c)+(x.pt>1?' (punto '+x.pt+')':'')+' · '+esc(x.n)+'</b><div class="s">'+chipsEsc(x)+'</div><div class="m">'+(notaEsc(x)||'&nbsp;')+'</div></button>'});
+  l.forEach(function(x){h+='<button class="esc '+estadoEsc(x)+'" data-f="ver" data-c="'+x.c+'" data-p="'+x.pt+'"><b>'+esc(x.c)+(x.pt>1?' (punto '+x.pt+')':'')+' · '+esc(x.n)+'</b><div class="s">'+chipsEsc(x)+'</div><div class="m">'+(notaEsc(x)||'&nbsp;')+(x.e==='F'||x.tk?'<br>'+tkTxt(x):'')+'</div></button>'});
+  if(fl==='cai'&&l.length)h='<div class="av" style="text-align:left">🔴 <b>'+l.length+' caído(s)</b> · el que más lleva: <b>'+esc(l[0].c)+'</b> '+esc(l[0].n)+' — hace <b>'+dura(l[0].es)+'</b><br>🎫 con ticket: '+l.filter(function(x){return x.tk}).length+' · 🚫 sin ticket: '+l.filter(function(x){return !x.tk}).length+'</div>'+h;
   if(!l.length)h+='<div class="av ok"><b class="t">✅ Nada por aquí</b></div>';
   h+='</div>'+(D.mas?'<div class="nota">… y '+D.mas+' puntos más que están bien.</div>':'');
   pantalla({atras:inicio,tit:'🏫 Mis escuelas ('+D.t.esc+')',sub:'Toque una para ver todo',html:h,
@@ -136,8 +163,8 @@ function escuela(c,pt,volver){var x=busca(c,pt);if(!x)return inicio();var l=x.l,
       +'<small>'+(e==='b'?'Bien':e==='m'?esc(d[2]||'Con problema'):e==='f'?'Ya le tocaba y no la hace':'Todavía no le toca')+'</small></div></div>'});
   var sig=x.p.indexOf('m')>=0?x.p.indexOf('m')+1:x.p.indexOf('f')>=0?x.p.indexOf('f')+1:Math.min(3,x.p.lastIndexOf('b')+2||1);
   pantalla({atras:volver||inicio,tit:esc(x.c)+' · '+esc(x.n),sub:'Punto '+x.pt,html:h,
-    ops:[['📞 LLAMAR AL OPERADOR','g',function(){alBot({accion:'llamar',cod:x.c})}],['📷 VER LAS FOTOS','b',function(){alBot({accion:'fotos',cod:x.c})}],
-      ].concat(D.pp?[['📢 PEDIRLE LA PRUEBA '+sig,'a',function(){alBot({accion:'pedir',n:sig,cods:[x.c]})}]]:[]).concat([['🛠️ REPORTAR DAÑO (TICKET)','r',function(){danio(x.c,function(){escuela(c,pt,volver)})}]]),
+    ops:[['📞 LLAMAR AL OPERADOR','g',function(){hacer({accion:'llamar',cod:x.c})}],['📷 VER LAS FOTOS','b',function(){hacer({accion:'fotos',cod:x.c})}],
+      ].concat(D.pp?[['📢 PEDIRLE LA PRUEBA '+sig,'a',function(){hacer({accion:'pedir',n:sig,cods:[x.c]})}]]:[]).concat([['🛠️ REPORTAR DAÑO (TICKET)','r',function(){danio(x.c,function(){escuela(c,pt,volver)})}]]),
     nota:'Teléfonos y fotos le llegan en el chat del bot.'})}
 
 // ------------------------------------------------------------ 4 · problemas
@@ -149,8 +176,8 @@ function problemas(){var h='';
       +(tk?'<button class="op r" data-f="tk" data-c="'+p[0]+'">🛠️ TICKET</button>':'<button class="op n" data-f="ok" data-c="'+p[0]+'">✅ RESUELTO</button>')+'</div>'});
   if((D.npr||0)>D.pr.length)h+='<div class="nota">Se muestran los '+D.pr.length+' más urgentes. Vea todos en 🏫 Mis escuelas → 🔴 Caídos.</div>';
   pantalla({atras:inicio,tit:'🚨 Problemas ('+(D.npr||D.pr.length)+')',sub:'Lo más urgente primero',html:h+'<div style="height:10px"></div>',
-    fn:{llamar:function(el){alBot({accion:'llamar',cod:el.dataset.c})},ver:function(el){escuela(el.dataset.c,0,problemas)},
-        tk:function(el){danio(el.dataset.c,problemas)},ok:function(el){alBot({accion:'resuelto',cod:el.dataset.c})}}})}
+    fn:{llamar:function(el){hacer({accion:'llamar',cod:el.dataset.c})},ver:function(el){escuela(el.dataset.c,0,problemas)},
+        tk:function(el){danio(el.dataset.c,problemas)},ok:function(el){hacer({accion:'resuelto',cod:el.dataset.c})}}})}
 
 // ------------------------------------------------------------ 5 · pedir prueba
 function pedir(){F.n=F.n||1;F.cods=F.cods||null;
@@ -167,7 +194,7 @@ function elegir(){F.sel=F.sel||{};var h='<div class="lista">';
     ops:n?[['✅ PEDIR A '+n+' ESCUELA'+(n>1?'S':''),'g',function(){confirma(n+' escuela(s)',Object.keys(F.sel))}]]:[],
     fn:{t:function(el){var c=el.dataset.c;if(F.sel[c])delete F.sel[c];else F.sel[c]=1;var y=window.scrollY;elegir();window.scrollTo(0,y)}}})}
 function confirma(a,cods){pantalla({atras:pedir,tit:'📢 Pedir prueba',e:'📢',h1:'¿Pedir la PRUEBA '+F.n+' ahora?',p:'A '+esc(a)+'.',
-  ops:[['✅ SÍ, ENVIAR AHORA','g',function(){alBot({accion:'pedir',n:F.n,cods:cods||[]})}],['↩ No, volver','n',pedir,1]]})}
+  ops:[['✅ SÍ, ENVIAR AHORA','g',function(){hacer({accion:'pedir',n:F.n,cods:cods||[]})}],['↩ No, volver','n',pedir,1]]})}
 
 // ------------------------------------------------------------ 6 · por autorizar
 var TIPO={fibra:'🧵 Fibra',equipo:'🖥️ Equipo',enlace:'📡 Enlace caído',otro:'❓ Otro'};
@@ -177,7 +204,7 @@ function autorizar(){var h='';
     +'<br>📡 El monitoreo marca: <b>'+esc(p[5]||'—')+'</b> · espera '+esc(p[6])+'</div>'
     +'<div class="fila2"><button class="op g" data-f="a" data-v="si" data-c="'+p[0]+'">✅ CREAR</button><button class="op r" data-f="a" data-v="no" data-c="'+p[0]+'">❌ NO</button><button class="op n" data-f="a" data-v="lu" data-c="'+p[0]+'">⏸️ DESPUÉS</button></div>'});
   pantalla({atras:inicio,tit:'📥 Por autorizar ('+D.pa.length+')',sub:'Daños que reportaron los operadores',e:D.pa.length?'🛠️🌐':'',h1:D.pa.length?'¿Se crea el ticket?':'',html:h+'<div style="height:10px"></div>',
-    fn:{a:function(el){alBot({accion:'autorizar',cod:el.dataset.c,val:el.dataset.v})}}})}
+    fn:{a:function(el){hacer({accion:'autorizar',cod:el.dataset.c,val:el.dataset.v})}}})}
 
 // ------------------------------------------------------------ 🛠️ daño
 function elegirDanio(){var h='<div class="lista">';
@@ -187,7 +214,8 @@ function danio(c,volver){var x=busca(c)||{n:''};
   pantalla({atras:volver,tit:'🛠️ '+esc(c)+' · '+esc(x.n),sub:'El ticket se genera solo',e:'🛠️❓',h1:'¿Qué se dañó?',
     ops:[['🧵 FIBRA','r',function(){danioOk(c,'fibra',volver)}],['🖥️ EQUIPO','r',function(){danioOk(c,'equipo',volver)}],['📡 ENLACE CAÍDO','a',function(){danioOk(c,'enlace',volver)}],['❓ OTRO','n',function(){danioOk(c,'otro',volver)}]]})}
 function danioOk(c,t,volver){pantalla({atras:function(){danio(c,volver)},tit:'🛠️ '+esc(c),e:'🎫',h1:'¿Generar el ticket?',p:esc(TIPO[t])+' en la escuela <b>'+esc(c)+'</b>.',
-  ops:[['✅ SÍ, GENERAR TICKET','g',function(){alBot({accion:'danio',cod:c,tipo:t})}],['↩ No, volver','n',function(){danio(c,volver)},1]]})}
+  html:D.otrs?'<div class="av am" style="text-align:left;font-size:15px">'+D.otrs.replace(/\n/g,'<br>')+'</div>':'',
+  ops:[['✅ SÍ, GENERAR TICKET','g',function(){hacer({accion:'danio',cod:c,tipo:t})}],['↩ No, volver','n',function(){danio(c,volver)},1]]})}
 
 window.__sup={inicio:inicio};
 lee(function(d,err){if(!d){$('app').innerHTML='<div class="q" style="padding-top:60px"><div class="e">📱</div><h1>Abra el panel desde el bot</h1><p>'+(err||'En Telegram, toque <b>📱 ABRIR MI PANEL</b>.')+'</p></div>';return}D=d;inicio()});

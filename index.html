@@ -59,10 +59,30 @@ var S0=(location.search.match(/[?&]s=([^&]+)/)||[])[1], BOT=!!S0, RELAY=false;  
 function leerS(t){t=t.replace(/-/g,'+').replace(/_/g,'/');while(t.length%4)t+='=';var b=atob(t),u=new Uint8Array(b.length);for(var i=0;i<b.length;i++)u[i]=b.charCodeAt(i);
   var d=JSON.parse(new TextDecoder().decode(u));
   RELAY=!!d.ft;
-  return {ft:d.ft,fr:d.fr||'https://ntfy.sh',nombre:d.nm,demo:!!d.dm,codigo:d.c,escuela:d.e,que:d.q,n:d.k,capacitacion:!!d.cap,co:d.co,lim:d.lim,t:d.t,
+  return {ch:d.ch,ci:d.ci,ft:d.ft,fr:d.fr||'https://ntfy.sh',nombre:d.nm,demo:!!d.dm,codigo:d.c,escuela:d.e,que:d.q,n:d.k,capacitacion:!!d.cap,co:d.co,lim:d.lim,t:d.t,
     pruebas:(d.p||[]).map(function(x){return {n:x[0],hora:x[1],pedida:!!x[2],estado:x[3]==='b'?'bien':x[3]==='m'?'mal':''}}),
     llegada:d.l?{hora:d.l[0],llego:!!d.l[1],abierta:!!d.l[2]}:null,viaje:{activo:d.q==='viaje'},supervisores:[],quien:d.qn||d.nm||''}}
 function metros(a,b,c,d){var R=6371000,r=Math.PI/180,x=Math.sin((c-a)*r/2),y=Math.sin((d-b)*r/2);return 2*R*Math.asin(Math.sqrt(x*x+Math.cos(a*r)*Math.cos(c*r)*y*y))}
+// 🔁 canal de ida y vuelta: la app NO se cierra (el pedido va a la PC por el servidor de paso y la respuesta vuelve aquí)
+function canal(CH,CI,FR,d){
+  var id=Math.random().toString(36).slice(2,10)+Date.now().toString(36),t0=Math.floor(Date.now()/1000)-3;
+  return fetch(FR+'/'+CH.c,{method:'POST',body:JSON.stringify({chat:CI,k:CH.k,id:id,d:d})}).then(function(r){if(!r.ok)throw new Error('envío');
+    return new Promise(function(ok,mal){var n=0;(function mira(){n++;
+      fetch(FR+'/'+CH.r+'/json?poll=1&since='+t0).then(function(r){return r.text()}).then(function(tx){var hallado=null;
+        tx.split('\n').forEach(function(l){try{var e=JSON.parse(l);if(e.event!=='message')return;
+          if(e.title===id&&e.attachment)hallado=fetch(e.attachment.url).then(function(r){return r.json()});
+          else{var m=JSON.parse(e.message);if(m.id===id)hallado=Promise.resolve(m)}}catch(x){}});
+        if(hallado)return hallado.then(ok,mal);
+        if(n>30)return mal(new Error('La PC no respondió (¿está prendida?)'));setTimeout(mira,2000)})
+      .catch(function(){if(n>30)return mal(new Error('Sin internet'));setTimeout(mira,2500)})})()})})}
+
+function porCanal(d){   // llegada, prueba, camino… se quedan en la app
+  pantalla({e:'<span class="girar">⏳</span>',h1:'Enviando…',p:'Unos segundos.'});
+  canal(E.ch,E.ci,E.fr,d).then(function(res){vibra(res.ok?'ok':'mal');if(res.s){try{E=leerS(res.s);S0=res.s}catch(x){}}
+    pantalla({e:res.ok?'✅':'⚠️',h1:res.ok?'Listo':'No se pudo',extra:'<div class="sup" style="text-align:left;font-size:17px;line-height:1.45">'+(res.txt||'')+'</div>',
+      ops:[['🏠 CONTINUAR','g',home]]})})
+  .catch(function(e){vibra('mal');pantalla({e:'📶⚠️',h1:'No llegó la respuesta',p:esc(e.message),ops:[['🔄 INTENTAR OTRA VEZ','b',function(){porCanal(d)}],['📨 Mandar por Telegram (se cierra la app)','n',function(){alBot(d)},1]]})});
+  return new Promise(function(){})}
 function alBot(d){   // manda las respuestas al chat del bot y se cierra la app
   pantalla({e:'📨',h1:'Enviando…',p:'Siga en el chat del bot.'});
   if(F.fotos&&(d.accion==='llegada'||d.accion==='prueba'||d.accion==='camino'))d.fotos=F.fotos;
@@ -88,6 +108,7 @@ function accion(d){
   if(d.accion==='llegada'||d.accion==='prueba'){if(F.u&&d.lat==null){d.lat=F.u.lat;d.lon=F.u.lon;d.acc=F.u.acc}}
   if((d.accion==='llegada'||d.accion==='camino')&&TR&&TR.pts&&TR.pts.length){d.ruta={ini:Math.round(TR.ini/1000),dest:TR.dest,pts:TR.pts.slice(-120)}}
   if(d.accion==='llegada'){trBorrar()}
+  if(E.ch&&['llegada','prueba','camino','supervisor','ayuda'].indexOf(d.accion)>=0){if(F.fotos)d.fotos=F.fotos;return porCanal(d)}
   return alBot(d)}
 
 // ------------------------------------------------------------------ pantallas
@@ -143,7 +164,7 @@ function ayuda(){pantalla({atras:home,e:'❓',h1:'¿Cómo se usa?',extra:'<div c
   +'3️⃣ Hace las <b>3 pruebas de conexión</b> a la hora que le toca (o cuando su supervisor las pida).<br><br>'
   +'📍 Si no toma la ubicación: encienda el <b>GPS</b> y toque <b>Permitir</b>.<br>📞 Si tiene un problema: toque <b>MI SUPERVISOR</b>.</div>',
   ops:[['🏠 VOLVER','g',home]]})}
-function supervisor(){if(BOT)return alBot({accion:'supervisor'});var s=E.supervisores||[];pantalla({atras:home,e:'📞',h1:'Su supervisor',
+function supervisor(){if(BOT)return E.ch?porCanal({accion:'supervisor'}):alBot({accion:'supervisor'});var s=E.supervisores||[];pantalla({atras:home,e:'📞',h1:'Su supervisor',
   extra:'<div class="sup">'+(s.length?s.map(function(x){return esc(x.nombre)+'<br><a href="tel:'+esc(x.celular)+'">'+esc(x.celular)+'</a>'}).join('<br><br>'):'No está registrado. Pregunte en la Delegación.')+'</div>',
   ops:[['🏠 VOLVER','n',home]]})}
 
