@@ -79,8 +79,12 @@ function canal(CH,CI,FR,d){
 function porCanal(d){   // llegada, prueba, camino… se quedan en la app
   pantalla({e:'<span class="girar">⏳</span>',h1:'Enviando…',p:'Unos segundos.'});
   canal(E.ch,E.ci,E.fr,d).then(function(res){vibra(res.ok?'ok':'mal');if(res.z&&!res.s){pantalla({e:'🧑‍✈️',h1:'Volviendo a su panel…'});location.replace('sup.html?z='+res.z);return}if(res.s){try{E=leerS(res.s);S0=res.s}catch(x){}}
-    pantalla({e:res.ok?'✅':'⚠️',h1:res.ok?'Listo':'No se pudo',extra:'<div class="sup" style="text-align:left;font-size:17px;line-height:1.45">'+(res.txt||'')+'</div>',
-      ops:[['🏠 CONTINUAR','g',home]]})})
+    var nl=d.accion==='llegada'&&d.llegada==='no';
+    var ops=nl?[['📞 LLAMAR A MI SUPERVISOR','g',function(){porCanal({accion:'supervisor'})}],['💬 MANDAR MENSAJE AL SUPERVISOR','b',mensaje],['🏠 INICIO','n',home,1]]
+      :d.accion==='supervisor'?[['💬 MANDAR MENSAJE','b',mensaje],['🏠 CONTINUAR','g',home]]
+      :d.accion==='camino'||d.accion==='mensaje'?[['🏠 CONTINUAR','g',home],['💬 MANDAR OTRO MENSAJE','n',mensaje,1]]:[['🏠 CONTINUAR','g',home]];
+    pantalla({e:nl?'📨📞':res.ok?'✅':'⚠️',h1:nl?'Su supervisor ya sabe':res.ok?'Listo':'No se pudo',p:nl?'Ahora <b>llame a su supervisor</b> o mándele un mensaje.':'',
+      extra:'<div class="sup" style="text-align:left;font-size:17px;line-height:1.45">'+(res.txt||'')+'</div>',ops:ops})})
   .catch(function(e){vibra('mal');pantalla({e:'📶⚠️',h1:'No llegó la respuesta',p:esc(e.message),ops:[['🔄 INTENTAR OTRA VEZ','b',function(){porCanal(d)}],['📨 Mandar por Telegram (se cierra la app)','n',function(){alBot(d)},1]]})});
   return new Promise(function(){})}
 function alBot(d){   // manda las respuestas al chat del bot y se cierra la app
@@ -108,7 +112,7 @@ function accion(d){
   if(d.accion==='llegada'||d.accion==='prueba'){if(F.u&&d.lat==null){d.lat=F.u.lat;d.lon=F.u.lon;d.acc=F.u.acc}}
   if((d.accion==='llegada'||d.accion==='camino')&&TR&&TR.pts&&TR.pts.length){d.ruta={ini:Math.round(TR.ini/1000),dest:TR.dest,pts:TR.pts.slice(-120)}}
   if(d.accion==='llegada'){trBorrar()}
-  if(E.ch&&['llegada','prueba','camino','supervisor','ayuda'].indexOf(d.accion)>=0){if(F.fotos)d.fotos=F.fotos;return porCanal(d)}
+  if(E.ch&&['llegada','prueba','camino','supervisor','ayuda','mensaje'].indexOf(d.accion)>=0){if(F.fotos)d.fotos=F.fotos;return porCanal(d)}
   return alBot(d)}
 
 // ------------------------------------------------------------------ pantallas
@@ -219,19 +223,30 @@ function cerca(u,falta){F.problema=true;pantalla({e:'🚗🏫',h1:'Ya está CERC
 function camino(){F.problema=true;pantalla({atras:function(){F.problema=false;inicio()},e:'⚠️🚗',h1:'¿Qué pasa en el camino?',ops:[
   ['🌊 INUNDACIÓN','r',function(){avisarCamino('inundacion')}],['🚧 DIFÍCIL ACCESO','a',function(){avisarCamino('acceso')}],
   ['⛔ NO SE PUEDE PASAR','r',function(){avisarCamino('paso')}],['💡 CORTE DE LUZ','a',function(){avisarCamino('luz')}],['📝 OTRO','b',function(){avisarCamino('otro')}]]})}
-function avisarCamino(tipo,u,preguntarIgual){
+function avisarCamino(tipo,u,preguntarIgual,det){F.fotos=null;
+  if(tipo==='otro'&&det==null&&RELAY)return escribir({atras:camino,titulo:'En camino',e:'📝',h1:'¿Qué pasa en el camino?',p:'Cuéntelo en pocas palabras.',ph:'Ej.: hay un derrumbe en la vía',boton:'SIGUIENTE',luego:function(t){avisarCamino(tipo,u,preguntarIgual,t)}});
   var seguir=function(u){if(BOT&&!RELAY)return enviar(u);pantalla({e:'📷',h1:'¿Puede tomar una foto?',p:'Solo si es seguro.',ops:[
-    ['📷 TOMAR FOTO','b',function(){camara('camino','PROBLEMA EN EL CAMINO',function(){enviar(u)})}],['⏭️ SIN FOTO','n',function(){enviar(u)}]]})};
-  var enviar=function(u){cargando('Avisando a su supervisor…');accion({accion:'camino',tipo:tipo,lat:u&&u.lat,lon:u&&u.lon}).then(function(){vibra('ok');
+    ['📷 TOMAR FOTO','b',function(){camara('camino','PROBLEMA EN EL CAMINO',function(){enviar(u)})}],['⏭️ SIN FOTO','n',function(){enviar(u,true)}]]})};
+  var enviar=function(u,sf){cargando('Avisando a su supervisor…');accion({accion:'camino',tipo:tipo,detalle:det||'',sin_foto:!!sf,lat:u&&u.lat,lon:u&&u.lon}).then(function(){vibra('ok');
     if(preguntarIgual)return pantalla({e:'🤔🚗',h1:'¿Puede LLEGAR igual?',p:'Ya se avisó a su supervisor.',ops:[['✅ SÍ, SIGO','g',function(){F.problema=false;viaje()}],['⛔ NO PUEDO LLEGAR','r',function(){noLlego(u,tipo)}]]});
     pantalla({e:'📨',h1:'Su supervisor ya sabe',p:'Cuídese. Si puede seguir, continúe.',ops:[['🚗 SEGUIR','g',function(){F.problema=false;viaje()}],['⛔ NO PUEDO LLEGAR','r',function(){noLlego(u,tipo)}]]})}).catch(function(e){error(e.message)})};
   if(u)return seguir(u);cargando('Marcando el lugar…');ubicacion().then(seguir).catch(function(){seguir(null)})}
-function noLlego(u,motivo){pararViaje();
-  var mandar=function(m){cargando('Avisando a su supervisor…');accion({accion:'llegada',llegada:'no',problemas:[m],lat:u&&u.lat,lon:u&&u.lon}).then(function(){vibra('ok');
+function escribir(o){   // pantalla con casilla para escribir (sin salir de la app)
+  pantalla({atras:o.atras,titulo:o.titulo,e:o.e||'✍️',h1:o.h1,p:o.p||'',extra:'<div style="margin:0 16px"><textarea id="txl" rows="4" maxlength="500" placeholder="'+esc(o.ph||'Escriba aquí…')+'" style="width:100%;box-sizing:border-box;font-size:20px;padding:12px;border-radius:14px;border:2px solid #cfd6e2"></textarea></div>',
+    ops:[['➡️ '+(o.boton||'ENVIAR'),'g',function(){var t=($('txl').value||'').trim();if(!t&&!o.vacio){vibra('mal');$('txl').focus();return}o.luego(t)}]].concat(o.extraOps||[])})}
+function mensaje(){F.fotos=null;var mandar=function(t){var go=function(){cargando('Enviando…');accion({accion:'mensaje',texto:t})};
+    if(!RELAY)return go();pantalla({e:'📷',h1:'¿Quiere mandar una FOTO también?',ops:[['📷 TOMAR FOTO','b',function(){camara('mensaje','MENSAJE AL SUPERVISOR',go)}],['➡️ SIN FOTO, ENVIAR','g',go]]})};
+  escribir({atras:home,titulo:'Mensaje',e:'💬',h1:'Mensaje a su supervisor',p:'Escriba qué pasa. Le llega a su supervisor por Telegram.',ph:'Ej.: la escuela no tiene luz desde las 8',luego:mandar})}
+function noLlego(u,motivo){pararViaje();F.fotos=null;
+  var mandar0=function(m,det){cargando('Avisando a su supervisor…');accion({accion:'llegada',llegada:'no',problemas:[m],detalle:det||'',lat:u&&u.lat,lon:u&&u.lon}).then(function(){vibra('ok');
     pantalla({e:'📞',h1:'Su supervisor ya sabe',p:'Por favor <b>comuníquese con su supervisor o administrador</b>.',extra:supTxt(),ops:[['🏠 INICIO','n',inicio]]})}).catch(function(e){error(e.message)})};
+  var mandar=function(m,det){if(!RELAY)return mandar0(m,det);   // foto opcional de por qué no puede llegar
+    pantalla({e:'📷',h1:'¿Puede tomar una FOTO?',p:'Solo si es seguro (la calle, el agua, lo que impide llegar).',ops:[
+      ['📷 TOMAR FOTO','b',function(){camara('nollego','NO PUDO LLEGAR',function(){mandar0(m,det)})}],['⏭️ SIN FOTO','n',function(){mandar0(m,det)}]]})};
+  var otro=function(){escribir({atras:function(){noLlego(u)},titulo:'No puedo llegar',e:'📝',h1:'¿Qué pasó?',p:'Cuéntelo en pocas palabras.',ph:'Ej.: se dañó el carro en la vía',boton:'SIGUIENTE',luego:function(t){mandar('otro',t)}})};
   var mot={inundacion:'lluvia',acceso:'camino'}[motivo];if(mot)return mandar(mot);
   pantalla({atras:inicio,e:'⛔🚗',h1:'¿Por qué NO puede llegar?',ops:[['🚓 INSEGURIDAD','r',function(){mandar('inseguridad')}],['🌊 LLUVIA O INUNDACIÓN','r',function(){mandar('lluvia')}],
-    ['🚧 CAMINO CERRADO / SIN TRANSPORTE','a',function(){mandar('camino')}],['📝 OTRO','b',function(){mandar('otro')}]]})}
+    ['🚧 CAMINO CERRADO / SIN TRANSPORTE','a',function(){mandar('camino')}],['📝 OTRO','b',otro]]})}
 // ---- 🚗 viaje dentro de la app (modo GitHub): la app sigue el camino sola, no se cierra
 var TR=null;
 function hoyS(){var d=new Date();return d.getFullYear()+'-'+pad(d.getMonth()+1)+'-'+pad(d.getDate())}
