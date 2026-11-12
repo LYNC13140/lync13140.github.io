@@ -78,7 +78,7 @@ function canal(CH,CI,FR,d){
 
 function porCanal(d){   // llegada, prueba, camino… se quedan en la app
   pantalla({e:'<span class="girar">⏳</span>',h1:'Enviando…',p:'Unos segundos.'});
-  canal(E.ch,E.ci,E.fr,d).then(function(res){vibra(res.ok?'ok':'mal');if(res.s){try{E=leerS(res.s);S0=res.s}catch(x){}}
+  canal(E.ch,E.ci,E.fr,d).then(function(res){vibra(res.ok?'ok':'mal');if(res.z&&!res.s){pantalla({e:'🧑‍✈️',h1:'Volviendo a su panel…'});location.replace('sup.html?z='+res.z);return}if(res.s){try{E=leerS(res.s);S0=res.s}catch(x){}}
     pantalla({e:res.ok?'✅':'⚠️',h1:res.ok?'Listo':'No se pudo',extra:'<div class="sup" style="text-align:left;font-size:17px;line-height:1.45">'+(res.txt||'')+'</div>',
       ops:[['🏠 CONTINUAR','g',home]]})})
   .catch(function(e){vibra('mal');pantalla({e:'📶⚠️',h1:'No llegó la respuesta',p:esc(e.message),ops:[['🔄 INTENTAR OTRA VEZ','b',function(){porCanal(d)}],['📨 Mandar por Telegram (se cierra la app)','n',function(){alBot(d)},1]]})});
@@ -157,7 +157,7 @@ function home(){
   else if(q==='repetir'){o.e='🔁';o.h1='La prueba '+n+' salió mal';o.p='Apague el equipo, espere 30 segundos y préndalo. Luego repita.';ops=[['🔁 REPETIR LA PRUEBA '+n,'a',function(){prueba(n)}]]}
   else {o.e='🎉';o.h1='¡Listo por hoy!';o.p='Muchas gracias por su trabajo.'}
   ops.push(['📞 MI SUPERVISOR','n',supervisor,1]);if(BOT)ops.push(['❓ AYUDA','n',ayuda,1]);
-  if(BOT&&E.demo)ops.push(['🚪 SALIR DE LA PRUEBA','n',function(){trBorrar();alBot({accion:'salir_prueba'})},1]);o.ops=ops;pantalla(o)}
+  if(BOT&&E.demo)ops.push(['🚪 SALIR DE LA PRUEBA','n',function(){trBorrar();if(E.ch)porCanal({accion:'salir_prueba'});else alBot({accion:'salir_prueba'})},1]);o.ops=ops;pantalla(o)}
 function ayuda(){pantalla({atras:home,e:'❓',h1:'¿Cómo se usa?',extra:'<div class="sup" style="text-align:left;font-size:18px;line-height:1.5">'
   +'1️⃣ Al salir de casa toque <b>▶️ INICIAR MI DÍA</b>. Deje la pantalla abierta: le dice cuánto le falta.<br>'
   +'2️⃣ Al llegar contesta unas preguntas de <b>Sí o No</b> y toma 3 fotos.<br>'

@@ -78,17 +78,38 @@ function canal(CH,CI,FR,d){
           if(e.title===id&&e.attachment)hallado=fetch(e.attachment.url).then(function(r){return r.json()});
           else{var m=JSON.parse(e.message);if(m.id===id)hallado=Promise.resolve(m)}}catch(x){}});
         if(hallado)return hallado.then(ok,mal);
-        if(n>30)return mal(new Error('La PC no respondió (¿está prendida?)'));setTimeout(mira,2000)})
-      .catch(function(){if(n>30)return mal(new Error('Sin internet'));setTimeout(mira,2500)})})()})})}
+        if(n>(d.accion==='texto'||d.accion==='cb'||d.accion==='mas'?75:30))return mal(new Error('La PC no respondió (¿está prendida?)'));setTimeout(mira,2000)})
+      .catch(function(){if(n>75)return mal(new Error('Sin internet'));setTimeout(mira,2500)})})()})})}
 
 function hacer(d){   // acciones del panel: con canal, se queda en la app y muestra el resultado
   if(!D.ch)return alBot(d);
   pantalla({e:'<span class="girar">⏳</span>',h1:'Enviando…',p:'Su PC lo está haciendo. Unos segundos.'});
   canal(D.ch,D.ci,D.fr,d).then(function(res){vibra(res.ok?'ok':'mal');
+    if(res.s&&!res.z){pantalla({e:'👷',h1:'Abriendo la pantalla del operador…'});location.replace('index.html?s='+res.s);return}
     var imgs=(res.imgs||[]).map(function(i){return '<div style="margin:10px 14px 0"><img src="'+esc(i[0])+'" style="width:100%;border-radius:14px;display:block" loading="lazy"><div style="font-size:14px;color:#5a6577;padding:4px 2px">'+esc(i[1])+'</div></div>'}).join('');
     pantalla({e:res.ok?'✅':'⚠️',h1:res.ok?'Listo':'No se pudo',html:'<div class="av '+(res.ok?'ok':'')+'" style="text-align:left;font-size:16px">'+(res.txt||'')+'</div>'+imgs,
       ops:[['🏠 VOLVER AL PANEL','g',function(){if(!res.z)return inicio();cargarZ(res.z,function(d2){if(d2)D=d2;inicio()})}]]})})
   .catch(function(e){vibra('mal');pantalla({e:'📶⚠️',h1:'No llegó la respuesta',p:esc(e.message),ops:[['🔄 INTENTAR OTRA VEZ','b',function(){hacer(d)}],['📨 Mandar por Telegram (se cierra la app)','n',function(){alBot(d)},1],['🏠 Volver','n',inicio,1]]})})}
+
+// ☰ Más opciones: el menú de antes, pero DENTRO de la app (los mensajes y botones del bot salen aquí)
+function masOpc(d){if(!D.ch)return alBot({accion:'mas'});
+  pantalla({tit:'☰ Más opciones',e:'<span class="girar">⏳</span>',h1:'Un momento…',p:'Su PC lo está preparando.'});
+  canal(D.ch,D.ci,D.fr,d).then(function(res){if(res.s&&!res.z){location.replace('index.html?s='+res.s);return}
+    if(res.z&&d.accion!=='mas')cargarZ(res.z,function(d2){if(d2)D=d2});
+    var B=[],h='';
+    (res.msgs||[]).forEach(function(m){h+='<div class="av" style="text-align:left;font-size:16px;line-height:1.4">'+m.t;
+      (m.b||[]).forEach(function(f){h+='<div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">';
+        f.forEach(function(x){B.push(x);h+='<button data-f="b" data-i="'+(B.length-1)+'" style="flex:1 1 40%;min-height:48px;font-size:16px;font-weight:700;border-radius:12px;border:2px solid #1f6feb;background:#fff;color:#123a6b;padding:6px">'+esc(x[0])+'</button>'});h+='</div>'});
+      h+='</div>'});
+    if(!(res.msgs||[]).length&&res.txt)h+='<div class="av" style="text-align:left;font-size:16px">'+res.txt+'</div>';
+    (res.imgs||[]).forEach(function(i){h+='<div style="margin:10px 14px 0"><img src="'+esc(i[0])+'" style="width:100%;border-radius:14px;display:block" loading="lazy"><div style="font-size:14px;color:#5a6577;padding:4px 2px">'+esc(i[1])+'</div></div>'});
+    (res.docs||[]).forEach(function(x){B.push([x[1],'u',x[0]]);h+='<button data-f="b" data-i="'+(B.length-1)+'" class="op b" style="margin:10px 14px 0;width:calc(100% - 28px)">📥 DESCARGAR '+esc(x[1])+'</button>'+(x[2]?'<div class="nota">'+esc(x[2])+'</div>':'')});
+    h+='<div style="display:flex;gap:8px;margin:12px 14px"><input id="mt" placeholder="✍️ Escribir aquí (código, texto…)" style="flex:1;font-size:18px;padding:12px;border-radius:12px;border:2px solid #cfd6e2"><button data-f="env" style="font-size:17px;padding:0 14px;border-radius:12px;border:0;background:#1f6feb;color:#fff;font-weight:700">ENVIAR</button></div>';
+    pantalla({atras:inicio,tit:'☰ Más opciones',sub:'Todo aquí mismo, sin salir',html:h,
+      ops:[['☰ VOLVER A MÁS OPCIONES','n',function(){masOpc({accion:'mas'})},1],['🏠 VOLVER AL PANEL','g',function(){if(!res.z)return inicio();cargarZ(res.z,function(d2){if(d2)D=d2;inicio()})}]],
+      fn:{b:function(el){var x=B[+el.dataset.i];if(x[1]==='c')masOpc({accion:'cb',data:x[2]});else if(x[1]==='t'&&/^🏠 Panel/.test(x[2]))inicio();else if(x[1]==='t')masOpc({accion:'texto',t:x[2]});else{try{tg.openLink(x[2])}catch(e){location.href=x[2]}}},
+        env:function(){var t=($('mt').value||'').trim();if(t)masOpc({accion:'texto',t:t})}}})})
+  .catch(function(e){vibra('mal');pantalla({e:'📶⚠️',h1:'No llegó la respuesta',p:esc(e.message),ops:[['🔄 INTENTAR OTRA VEZ','b',function(){masOpc(d)}],['🏠 Volver','n',inicio,1]]})})}
 
 // ------------------------------------------------------------ datos
 function lee(cb){var m=location.search.match(/[?&]z=([^&]+)/);if(!m)return cb(null);cargarZ(m[1],cb)}
@@ -118,7 +139,7 @@ function inicio(){F={};
     html:'<div class="kp"><div class="k v"><b>'+D.t.act+'/'+D.t.esc+'</b><span>🟢 Enlaces activos</span></div><div class="k '+(D.t.cai?'r':'v')+'"><b>'+D.t.cai+'</b><span>🔴 Enlaces caídos</span></div>'
       +'<div class="k '+(D.t.lleg?'v':'')+'"><b>'+D.t.lleg+'/'+D.t.esc+'</b><span>📍 Operadores llegaron</span></div><div class="k '+(D.pr.length?'r':'v')+'"><b>'+(D.npr||D.pr.length)+'</b><span>🚨 Problemas</span></div></div>',
     ops:[['🚨 PROBLEMAS','r',problemas,0,(D.npr||D.pr.length)||''],['🔴 ENLACES CAÍDOS ('+D.t.cai+')','r',function(){escuelas('cai')}],['🏫 MIS ESCUELAS ('+D.t.esc+')','b',function(){escuelas('todas')}],].concat(D.pp?[[activarTxt(),'g',activar],['📢 Pedir test solo a unas escuelas','g',pedir,1]]:[]).concat([
-      ['📥 POR AUTORIZAR','a',autorizar,0,D.pa.length||''],['🛠️ REPORTAR DAÑO (TICKET)','n',function(){elegirDanio()},1],D.dv?['🚪 SALIR DE LA PRUEBA (volver a mi panel)','r',function(){hacer({accion:'salir'})}]:['🧪 VER COMO LO VE…','n',verComo,1],['☰ MÁS OPCIONES (incidencias, reportes, QR…)','n',function(){alBot({accion:'mas'})},1]]),
+      ['📥 POR AUTORIZAR','a',autorizar,0,D.pa.length||''],['🛠️ REPORTAR DAÑO (TICKET)','n',function(){elegirDanio()},1],D.dv?['🚪 SALIR DE LA PRUEBA (volver a mi panel)','r',function(){hacer({accion:'salir'})}]:['🧪 VER COMO LO VE…','n',verComo,1],['☰ MÁS OPCIONES (incidencias, reportes, QR…)','n',function(){masOpc({accion:'mas'})},1]]),
     nota:'Para ver datos nuevos, cierre y vuelva a tocar <b>📱 ABRIR MI PANEL</b>.'})}
 
 // ------------------------------------------------------------ 📶 activar test 1 → 2 → 3 (solo supervisor nacional y administrador)
@@ -132,7 +153,7 @@ function activar(){var n=sigTest(),hechos=(D.ord||[]).map(function(o){return '�
 
 // ------------------------------------------------------------ 🧪 ver como lo ve otro rol
 function verComo(){pantalla({atras:inicio,tit:'🧪 Ver como lo ve…',sub:'Es solo para revisar: no cambia nada de nadie',e:'🧪👀',h1:'¿Cómo quiere verlo?',
-  ops:[['👷 OPERADOR / ASISTENTE','b',function(){alBot({accion:'probar'})}],['🧑‍✈️ SUPERVISOR DE GRUPO','b',elegirGrupo]].concat(D.adm?[['🧑‍💼 SUPERVISOR NACIONAL','b',function(){hacer({accion:'ver_como',como:'nacional'})}]]:[])})}
+  ops:[['👷 OPERADOR / ASISTENTE','b',function(){hacer({accion:'probar'})}],['🧑‍✈️ SUPERVISOR DE GRUPO','b',elegirGrupo]].concat(D.adm?[['🧑‍💼 SUPERVISOR NACIONAL','b',function(){hacer({accion:'ver_como',como:'nacional'})}]]:[])})}
 function elegirGrupo(){var h='<div class="lista">';(D.gl||[]).forEach(function(g,i){h+='<button class="esc n" data-f="g" data-i="'+i+'"><b>🧑‍✈️ '+esc(g)+'</b></button>'});
   pantalla({atras:verComo,tit:'🧑‍✈️ Supervisor de grupo',sub:'¿Qué grupo?',html:h+'</div>',fn:{g:function(el){hacer({accion:'ver_como',como:'grupo',grupo:D.gl[+el.dataset.i]})}}})}
 
