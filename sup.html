@@ -134,10 +134,22 @@ function tkTxt(x){return x.tk?'🎫 '+(x.tk[1]?'<b>'+esc(x.tk[1])+'</b> · ':'')
 function busca(c,pt){return D.f.filter(function(x){return x.c===c&&(!pt||x.pt===pt)})[0]}
 
 // ------------------------------------------------------------ 1 · inicio
+function modoHtml(){if(D.jm===undefined)return '';var M={prueba:'🧪 PRUEBA',simulacro:'🎯 SIMULACRO',elecciones:'🗳️ ELECCIONES',ensayo:'🧪 ENSAYO'};
+  return D.jm?'<div class="av ok" style="text-align:center"><b>'+(M[D.jm]||esc(D.jm))+'</b> activado: ya se pueden pedir los tests.</div>'
+    :'<div class="av" style="text-align:center;border-color:#c0392b"><b>⛔ No hay simulacro ni prueba activado.</b><br>Los tests se piden cuando el administrador activa el modo.</div>'}
+function personalHtml(){var p=D.ps;if(!p)return '';
+  var l=function(i,t,v,c){return '<div style="display:flex;justify-content:space-between;gap:8px;padding:5px 0;border-bottom:1px solid #e6eaf0"><span>'+i+' '+t+'</span><b style="color:'+(c||'#123a6b')+'">'+v+'</b></div>'};
+  return '<div class="av" style="text-align:left;font-size:16px;border:2px solid #cfd6e2;background:#fff"><b style="font-size:17px">👥 PERSONAL CONTRATADO</b>'
+    +l('👷','Operadores SEA',p.op)+l('🧑‍🤝‍🧑','Asistentes',p.as)
+    +l('🏫','Enlaces con personal',p.con+' de '+p.enl)+(p.sin?l('⚠️','Enlaces SIN nadie contratado',p.sin,'#c0392b'):'')
+    +l('📱','Operadores en el bot',p.reg)
+    +l('🧑‍✈️','Supervisores de grupo',p.sg)+l('🧑‍💼','Supervisores nacionales',p.sn)
+    +(p.cpe?l('🖥️','Personal del CPE',p.cpe)+(p.cpe_c||[]).map(function(c){return '<div style="font-size:14px;color:#5a6577;padding:2px 0 2px 26px">'+esc(c[0])+': '+c[1]+'</div>'}).join('')
+      :l('🖥️','Personal del CPE','sin cargar','#c0392b'))+'</div>'}
 function inicio(){F={};
   pantalla({e:'🧑‍✈️📊',h1:'Así va tu grupo',p:'Datos de las <b>'+esc(D.h)+'</b>',
     html:'<div class="kp"><div class="k v"><b>'+D.t.act+'/'+D.t.esc+'</b><span>🟢 Enlaces activos</span></div><div class="k '+(D.t.cai?'r':'v')+'"><b>'+D.t.cai+'</b><span>🔴 Enlaces caídos</span></div>'
-      +'<div class="k '+(D.t.lleg?'v':'')+'"><b>'+D.t.lleg+'/'+D.t.esc+'</b><span>📍 Operadores llegaron</span></div><div class="k '+(D.pr.length?'r':'v')+'"><b>'+(D.npr||D.pr.length)+'</b><span>🚨 Problemas</span></div></div>',
+      +'<div class="k '+(D.t.lleg?'v':'')+'"><b>'+D.t.lleg+'/'+D.t.esc+'</b><span>📍 Operadores llegaron</span></div><div class="k '+(D.pr.length?'r':'v')+'"><b>'+(D.npr||D.pr.length)+'</b><span>🚨 Problemas</span></div></div>'+modoHtml()+personalHtml(),
     ops:[['🚨 PROBLEMAS','r',problemas,0,(D.npr||D.pr.length)||''],['🔴 ENLACES CAÍDOS ('+D.t.cai+')','r',function(){escuelas('cai')}],['🏫 MIS ESCUELAS ('+D.t.esc+')','b',function(){escuelas('todas')}],].concat(D.pp?[[activarTxt(),'g',activar],['📢 Pedir test solo a unas escuelas','g',pedir,1]]:[]).concat([
       ['📥 POR AUTORIZAR','a',autorizar,0,D.pa.length||''],['🛠️ REPORTAR DAÑO (TICKET)','n',function(){elegirDanio()},1],D.dv?['🚪 SALIR DE LA PRUEBA (volver a mi panel)','r',function(){hacer({accion:'salir'})}]:['🧪 VER COMO LO VE…','n',verComo,1],['☰ MÁS OPCIONES (incidencias, reportes, QR…)','n',function(){masOpc({accion:'mas'})},1]]),
     nota:'Para ver datos nuevos, cierre y vuelva a tocar <b>📱 ABRIR MI PANEL</b>.'})}
@@ -145,7 +157,9 @@ function inicio(){F={};
 // ------------------------------------------------------------ 📶 activar test 1 → 2 → 3 (solo supervisor nacional y administrador)
 function sigTest(){var h={};(D.ord||[]).forEach(function(o){h[o[0]]=o[1]});for(var n=1;n<=3;n++)if(!h[n])return n;var m=3;for(var k in h)m=Math.max(m,+k);return m+1}
 function activarTxt(){var n=sigTest();return (n<=3?'📶 ACTIVAR TEST DE CONEXIÓN '+n:'➕ ACTIVAR TEST EXTRA '+n)}
-function activar(){var n=sigTest(),hechos=(D.ord||[]).map(function(o){return '📶'+o[0]+' ✅ '+esc(o[1])}).join(' · ');
+function sinJornada(){vibra('mal');pantalla({atras:inicio,tit:'📶 Test de conexión',e:'⛔',h1:'No hay ningún simulacro activado',
+  p:'Las pruebas de conexión solo se pueden pedir cuando el <b>administrador</b> activa el modo (🧪 Prueba, 🎯 Simulacro o 🗳️ Elecciones) en la página web → Jornada.<br><br>Mientras tanto no se le avisa a ningún operador.',ops:[['🏠 VOLVER AL PANEL','g',inicio]]})}
+function activar(){if(D.jm==='')return sinJornada();var n=sigTest(),hechos=(D.ord||[]).map(function(o){return '📶'+o[0]+' ✅ '+esc(o[1])}).join(' · ');
   pantalla({atras:inicio,tit:'📶 Test de conexión',sub:'Les llega el aviso al instante',e:'📶📢',h1:'¿Activar el TEST '+n+' ahora?',
     p:'Se avisa a los operadores que <b>ya están en su recinto</b>. De los que no llegaron le digo quiénes son, para que los llame.',
     html:hechos?'<div class="av ok"><b>Ya activados hoy:</b><br>'+hechos+'</div>':'',
@@ -186,13 +200,13 @@ function escuela(c,pt,volver){var x=busca(c,pt);if(!x)return inicio();var l=x.l,
   var sig=x.p.indexOf('m')>=0?x.p.indexOf('m')+1:x.p.indexOf('f')>=0?x.p.indexOf('f')+1:Math.min(3,x.p.lastIndexOf('b')+2||1);
   pantalla({atras:volver||inicio,tit:esc(x.c)+' · '+esc(x.n),sub:'Punto '+x.pt,html:h,
     ops:[['📞 LLAMAR AL OPERADOR','g',function(){hacer({accion:'llamar',cod:x.c})}],['📷 VER LAS FOTOS','b',function(){hacer({accion:'fotos',cod:x.c})}],
-      ].concat(D.pp?[['📢 PEDIRLE LA PRUEBA '+sig,'a',function(){hacer({accion:'pedir',n:sig,cods:[x.c]})}]]:[]).concat([['🛠️ REPORTAR DAÑO (TICKET)','r',function(){danio(x.c,function(){escuela(c,pt,volver)})}]]),
+      ].concat(D.pp?[['📢 PEDIRLE LA PRUEBA '+sig,'a',function(){if(D.jm==='')return sinJornada();hacer({accion:'pedir',n:sig,cods:[x.c]})}]]:[]).concat([['🛠️ REPORTAR DAÑO (TICKET)','r',function(){danio(x.c,function(){escuela(c,pt,volver)})}]]),
     nota:D.ch?'Teléfonos y fotos se ven aquí mismo.':'Teléfonos y fotos le llegan en el chat del bot.'})}
 
 function escuelaCod(c,volver){
   pantalla({atras:volver,tit:'🏫 Escuela '+esc(c),e:'🏫',h1:'Escuela '+esc(c),p:'Esta escuela está bien, por eso no sale en la lista. Igual puede:',
     ops:[['📞 LLAMAR AL OPERADOR','g',function(){hacer({accion:'llamar',cod:c})}],['📷 VER LAS FOTOS','b',function(){hacer({accion:'fotos',cod:c})}]]
-      .concat(D.pp?[['📢 PEDIRLE UNA PRUEBA','a',function(){hacer({accion:'pedir',n:D.nx>3?3:D.nx,cods:[c]})}]]:[]).concat([['🛠️ REPORTAR DAÑO (TICKET)','r',function(){danio(c,function(){escuelaCod(c,volver)})}]])})}
+      .concat(D.pp?[['📢 PEDIRLE UNA PRUEBA','a',function(){if(D.jm==='')return sinJornada();hacer({accion:'pedir',n:D.nx>3?3:D.nx,cods:[c]})}]]:[]).concat([['🛠️ REPORTAR DAÑO (TICKET)','r',function(){danio(c,function(){escuelaCod(c,volver)})}]])})}
 
 // ------------------------------------------------------------ 4 · problemas
 function problemas(){var h='';
@@ -207,7 +221,7 @@ function problemas(){var h='';
         tk:function(el){danio(el.dataset.c,problemas)},ok:function(el){hacer({accion:'resuelto',cod:el.dataset.c})}}})}
 
 // ------------------------------------------------------------ 5 · pedir prueba
-function pedir(){F.n=F.n||1;F.cods=F.cods||null;
+function pedir(){if(D.jm==='')return sinJornada();F.n=F.n||1;F.cods=F.cods||null;
   var ns=[1,2,3,D.nx],h='<div class="seg">'+ns.map(function(n,i){return '<button data-f="n" data-n="'+n+'" class="'+(F.n===n?'on':'')+'">'+(i===3?'➕'+n:n)+'</button>'}).join('')+'</div>';
   var falta=D.f.filter(function(x){return x.p[Math.min(F.n,3)-1]!=='b'}).length;
   h+='<h3>¿A quién?</h3>';
