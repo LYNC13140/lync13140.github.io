@@ -54,7 +54,7 @@ function vibra(t){try{if(t==='ok')tg.HapticFeedback.notificationOccurred('succes
 if(tg){try{tg.ready();tg.expand();if(tg.setHeaderColor)tg.setHeaderColor('#123a6b');if(tg.setBackgroundColor)tg.setBackgroundColor('#fff8ec')}catch(e){}}
 
 function pantalla(o){window.scrollTo(0,0);
-  var h=(D&&D.dv?'<div style="background:#e39a19;color:#fff;text-align:center;font-weight:800;padding:6px">🧪 VIENDO COMO '+esc(D.dv).toUpperCase()+'</div>':'')+'<div class="top">'+(o.atras?'<button class="atras" id="bAtras">↩</button>':'')+'<div><b>'+(o.tit||'Supervisor · '+esc(D.g))+'</b><small>'+(o.sub||('Hola, '+esc(D.nm)+' · datos de las '+esc(D.h)))+'</small></div></div>';
+  var h=(D&&D.dv?'<div style="background:#e39a19;color:#fff;text-align:center;font-weight:800;padding:6px">🧪 VIENDO COMO '+esc(D.dv).toUpperCase()+'</div>':'')+'<div class="top">'+(o.atras?'<button class="atras" id="bAtras">↩</button>':'')+'<div><b>'+(o.tit||'Supervisor · '+esc(D.g))+'</b><small>'+(o.sub||('Hola, '+esc(D.nm)+' · datos de las '+esc(D.h)+edad()))+'</small></div></div>';
   if(o.e||o.h1)h+='<div class="q">'+(o.e?'<div class="e">'+o.e+'</div>':'')+(o.h1?'<h1>'+o.h1+'</h1>':'')+(o.p?'<p>'+o.p+'</p>':'')+'</div>';
   h+=o.html||'';
   if(o.ops){h+='<div class="ops">';o.ops.forEach(function(b,i){h+='<button class="op '+(b[1]||'b')+(b[3]?' chico':'')+'" data-i="'+i+'">'+b[0]+(b[4]?'<span class="badge">'+b[4]+'</span>':'')+'</button>'});h+='</div>'}
@@ -147,7 +147,7 @@ function personalHtml(){var p=D.ps;if(!p)return '';
     +(p.cpe?l('🖥️','Personal del CPE',p.cpe)+(p.cpe_c||[]).map(function(c){return '<div style="font-size:14px;color:#5a6577;padding:2px 0 2px 26px">'+esc(c[0])+': '+c[1]+'</div>'}).join('')
       :l('🖥️','Personal del CPE','sin cargar','#c0392b'))+'</div>'}
 function inicio(){F={};
-  pantalla({e:'🧑‍✈️📊',h1:'Así va tu grupo',p:'Datos de las <b>'+esc(D.h)+'</b>',
+  pantalla({e:'🧑‍✈️📊',h1:'Así va tu grupo',p:'Datos de las <b>'+esc(D.h)+'</b>'+edad(),
     html:'<div class="kp"><div class="k v"><b>'+D.t.act+'/'+D.t.esc+'</b><span>🟢 Enlaces activos</span></div><div class="k '+(D.t.cai?'r':'v')+'"><b>'+D.t.cai+'</b><span>🔴 Enlaces caídos</span></div>'
       +'<div class="k '+(D.t.lleg?'v':'')+'"><b>'+D.t.lleg+'/'+D.t.esc+'</b><span>📍 Operadores llegaron</span></div><div class="k '+(D.pr.length?'r':'v')+'"><b>'+(D.npr||D.pr.length)+'</b><span>🚨 Problemas</span></div></div>'+modoHtml()+personalHtml(),
     ops:[['🚨 PROBLEMAS','r',problemas,0,(D.npr||D.pr.length)||''],['🔴 ENLACES CAÍDOS ('+D.t.cai+')','r',function(){escuelas('cai')}],['🏫 MIS ESCUELAS ('+D.t.esc+')','b',function(){escuelas('todas')}],].concat(D.pp?[['🎛️ CAMBIAR EL MODO ('+modoNom()+')','n',modos],[activarTxt(),'g',activar],['📢 Pedir test solo a unas escuelas','g',pedir,1]]:[]).concat([
@@ -157,6 +157,8 @@ function inicio(){F={};
 // ------------------------------------------------------------ 📶 activar test 1 → 2 → 3 (solo supervisor nacional y administrador)
 function sigTest(){var h={};(D.ord||[]).forEach(function(o){h[o[0]]=o[1]});for(var n=1;n<=3;n++)if(!h[n])return n;var m=3;for(var k in h)m=Math.max(m,+k);return m+1}
 function activarTxt(){var n=sigTest();return (n<=3?'📶 ACTIVAR TEST DE CONEXIÓN '+n:'➕ ACTIVAR TEST EXTRA '+n)}
+function edad(){if(!D||!D.ts)return '';var m=Math.round((Date.now()/1000-D.ts)/60);if(m<3)return '';   // datos viejos: se dice claro
+  return ' · <b style="color:#ffd27a">⚠️ hace '+(m<60?m+' min':m<1440?Math.round(m/60)+' h':Math.round(m/1440)+' día(s)')+'</b>'}
 function modoNom(){var M={prueba:'🔧 prueba',simulacro:'🧪 simulacro',elecciones:'🗳️ elecciones',ensayo:'🧰 ensayo'};return D.jm?(M[D.jm]||D.jm):'⛔ normal'}
 function modos(){   // 🎛️ solo supervisor nacional / administrador (el servidor lo vuelve a revisar)
   var c=function(m,t,e,p){return function(){
@@ -279,7 +281,7 @@ function danioOk(c,t,volver){pantalla({atras:function(){danio(c,volver)},tit:'�
 window.__sup={inicio:inicio};
 var REFR=false,EN_INICIO=false;
 function refrescar(){if(REFR||!D||!D.ch)return;REFR=true;var b=document.querySelector('.top small');if(b&&EN_INICIO)b.innerHTML='🔄 Actualizando datos…';
-  canal(D.ch,D.ci,D.fr,{accion:'refrescar'}).then(function(res){if(!res.z){REFR=false;return}cargarZ(res.z,function(d2){REFR=false;if(d2){D=d2;if(EN_INICIO)inicio()}})}).catch(function(){REFR=false;if(EN_INICIO)inicio()})}
+  canal(D.ch,D.ci,D.fr,{accion:'refrescar'}).then(function(res){if(!res.z){REFR=false;if(EN_INICIO)inicio();return}cargarZ(res.z,function(d2){REFR=false;if(d2){D=d2;if(EN_INICIO)inicio()}})}).catch(function(){REFR=false;if(EN_INICIO)inicio()})}
 var _inicio0=inicio;inicio=function(){var r=_inicio0.apply(this,arguments);EN_INICIO=true;return r};
 var _pant0=pantalla;pantalla=function(o){EN_INICIO=false;return _pant0.apply(this,arguments)};
 lee(function(d,err){if(!d){$('app').innerHTML='<div class="q" style="padding-top:60px"><div class="e">📱</div><h1>Abra el panel desde el bot</h1><p>'+(err||'En Telegram, toque <b>📱 ABRIR MI PANEL</b>.')+'</p></div>';return}D=d;inicio();
