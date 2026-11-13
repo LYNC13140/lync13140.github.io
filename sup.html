@@ -137,11 +137,18 @@ function busca(c,pt){return D.f.filter(function(x){return x.c===c&&(!pt||x.pt===
 function modoHtml(){if(D.jm===undefined)return '';var M={prueba:'🧪 PRUEBA',simulacro:'🎯 SIMULACRO',elecciones:'🗳️ ELECCIONES',ensayo:'🧪 ENSAYO'};
   return D.jm?'<div class="av ok" style="text-align:center"><b>'+(M[D.jm]||esc(D.jm))+'</b> activado: ya se pueden pedir los tests.</div>'
     :'<div class="av" style="text-align:center;border-color:#c0392b"><b>⛔ No hay simulacro ni prueba activado.</b><br>Los tests se piden cuando el administrador activa el modo.</div>'}
+window.verFaltan=function(k){var p=D.ps||{},L={sin:[p.sin_l,'⚠️ Escuelas SIN nadie contratado','No tienen ni operador ni asistente.'],
+    sop:[p.sop_l,'👷 Escuelas SIN operador CDA','Falta contratar el operador.'],sas:[p.sas_l,'🧑‍🤝‍🧑 Escuelas SIN asistente','Falta contratar el asistente.']}[k];
+  var l=L[0]||[];pantalla({atras:inicio,tit:'👥 Personal contratado',e:l.length?'📋':'✅',h1:L[1]+' ('+l.length+')',p:l.length?L[2]:'Todas tienen.',
+    html:l.map(function(x){return '<div class="av" style="text-align:left;font-size:16px;margin-top:8px"><b>🏫 '+esc(x[0])+'</b> · '+esc(x[1])+'<br><span style="color:#5a6577">👥 Grupo '+esc(x[2])+'</span></div>'}).join(''),
+    nota:(p[k]>l.length)?'Se muestran las primeras '+l.length+'. La lista completa está en la página web.':'',
+    ops:[['🏠 VOLVER AL PANEL','g',inicio]]})};
 function personalHtml(){var p=D.ps;if(!p)return '';
-  var l=function(i,t,v,c){return '<div style="display:flex;justify-content:space-between;gap:8px;padding:5px 0;border-bottom:1px solid #e6eaf0"><span>'+i+' '+t+'</span><b style="color:'+(c||'#123a6b')+'">'+v+'</b></div>'};
+  var l=function(i,t,v,c,k){return '<div '+(k?'onclick="verFaltan(\''+k+'\')" ':'')+'style="display:flex;justify-content:space-between;gap:8px;padding:7px 0;border-bottom:1px solid #e6eaf0'+(k?';cursor:pointer':'')+'"><span>'+i+' '+t+(k?' <span style="color:#1f6feb">›</span>':'')+'</span><b style="color:'+(c||'#123a6b')+'">'+v+'</b></div>'};
   return '<div class="av" style="text-align:left;font-size:16px;border:2px solid #cfd6e2;background:#fff"><b style="font-size:17px">👥 PERSONAL CONTRATADO</b>'
-    +l('👷','Operadores SEA',p.op)+l('🧑‍🤝‍🧑','Asistentes',p.as)
-    +l('🏫','Enlaces con personal',p.con+' de '+p.enl)+(p.sin?l('⚠️','Enlaces SIN nadie contratado',p.sin,'#c0392b'):'')
+    +l('👷','Operadores CDA',p.op)+(p.sop?l('','↳ Escuelas sin operador (ver cuáles)',p.sop,'#c0392b','sop'):'')
+    +l('🧑‍🤝‍🧑','Asistentes',p.as)+(p.sas?l('','↳ Escuelas sin asistente (ver cuáles)',p.sas,'#c0392b','sas'):'')
+    +l('🏫','Enlaces con personal',p.con+' de '+p.enl)+(p.sin?l('⚠️','Enlaces SIN nadie contratado (ver cuáles)',p.sin,'#c0392b','sin'):'')
     +l('📱','Operadores en el bot',p.reg)
     +l('🧑‍✈️','Supervisores de grupo',p.sg)+l('🧑‍💼','Supervisores nacionales',p.sn)
     +(p.cpe?l('🖥️','Personal del CPE',p.cpe)+(p.cpe_c||[]).map(function(c){return '<div style="font-size:14px;color:#5a6577;padding:2px 0 2px 26px">'+esc(c[0])+': '+c[1]+'</div>'}).join('')
