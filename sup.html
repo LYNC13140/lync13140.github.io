@@ -150,15 +150,33 @@ function inicio(){F={};
   pantalla({e:'🧑‍✈️📊',h1:'Así va tu grupo',p:'Datos de las <b>'+esc(D.h)+'</b>',
     html:'<div class="kp"><div class="k v"><b>'+D.t.act+'/'+D.t.esc+'</b><span>🟢 Enlaces activos</span></div><div class="k '+(D.t.cai?'r':'v')+'"><b>'+D.t.cai+'</b><span>🔴 Enlaces caídos</span></div>'
       +'<div class="k '+(D.t.lleg?'v':'')+'"><b>'+D.t.lleg+'/'+D.t.esc+'</b><span>📍 Operadores llegaron</span></div><div class="k '+(D.pr.length?'r':'v')+'"><b>'+(D.npr||D.pr.length)+'</b><span>🚨 Problemas</span></div></div>'+modoHtml()+personalHtml(),
-    ops:[['🚨 PROBLEMAS','r',problemas,0,(D.npr||D.pr.length)||''],['🔴 ENLACES CAÍDOS ('+D.t.cai+')','r',function(){escuelas('cai')}],['🏫 MIS ESCUELAS ('+D.t.esc+')','b',function(){escuelas('todas')}],].concat(D.pp?[[activarTxt(),'g',activar],['📢 Pedir test solo a unas escuelas','g',pedir,1]]:[]).concat([
+    ops:[['🚨 PROBLEMAS','r',problemas,0,(D.npr||D.pr.length)||''],['🔴 ENLACES CAÍDOS ('+D.t.cai+')','r',function(){escuelas('cai')}],['🏫 MIS ESCUELAS ('+D.t.esc+')','b',function(){escuelas('todas')}],].concat(D.pp?[['🎛️ CAMBIAR EL MODO ('+modoNom()+')','n',modos],[activarTxt(),'g',activar],['📢 Pedir test solo a unas escuelas','g',pedir,1]]:[]).concat([
       ['📥 POR AUTORIZAR','a',autorizar,0,D.pa.length||''],['🛠️ REPORTAR DAÑO (TICKET)','n',function(){elegirDanio()},1],D.dv?['🚪 SALIR DE LA PRUEBA (volver a mi panel)','r',function(){hacer({accion:'salir'})}]:['🧪 VER COMO LO VE…','n',verComo,1],['☰ MÁS OPCIONES (incidencias, reportes, QR…)','n',function(){masOpc({accion:'mas'})},1]]),
     nota:'Para ver datos nuevos, cierre y vuelva a tocar <b>📱 ABRIR MI PANEL</b>.'})}
 
 // ------------------------------------------------------------ 📶 activar test 1 → 2 → 3 (solo supervisor nacional y administrador)
 function sigTest(){var h={};(D.ord||[]).forEach(function(o){h[o[0]]=o[1]});for(var n=1;n<=3;n++)if(!h[n])return n;var m=3;for(var k in h)m=Math.max(m,+k);return m+1}
 function activarTxt(){var n=sigTest();return (n<=3?'📶 ACTIVAR TEST DE CONEXIÓN '+n:'➕ ACTIVAR TEST EXTRA '+n)}
+function modoNom(){var M={prueba:'🔧 prueba',simulacro:'🧪 simulacro',elecciones:'🗳️ elecciones',ensayo:'🧰 ensayo'};return D.jm?(M[D.jm]||D.jm):'⛔ normal'}
+function modos(){   // 🎛️ solo supervisor nacional / administrador (el servidor lo vuelve a revisar)
+  var c=function(m,t,e,p){return function(){
+    // ⚠️ dos pasos para todo, menos la PRUEBA (activar prueba, o salir de una prueba, es un solo paso)
+    var dos=!(m==='prueba'||(m==='normal'&&(D.jm==='prueba'||D.jm==='ensayo')));
+    var hazlo=function(){hacer({accion:'modo',m:m})};
+    var segundo=function(){vibra('mal');pantalla({atras:modos,tit:'🎛️ Cambiar el modo',e:'⚠️',h1:'¿ESTÁ USTED SEGURO?',
+      p:'Va a <b>'+esc(t.toLowerCase())+'</b>.'+(D.jm?'<br><br>Se <b>cierra</b> el modo actual ('+modoNom()+'): lo que se hizo hasta ahora queda <b>guardado</b> en la página web → Jornada y <b>se empieza de cero</b>.':'')
+        +(m!=='normal'?'<br><br>📢 Se le avisa a <b>todo el personal</b> por Telegram.':'<br><br>Ya no se podrán pedir tests y los operadores no enviarán reportes.')
+        +'<br><br><b style="color:#c0392b">Esto no se puede deshacer.</b>',
+      ops:[['⚠️ SÍ, ESTOY SEGURO','r',hazlo],['❌ NO, CANCELAR','n',modos,1]]})};
+    pantalla({atras:modos,tit:'🎛️ Cambiar el modo',e:e,h1:t+'?',p:p,
+      ops:[['✅ SÍ, '+t.toUpperCase(),'g',dos?segundo:hazlo],['❌ No','n',modos,1]]})}};
+  pantalla({atras:inicio,tit:'🎛️ Cambiar el modo',e:'🎛️',h1:'Modo de hoy: '+modoNom(),p:'Solo el <b>supervisor nacional</b> o el <b>administrador</b> pueden cambiarlo. Al activar un modo se avisa a todo el personal.',
+    ops:[['🔧 PRUEBA TÉCNICA','b',c('prueba','Activar PRUEBA TÉCNICA','🔧','Los tickets son de prueba (no van a OTRS). Ya se podrán pedir los tests de conexión.')],
+         ['🧪 SIMULACRO','b',c('simulacro','Activar SIMULACRO','🧪','Se cuenta todo como simulacro. Tickets a los 30 minutos de caído (máx. 1 día para autorizar).')],
+         ['🗳️ ELECCIONES','r',c('elecciones','Activar ELECCIONES','🗳️','<b>Día de elecciones:</b> los tickets se mandan a los 30 minutos de caído, sin preguntar.')],
+         ['⛔ VOLVER A MODO NORMAL','n',c('normal','Volver a MODO NORMAL','⛔','Se cierra y se guarda la jornada de hoy (informe en la página web). Ya no se pedirán tests.')]].filter(function(o){return !(D.jm===''&&/NORMAL/.test(o[0]))||true})})}
 function sinJornada(){vibra('mal');pantalla({atras:inicio,tit:'📶 Test de conexión',e:'⛔',h1:'No hay ningún simulacro activado',
-  p:'Las pruebas de conexión solo se pueden pedir cuando el <b>administrador</b> activa el modo (🧪 Prueba, 🎯 Simulacro o 🗳️ Elecciones) en la página web → Jornada.<br><br>Mientras tanto no se le avisa a ningún operador.',ops:[['🏠 VOLVER AL PANEL','g',inicio]]})}
+  p:'Las pruebas de conexión solo se pueden pedir cuando está activado un modo (🔧 Prueba, 🧪 Simulacro o 🗳️ Elecciones).<br><br>Mientras tanto no se le avisa a ningún operador.',ops:(D.pp?[['🎛️ ACTIVAR UN MODO AHORA','g',modos]]:[]).concat([['🏠 VOLVER AL PANEL','n',inicio,1]])})}
 function activar(){if(D.jm==='')return sinJornada();var n=sigTest(),hechos=(D.ord||[]).map(function(o){return '📶'+o[0]+' ✅ '+esc(o[1])}).join(' · ');
   pantalla({atras:inicio,tit:'📶 Test de conexión',sub:'Les llega el aviso al instante',e:'📶📢',h1:'¿Activar el TEST '+n+' ahora?',
     p:'Se avisa a los operadores que <b>ya están en su recinto</b>. De los que no llegaron le digo quiénes son, para que los llame.',
@@ -259,7 +277,14 @@ function danioOk(c,t,volver){pantalla({atras:function(){danio(c,volver)},tit:'�
   ops:[['✅ SÍ, GENERAR TICKET','g',function(){hacer({accion:'danio',cod:c,tipo:t})}],['↩ No, volver','n',function(){danio(c,volver)},1]]})}
 
 window.__sup={inicio:inicio};
-lee(function(d,err){if(!d){$('app').innerHTML='<div class="q" style="padding-top:60px"><div class="e">📱</div><h1>Abra el panel desde el bot</h1><p>'+(err||'En Telegram, toque <b>📱 ABRIR MI PANEL</b>.')+'</p></div>';return}D=d;inicio()});
+var REFR=false,EN_INICIO=false;
+function refrescar(){if(REFR||!D||!D.ch)return;REFR=true;var b=document.querySelector('.top small');if(b&&EN_INICIO)b.innerHTML='🔄 Actualizando datos…';
+  canal(D.ch,D.ci,D.fr,{accion:'refrescar'}).then(function(res){if(!res.z){REFR=false;return}cargarZ(res.z,function(d2){REFR=false;if(d2){D=d2;if(EN_INICIO)inicio()}})}).catch(function(){REFR=false;if(EN_INICIO)inicio()})}
+var _inicio0=inicio;inicio=function(){var r=_inicio0.apply(this,arguments);EN_INICIO=true;return r};
+var _pant0=pantalla;pantalla=function(o){EN_INICIO=false;return _pant0.apply(this,arguments)};
+lee(function(d,err){if(!d){$('app').innerHTML='<div class="q" style="padding-top:60px"><div class="e">📱</div><h1>Abra el panel desde el bot</h1><p>'+(err||'En Telegram, toque <b>📱 ABRIR MI PANEL</b>.')+'</p></div>';return}D=d;inicio();
+  if(D.ch&&(!D.ts||Date.now()/1000-D.ts>90||D.jm===undefined))refrescar();     // el botón puede tener datos viejos: se actualiza solo
+  setInterval(function(){if(EN_INICIO&&D&&D.ch&&Date.now()/1000-(D.ts||0)>180)refrescar()},60000)});
 })();
 </script>
 </body>
