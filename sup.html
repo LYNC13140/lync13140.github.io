@@ -70,7 +70,7 @@ function alBot(d){pantalla({e:'📨',h1:'Enviando…',p:'Siga en el chat del bot
 
 // 🔁 canal de ida y vuelta: la app NO se cierra (el pedido va a la PC por el servidor de paso y la respuesta vuelve aquí)
 var ALT=[];   // servidores de reserva (si el de casa está lleno o caído)
-function postRelay(FR,path,opt){var l=[FR].concat(ALT.filter(function(x){return x&&x!==FR})),i=0,lleno=false;
+function postRelay(FR,path,opt){var l=[FR].concat((opt.alt||ALT).filter(function(x){return x&&x!==FR})),i=0,lleno=false;
   return new Promise(function(ok,mal){(function prueba(){var R=l[i];
     var ctl=window.AbortController?new AbortController():null,tt=setTimeout(function(){if(ctl)ctl.abort()},opt.ms||20000);
     fetch(R+'/'+path,{method:opt.method||'POST',headers:opt.headers||{},body:opt.body,signal:ctl?ctl.signal:undefined}).then(function(r){clearTimeout(tt);

@@ -59,13 +59,13 @@ var S0=(location.search.match(/[?&]s=([^&]+)/)||[])[1], BOT=!!S0, RELAY=false;  
 function leerS(t){t=t.replace(/-/g,'+').replace(/_/g,'/');while(t.length%4)t+='=';var b=atob(t),u=new Uint8Array(b.length);for(var i=0;i<b.length;i++)u[i]=b.charCodeAt(i);
   var d=JSON.parse(new TextDecoder().decode(u));
   RELAY=!!d.ft;
-  ALT=d.frs||[];return {ve:d.ve||0,ch:d.ch,ci:d.ci,ft:d.ft,fr:d.fr||'https://ntfy.sh',frs:d.frs||[],nombre:d.nm,demo:!!d.dm,codigo:d.c,escuela:d.e,que:d.q,n:d.k,capacitacion:!!d.cap,co:d.co,lim:d.lim,t:d.t,
+  ALT=d.frs||[];return {ve:d.ve||0,ff:d.ff||'',ffs:d.ffs||[],ch:d.ch,ci:d.ci,ft:d.ft,fr:d.fr||'https://ntfy.sh',frs:d.frs||[],nombre:d.nm,demo:!!d.dm,codigo:d.c,escuela:d.e,que:d.q,n:d.k,capacitacion:!!d.cap,co:d.co,lim:d.lim,t:d.t,
     pruebas:(d.p||[]).map(function(x){return {n:x[0],hora:x[1],pedida:!!x[2],estado:x[3]==='b'?'bien':x[3]==='m'?'mal':''}}),
     llegada:d.l?{hora:d.l[0],llego:!!d.l[1],abierta:!!d.l[2]}:null,viaje:{activo:d.q==='viaje'},supervisores:[],quien:d.qn||d.nm||''}}
 function metros(a,b,c,d){var R=6371000,r=Math.PI/180,x=Math.sin((c-a)*r/2),y=Math.sin((d-b)*r/2);return 2*R*Math.asin(Math.sqrt(x*x+Math.cos(a*r)*Math.cos(c*r)*y*y))}
 // 🔁 canal de ida y vuelta: la app NO se cierra (el pedido va a la PC por el servidor de paso y la respuesta vuelve aquí)
 var ALT=[];   // servidores de reserva (si el de casa está lleno o caído)
-function postRelay(FR,path,opt){var l=[FR].concat(ALT.filter(function(x){return x&&x!==FR})),i=0,lleno=false;
+function postRelay(FR,path,opt){var l=[FR].concat((opt.alt||ALT).filter(function(x){return x&&x!==FR})),i=0,lleno=false;
   return new Promise(function(ok,mal){(function prueba(){var R=l[i];
     var ctl=window.AbortController?new AbortController():null,tt=setTimeout(function(){if(ctl)ctl.abort()},opt.ms||20000);
     fetch(R+'/'+path,{method:opt.method||'POST',headers:opt.headers||{},body:opt.body,signal:ctl?ctl.signal:undefined}).then(function(r){clearTimeout(tt);
@@ -125,7 +125,7 @@ function achicar(b){return new Promise(function(ok){var img=new Image();img.onlo
   img.onerror=function(){ok(b)};img.src=URL.createObjectURL(b)})}
 function fotoSinSenal(parte,b){return achicar(b).then(function(x){return new Promise(function(ok){var r=new FileReader();r.onload=function(){F.pend=F.pend||{};F.pend[parte]=r.result;ok()};r.readAsDataURL(x)})})}
 function guardarCola(d){
-  var it={id:Date.now().toString(36)+Math.random().toString(36).slice(2,5),t:Date.now(),cod:E.codigo,d:JSON.parse(JSON.stringify(d)),pend:F.pend||null,ch:E.ch,ci:E.ci,fr:E.fr,ft:E.ft};
+  var it={id:Date.now().toString(36)+Math.random().toString(36).slice(2,5),t:Date.now(),cod:E.codigo,d:JSON.parse(JSON.stringify(d)),pend:F.pend||null,ch:E.ch,ci:E.ci,fr:E.fr,ft:E.ft,ff:E.ff,ffs:E.ffs};
   it.d.t_cli=it.t;it.d.offline=1;
   var l=colaLeer();l.push(it);var ok=colaGuardar(l);
   if(!ok){it.pend=null;l[l.length-1]=it;ok=colaGuardar(l)}           // sin espacio: al menos el reporte, sin fotos
@@ -143,9 +143,9 @@ function enviarCola(manual){var l=colaLeer();
   if(ENVIANDO)return;
   if(navigator.onLine===false){if(manual){vibra('mal');pantalla({e:'📶❌',h1:'Todavía no hay señal',p:'Está guardado. Se enviará solo cuando vuelva la señal.',ops:[['🏠 CONTINUAR','g',home]]})}return}
   ENVIANDO=true;if(manual)pantalla({e:'<span class="girar">⏳</span>',h1:'Enviando lo guardado…',p:'Unos segundos.'});
-  var it=l[0],C=(E&&E.ch&&String(E.ci)===String(it.ci))?{ch:E.ch,ci:E.ci,fr:E.fr,ft:E.ft}:it;
+  var it=l[0],C=(E&&E.ch&&String(E.ci)===String(it.ci))?{ch:E.ch,ci:E.ci,fr:E.fr,ft:E.ft,ff:E.ff,ffs:E.ffs}:it;
   var sube=Object.keys(it.pend||{}).reduce(function(p,k){return p.then(function(){
-    return fetch(it.pend[k]).then(function(r){return r.blob()}).then(function(b){return postRelay(C.fr,C.ft,{method:'PUT',headers:{'Filename':k+'.jpg','Title':it.cod+' '+k},body:b,ms:35000})})
+    return fetch(it.pend[k]).then(function(r){return r.blob()}).then(function(b){return postRelay(C.ff||C.fr,C.ft,{method:'PUT',headers:{'Filename':k+'.jpg','Title':it.cod+' '+k},body:b,ms:35000,alt:C.ffs||ALT})})
       .then(function(x){return x.r.json()}).then(function(j){if(!j.attachment||!j.attachment.url)throw new Error('foto');
         it.d.fotos=it.d.fotos||{};it.d.fotos[k]=j.attachment.url+'#'+j.id;delete it.pend[k];var l2=colaLeer();l2.forEach(function(x,i){if(x.id===it.id)l2[i]=it});colaGuardar(l2)})})},Promise.resolve());
   sube.then(function(){return postRelay(C.fr,C.ch.c,{body:JSON.stringify({chat:C.ci,k:C.ch.k,id:'q'+it.id,d:it.d})})})
@@ -498,7 +498,7 @@ $('disparo').onclick=function(){var v=$('vid');if(!v.videoWidth)return;vibra();p
 $('repetir').onclick=function(){vibra();if(stream){$('prev').classList.add('oculto');$('vid').classList.remove('oculto');$('bTomar').classList.remove('oculto');$('bRev').classList.add('oculto')}else camaraTelefono()};
 $('camCancel').onclick=function(){cerrarCam()};
 function subirRelay(parte,b){   // la foto pasa por un servidor gratis de paso (se borra sola en 3 h); la PC la baja y la borra
-  return postRelay(E.fr,E.ft,{method:'PUT',headers:{'Filename':parte+'.jpg','Title':E.codigo+' '+parte},body:b,ms:35000})
+  return postRelay(E.ff||E.fr,E.ft,{method:'PUT',headers:{'Filename':parte+'.jpg','Title':E.codigo+' '+parte},body:b,ms:35000,alt:E.ff?E.ffs:ALT})
     .then(function(x){var r=x.r;
       return r.json().then(function(j){if(!r.ok||!j.attachment||!j.attachment.url)throw new Error(j.error||'No se pudo subir');
       F.fotos=F.fotos||{};F.fotos[parte]=j.attachment.url+'#'+j.id;return j})})
