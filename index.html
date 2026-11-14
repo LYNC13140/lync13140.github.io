@@ -59,7 +59,7 @@ var S0=(location.search.match(/[?&]s=([^&]+)/)||[])[1], BOT=!!S0, RELAY=false;  
 function leerS(t){t=t.replace(/-/g,'+').replace(/_/g,'/');while(t.length%4)t+='=';var b=atob(t),u=new Uint8Array(b.length);for(var i=0;i<b.length;i++)u[i]=b.charCodeAt(i);
   var d=JSON.parse(new TextDecoder().decode(u));
   RELAY=!!d.ft;
-  ALT=d.frs||[];return {ch:d.ch,ci:d.ci,ft:d.ft,fr:d.fr||'https://ntfy.sh',frs:d.frs||[],nombre:d.nm,demo:!!d.dm,codigo:d.c,escuela:d.e,que:d.q,n:d.k,capacitacion:!!d.cap,co:d.co,lim:d.lim,t:d.t,
+  ALT=d.frs||[];return {ve:d.ve||0,ch:d.ch,ci:d.ci,ft:d.ft,fr:d.fr||'https://ntfy.sh',frs:d.frs||[],nombre:d.nm,demo:!!d.dm,codigo:d.c,escuela:d.e,que:d.q,n:d.k,capacitacion:!!d.cap,co:d.co,lim:d.lim,t:d.t,
     pruebas:(d.p||[]).map(function(x){return {n:x[0],hora:x[1],pedida:!!x[2],estado:x[3]==='b'?'bien':x[3]==='m'?'mal':''}}),
     llegada:d.l?{hora:d.l[0],llego:!!d.l[1],abierta:!!d.l[2]}:null,viaje:{activo:d.q==='viaje'},supervisores:[],quien:d.qn||d.nm||''}}
 function metros(a,b,c,d){var R=6371000,r=Math.PI/180,x=Math.sin((c-a)*r/2),y=Math.sin((d-b)*r/2);return 2*R*Math.asin(Math.sqrt(x*x+Math.cos(a*r)*Math.cos(c*r)*y*y))}
@@ -99,6 +99,15 @@ function porCanal(d){   // llegada, prueba, camino… se quedan en la app
     var ops=nl?[['📞 LLAMAR A MI SUPERVISOR','g',function(){porCanal({accion:'supervisor'})}],['💬 MANDAR MENSAJE AL SUPERVISOR','b',mensaje],['🏠 INICIO','n',home,1]]
       :d.accion==='supervisor'?[['💬 MANDAR MENSAJE','b',mensaje],['🏠 CONTINUAR','g',home]]
       :d.accion==='camino'||d.accion==='mensaje'?[['🏠 CONTINUAR','g',home],['💬 MANDAR OTRO MENSAJE','n',mensaje,1]]:[['🏠 CONTINUAR','g',home]];
+    if(res.ok&&d.accion==='llegada'&&d.check&&d.check.abierta==='no')return pantalla({e:'🔒📞',h1:'Escuela CERRADA',p:'Ya se avisó a su supervisor (con la foto). Por favor <b>llame a su supervisor</b>.',
+        ops:[['📞 LLAMAR A MI SUPERVISOR','g',function(){porCanal({accion:'supervisor'})}],['💬 MANDAR MENSAJE','b',mensaje],['🏠 INICIO','n',home,1]]});
+    if(res.ok&&d.accion==='llegada'&&d.llegada!=='no'){   // 🎉 felicitación y de una a «esperando la prueba»
+      var op=/PUNTO OPERATIVO/i.test(res.txt||'')||(d.equipos!=='apagados'&&d.luz!=='no'&&!(d.check&&(d.check.abierta==='no'||d.check.inundacion==='si')));
+      return pantalla({e:op?'✅🎉':'✅',h1:op?'¡PUNTO OPERATIVO!':'Llegada guardada',p:op?'¡Felicitaciones! Ya no tiene que hacer nada hasta la <b>prueba de conexión '+(E.n||1)+'</b>.':'Su supervisor ya recibió su llegada.',
+        extra:'<details style="margin:0 16px"><summary style="font-size:16px;color:#5a6577">Ver el detalle</summary><div class="sup" style="text-align:left;font-size:16px;line-height:1.45">'+(res.txt||'')+'</div></details>',
+        ops:[['⏳ CONTINUAR','g',home]]})}
+    if(res.ok&&d.accion==='prueba')return pantalla({e:'✅📶',h1:'¡Prueba '+(d.n||'')+' enviada!',p:'Gracias. Su supervisor ya recibió la prueba.',
+        extra:'<details style="margin:0 16px"><summary style="font-size:16px;color:#5a6577">Ver el detalle</summary><div class="sup" style="text-align:left;font-size:16px;line-height:1.45">'+(res.txt||'')+'</div></details>',ops:[['⏳ CONTINUAR','g',home]]});
     pantalla({e:nl?'📨📞':res.ok?'✅':'⚠️',h1:nl?'Su supervisor ya sabe':res.ok?'Listo':'No se pudo',p:nl?'Ahora <b>llame a su supervisor</b> o mándele un mensaje.':'',
       extra:'<div class="sup" style="text-align:left;font-size:17px;line-height:1.45">'+(res.txt||'')+'</div>',ops:ops})})
   .catch(function(e){if(e.lleno){LLENO=true;return porTelegram(d)}
@@ -177,7 +186,7 @@ function accion(d){
   if(d.accion==='llegada'||d.accion==='prueba'){if(F.u&&d.lat==null){d.lat=F.u.lat;d.lon=F.u.lon;d.acc=F.u.acc}}
   if((d.accion==='llegada'||d.accion==='camino')&&TR&&TR.pts&&TR.pts.length){d.ruta={ini:Math.round(TR.ini/1000),dest:TR.dest,pts:TR.pts.slice(-120)}}
   if(d.accion==='llegada'){trBorrar()}
-  if(E.ch&&['llegada','prueba','camino','supervisor','ayuda','mensaje'].indexOf(d.accion)>=0){if(F.fotos)d.fotos=F.fotos;return porCanal(d)}
+  if(E.ch&&['llegada','prueba','camino','supervisor','ayuda','mensaje','estado'].indexOf(d.accion)>=0){if(F.fotos)d.fotos=F.fotos;return porCanal(d)}
   return alBot(d)}
 
 // ------------------------------------------------------------------ pantallas
@@ -230,12 +239,28 @@ function home(){
   else if(q==='llegada'){o.e='🏫';o.h1='¿Ya llegó a su recinto?';ops=[['📍 YA ESTOY EN MI RECINTO','g',llegada],['⛔ NO PUEDO LLEGAR','r',noLlego]]}
   else if(q==='reabrio'){o.e='🔒';o.h1='La escuela estaba cerrada';o.p='Cuando la abran, toque el botón.';ops=[['🔓 YA ABRIERON LA ESCUELA','g',llegada]]}
   else if(q==='prueba'){o.e='📶';o.h1='Prueba de conexión '+n;o.p=p.hora?(p.pedida?'Su supervisor la pidió a las <b>'+p.hora+'</b>':'Le toca a las <b>'+p.hora+'</b>'):'';ops=[['📶 HACER LA PRUEBA '+n,'g',function(){prueba(n)}]]}
-  else if(q==='espera'){o.e='⏳📶';o.h1='Espere a su supervisor';o.p='Él le avisará cuándo hacer la <b>PRUEBA DE CONEXIÓN '+n+'</b>. Le llegará un mensaje; entonces toque <b>▶️ INICIAR</b> otra vez.'}
+  else if(q==='espera'){o.e='⏳📶';o.h1='Esperando la PRUEBA DE CONEXIÓN '+n;o.p=E.ve?'Su supervisor la activará. <b>Deje esta pantalla abierta</b>: cuando la activen, aparecerá sola aquí (y le llegará un mensaje).':'Su supervisor la activará. Le llegará un mensaje; entonces toque <b>▶️ INICIAR</b> otra vez.';
+    ops=[['🛠️ REPORTAR UN PROBLEMA','a',problema],['💬 MENSAJE AL SUPERVISOR','b',mensaje,1]];esperarOrden()}
   else if(q==='repetir'){o.e='🔁';o.h1='La prueba '+n+' salió mal';o.p='Apague el equipo, espere 30 segundos y préndalo. Luego repita.';ops=[['🔁 REPETIR LA PRUEBA '+n,'a',function(){prueba(n)}]]}
   else {o.e='🎉';o.h1='¡Listo por hoy!';o.p='Muchas gracias por su trabajo.'}
   ops.push(['📞 MI SUPERVISOR','n',supervisor,1]);if(BOT)ops.push(['❓ AYUDA','n',ayuda,1]);
   var nq=BOT?colaLeer().length:0;if(nq&&!o.aviso){o.aviso='📦 Hay <b>'+nq+'</b> envío(s) guardado(s) sin señal. Se mandan solos cuando vuelva la señal.';if(!gl&&!gp)ops.push(['🔄 ENVIAR LO GUARDADO','b',function(){enviarCola(true)},1])}
   if(BOT&&E.demo)ops.push(['🚪 SALIR DE LA PRUEBA','n',function(){trBorrar();if(E.ch)porCanal({accion:'salir_prueba'});else alBot({accion:'salir_prueba'})},1]);o.ops=ops;pantalla(o)}
+var ESPERA_IV=null;
+function esperarOrden(){   // mientras está en «esperando», pregunta a la PC cada 2 minutos (máx. 40 min) si ya activaron la prueba
+  if(!BOT||!E.ch||!E.ve||ESPERA_IV)return;var t0=Date.now(),n0=E.n;
+  ESPERA_IV=setInterval(function(){if(E.que!=='espera'||Date.now()-t0>40*60000){clearInterval(ESPERA_IV);ESPERA_IV=null;return}
+    if(document.visibilityState==='hidden'||!/Esperando la PRUEBA/.test(document.body.innerText))return;
+    canal(E.ch,E.ci,E.fr,{accion:'estado'}).then(function(res){if(!res.s)return;try{var e2=leerS(res.s);if(e2.que!=='espera'){E=e2;S0=res.s;clearInterval(ESPERA_IV);ESPERA_IV=null;
+      vibra('ok');try{tg.HapticFeedback.notificationOccurred('success')}catch(x){}home()}}catch(x){}}).catch(function(){})},120000)}
+function problema(){   // 🛠️ reportar daño / problema desde la escuela, sin salir de la app
+  var mandar=function(tipo){escribir({atras:problema,titulo:'Problema',e:'🛠️',h1:tipo,p:'Cuente en pocas palabras (opcional).',ph:'Ej.: el router tiene la luz roja',boton:'SIGUIENTE',vacio:true,
+    luego:function(t){var txt='🛠️ PROBLEMA EN LA ESCUELA: '+tipo+(t?' — '+t:'');F.fotos=null;
+      var go=function(){relojEspera('Avisando a su supervisor…');accion({accion:'mensaje',texto:txt})};
+      if(!RELAY)return go();pantalla({e:'📷',h1:'¿Puede tomar una FOTO?',p:'Del equipo o del problema.',ops:[['📷 TOMAR FOTO','b',function(){camara('mensaje','PROBLEMA',go)}],['➡️ SIN FOTO, ENVIAR','g',go]]})}})};
+  pantalla({atras:home,titulo:'Problema',e:'🛠️',h1:'¿Qué problema hay?',ops:[['📶 NO HAY INTERNET / ENLACE CAÍDO','r',function(){mandar('No hay internet / enlace caído')}],
+    ['🖥️ EQUIPO DAÑADO','a',function(){mandar('Equipo dañado')}],['💡 SE FUE LA LUZ','a',function(){mandar('Se fue la luz')}],['🔒 NO ME DEJAN ENTRAR / CERRARON','a',function(){mandar('No lo dejan entrar / cerraron')}],
+    ['📝 OTRO','b',function(){mandar('Otro')}]]})}
 function ayuda(){pantalla({atras:home,e:'❓',h1:'¿Cómo se usa?',extra:'<div class="sup" style="text-align:left;font-size:18px;line-height:1.5">'
   +'1️⃣ Al salir de casa toque <b>▶️ INICIAR MI DÍA</b>. Deje la pantalla abierta: le dice cuánto le falta.<br>'
   +'2️⃣ Al llegar contesta unas preguntas de <b>Sí o No</b> y toma 3 fotos.<br>'
