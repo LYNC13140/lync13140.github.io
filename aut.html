@@ -36,8 +36,12 @@ function cargarZ(z,cb){var t=z.replace(/-/g,'+').replace(/_/g,'/');while(t.lengt
 var COL={fallos:'bad',recientes:'bad',luz:'bad',apagado:'warn',inundado:'bad',sinip:'bad',equipo:'bad',seguridad:'bad',acceso:'bad',llegada:'bad',intermitentes:'warn',sin_datos:'warn',activos:'ok',volvio_luz:'ok'};
 function inicio(){window.scrollTo(0,0);var av=D.av||[0,0,0];
   var h='<div class="top"><h1>📊 Monitoreo CNE · Guayas</h1><div class="mu">Datos de las '+esc(D.h)+' · toque un cuadro para ver las escuelas</div>'+(D.m?'<div class="modo">'+esc(D.m)+'</div>':'')+'</div>';
+  var cc={};D.c.forEach(function(x){cc[x[0]]=x[3]});var tot=cc.todos||0,pc=function(n){return tot?Math.round(n*100/tot)+' %':'—'};
+  h+='<div class="it" style="border-color:#3b5ea8;background:#132a57"><b style="font-size:16px">📝 Resumen ejecutivo</b><div class="d" style="font-size:14px;line-height:1.5;margin-top:6px">De <b>'+tot+'</b> escuelas de Guayas, <b style="color:#3ccf7a">'+(cc.activos||0)+' funcionan ('+pc(cc.activos||0)+')</b> y <b style="color:#ff6b6b">'+(cc.fallos||0)+' tienen el enlace caído</b>'+(cc.recientes?' ('+cc.recientes+' en las últimas 6 h)':'')+'.'
+   +((cc.luz||cc.inundado||cc.apagado||cc.sinip||cc.equipo)?' Causas conocidas: '+[['luz','💡 sin luz'],['inundado','🌊 inundación'],['apagado','⚫ equipo apagado'],['sinip','🌐 sin IP'],['equipo','🔧 equipo/fibra']].filter(function(x){return cc[x[0]]}).map(function(x){return x[1]+' '+cc[x[0]]}).join(' · ')+'.':'')
+   +(cc.volvio_luz?' 🔌 En 24 h volvió la luz en '+cc.volvio_luz+'.':'')+((cc.seguridad||cc.acceso||cc.llegada)?' ⚠️ Seguridad / ingreso: '+((cc.seguridad||0)+(cc.acceso||0)+(cc.llegada||0))+' novedades.':'')+'</div></div>';
   if(av[2])h+='<div class="it"><b>🌐 Pruebas de conexión: '+av[1]+' de '+av[2]+' ('+av[0]+' %)</b><div class="av"><div style="width:'+Math.min(100,av[0])+'%"></div></div></div>';
-  h+='<div class="grid">'+D.c.map(function(c){return '<div class="k '+(COL[c[0]]||'')+'" data-k="'+c[0]+'"><small>'+esc(c[2])+'</small><i>'+c[1]+'</i><b>'+c[3]+'</b></div>'}).join('')+'</div>';
+  h+='<div class="grid">'+D.c.map(function(c){return '<div class="k '+(c[3]?(COL[c[0]]||''):'')+'" data-k="'+c[0]+'"><small>'+esc(c[2])+'</small><i>'+c[1]+'</i><b>'+c[3]+'</b></div>'}).join('')+'</div>';
   h+='<div class="mu" style="margin-top:12px">Para ver datos nuevos, cierre y vuelva a tocar <b>📊 VER TABLERO</b>.</div>';
   $('app').innerHTML=h;[].forEach.call(document.querySelectorAll('[data-k]'),function(el){el.onclick=function(){lista(el.dataset.k)}});
   try{tg.BackButton.hide()}catch(e){}}
