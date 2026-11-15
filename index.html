@@ -465,7 +465,7 @@ function pantallaPrueba(){pantalla({atras:inicio,paso:[2,3],titulo:'Prueba '+F.n
 function fotoPantalla(){if(BOT&&!RELAY)return F.test==='sin'||F.test==='lento'?equipoMal():mandarPrueba();pantalla({atras:pantallaPrueba,paso:[3,3],titulo:'Prueba '+F.n,e:'📷💻',h1:'Foto de la PANTALLA',p:'Que se lea el mensaje.',
   ops:[['📷 TOMAR LA FOTO','b',function(){camara('prueba','PRUEBA DE CONEXIÓN '+F.n,function(){F.test==='sin'||F.test==='lento'?equipoMal():mandarPrueba()})}]]})}
 function equipoMal(){pantalla({atras:BOT&&!RELAY?pantallaPrueba:fotoPantalla,titulo:'Prueba '+F.n,e:'🔎🖥️',h1:'¿Cómo está el EQUIPO?',ops:[
-  ['🔌 NO PRENDE','r',function(){F.causa='noenciende';mandarPrueba()}],['🔴 PRENDE PERO SIN INTERNET','r',function(){F.causa='rojo';mandarPrueba()}],
+  ['🔌 NO PRENDE','r',function(){F.causa='noenciende';mandarPrueba()}],['🔴 PRENDE PERO SIN INTERNET','r',function(){F.causa='rojo';mandarPrueba()}],['🌐 PRENDE PERO NO TIENE IP','r',function(){F.causa='sinip';mandarPrueba()}],
   ['💡 NO HAY LUZ EN LA ESCUELA','a',function(){F.causa='sinluz';mandarPrueba()}],['❓ NO SÉ','b',function(){F.causa='nosabe';mandarPrueba()}]]})}
 function mandarPrueba(){cargando('Enviando…');accion({accion:'prueba',n:F.n,test_msg:F.test,causa:F.causa||''}).then(function(r){
   if(r.resultado==='bien'){vibra('ok');return pantalla({e:'✅📶',h1:'¡Prueba '+r.n+' lista!',p:esc(r.atraso||''),ops:[['🏠 LISTO','g',inicio]]})}
