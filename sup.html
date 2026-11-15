@@ -166,7 +166,7 @@ function inicio(){F={};
   pantalla({e:'🧑‍✈️📊',h1:'Así va tu grupo',p:'Datos de las <b>'+esc(D.h)+'</b>'+edad(),
     html:'<div class="kp"><div class="k v"><b>'+D.t.act+'/'+D.t.esc+'</b><span>🟢 Enlaces activos</span></div><div class="k '+(D.t.cai?'r':'v')+'"><b>'+D.t.cai+'</b><span>🔴 Enlaces caídos</span></div>'
       +'<div class="k '+(D.t.lleg?'v':'')+'"><b>'+D.t.lleg+'/'+D.t.esc+'</b><span>📍 Operadores llegaron</span></div><div class="k '+(D.pr.length?'r':'v')+'"><b>'+(D.npr||D.pr.length)+'</b><span>🚨 Problemas</span></div></div>'+modoHtml()+personalHtml(),
-    ops:[['🚨 PROBLEMAS','r',problemas,0,(D.npr||D.pr.length)||''],['🔴 ENLACES CAÍDOS ('+D.t.cai+')','r',function(){escuelas('cai')}],['🏫 MIS ESCUELAS ('+D.t.esc+')','b',function(){escuelas('todas')}],].concat(D.pp?[['🎛️ CAMBIAR EL MODO ('+modoNom()+')','n',modos]].concat(D.om?[['🎫 TICKETS A OTRS: '+(D.om.m==='crear'?'🤖 AUTOMÁTICO':'✋ MANUAL'),'n',otrsEnvio,0,D.om.n||'']]:[]).concat([[activarTxt(),'g',activar],['📢 Pedir test solo a unas escuelas','g',pedir,1]]):[]).concat([
+    ops:[['🚨 PROBLEMAS','r',problemas,0,(D.npr||D.pr.length)||''],['🔴 ENLACES CAÍDOS ('+D.t.cai+')','r',function(){escuelas('cai')}],['🏫 MIS ESCUELAS ('+D.t.esc+')','b',function(){escuelas('todas')}],].concat([['🎫 TICKETS · OTRS','b',tickets]]).concat(D.pp?[['🎛️ CAMBIAR EL MODO ('+modoNom()+')','n',modos]].concat(D.om?[['🎫 TICKETS A OTRS: '+(D.om.m==='crear'?'🤖 AUTOMÁTICO':'✋ MANUAL'),'n',otrsEnvio,0,D.om.n||'']]:[]).concat([[activarTxt(),'g',activar],['📢 Pedir test solo a unas escuelas','g',pedir,1]]):[]).concat([
       ['📥 POR AUTORIZAR','a',autorizar,0,D.pa.length||''],['🛠️ REPORTAR DAÑO (TICKET)','n',function(){elegirDanio()},1],D.dv?['🚪 SALIR DE LA PRUEBA (volver a mi panel)','r',function(){hacer({accion:'salir'})}]:['🧪 VER COMO LO VE…','n',verComo,1],['☰ MÁS OPCIONES (incidencias, reportes, QR…)','n',function(){masOpc({accion:'mas'})},1]]),
     nota:'Para ver datos nuevos, cierre y vuelva a tocar <b>📱 ABRIR MI PANEL</b>.'})}
 
@@ -210,6 +210,52 @@ function otrsEnvio(){   // 🎫 manual / automático: solo supervisor nacional y
              :(o.k?[['🤖 ACTIVAR AUTOMÁTICO','g',function(){pantalla({atras:otrsEnvio,tit:'🎫 Tickets a OTRS',e:'🤖',h1:'¿Activar el envío AUTOMÁTICO?',
                   p:'Los tickets autorizados se mandan solos a OTRS.',ops:[['✅ SÍ, CONTINUAR','g',aAuto],['❌ No','n',otrsEnvio,1]]})}]]:[]))
         .concat([['🏠 VOLVER AL PANEL','n',inicio,1]])})}
+
+var TK=null;
+function tkPedir(d,msg){   // 🎫 tickets: se pide a la PC y se muestra aquí mismo (no se sale de la app)
+  if(!D.ch){pantalla({atras:inicio,tit:'🎫 Tickets',e:'⚠️',h1:'No disponible',p:'Abra el panel otra vez desde el chat.'});return}
+  var t0=Date.now();pantalla({atras:inicio,tit:'🎫 Tickets',e:'<span class="girar">⏳</span>',h1:msg||'Leyendo los tickets…',p:'<span id="reloj" style="font-size:22px;font-weight:800">⏱️ 0:00</span>'});
+  var iv=setInterval(function(){var r=$('reloj');if(!r)return clearInterval(iv);var s=Math.floor((Date.now()-t0)/1000);r.textContent='⏱️ '+Math.floor(s/60)+':'+(s%60<10?'0':'')+(s%60)},1000);
+  canal(D.ch,D.ci,D.fr,d).then(function(res){clearInterval(iv);if(res.tk)TK=res.tk;tkVer(res.tkmsg||'')},function(e){clearInterval(iv);
+    pantalla({atras:inicio,tit:'🎫 Tickets',e:'⚠️',h1:'No se pudo',p:esc(e.message||'')+'<br>Toque 🔄 para intentar otra vez.',ops:[['🔄 INTENTAR OTRA VEZ','b',function(){tkPedir(d,msg)}],['🏠 VOLVER AL PANEL','n',inicio,1]]})})}
+window._tkVer=function(t,d){if(d)D=d;TK=t;tkVer('')};   // para revisar la pantalla sin la PC
+function tickets(){tkPedir({accion:'tickets'})}
+function tkBuscar(q){if(!D.ch)return;var t0=Date.now();pantalla({atras:tickets,tit:'🔎 Buscar tickets',e:'<span class="girar">⏳</span>',h1:'Buscando «'+esc(q)+'»…'});
+  canal(D.ch,D.ci,D.fr,{accion:'tk_buscar',q:q}).then(function(res){var L=res.tkb||[];
+    var h=L.length?L.map(function(e){return '<div style="margin:8px 12px;background:#fff;border-radius:14px;padding:10px 12px"><div style="font-size:16px"><b>'+esc(e.c)+'</b> '+esc(e.n)+'</div><div style="font-size:13px;color:#5a6577">'+e.nt+' ticket(s)'+(e.r?' · '+esc(e.r):'')+'</div>'
+      +e.t.slice().reverse().map(function(t){return '<div style="border-top:1px solid #eee;margin-top:6px;padding-top:4px;font-size:14px">🎫 <b>'+esc(t.t)+'</b> · '+esc(t.cr)+(t.m&&t.m!=='Normal'?' · '+esc(t.m):'')+'<br>'+(t.ce?'🔒 cerrado '+esc(t.ce):'⏳ <b>sin cerrar</b>')+' · '+esc(t.e)+(t.s?'<br>🛠️ '+esc(t.s):'')+'</div>'}).join('')+'</div>'}).join('')
+      :'<div class="av">No se encontró nada con «'+esc(q)+'».</div>';
+    pantalla({atras:tickets,tit:'🔎 Buscar tickets',sub:'«'+esc(q)+'» · '+L.length+' escuela(s)',html:h,ops:[['🔎 BUSCAR OTRA','b',tickets],['🏠 VOLVER AL PANEL','n',inicio,1]]})},
+  function(e){pantalla({atras:tickets,tit:'🔎 Buscar tickets',e:'⚠️',h1:'No se pudo',p:esc(e.message||''),ops:[['↩ VOLVER','n',tickets]]})})}
+
+function tkVer(msg){var T=TK||{l:[]};var col={por_autorizar:'#a855f7',reabrir:'#e5484d',por_crear:'#e5484d',seguimiento:'#f5a524',intermitente:'#f5a524',creado:'#4f8cff',en_revision:'#30a46c',consulta_op:'#a855f7'};
+  var h=(msg?'<div class="av ok" style="text-align:left;font-size:15px">'+msg+'</div>':'')
+   +(T.sd?'<div class="av" style="background:#fde2e1;font-size:15px">🛑 <b>Base madre SIN DATOS</b>: no se manda nada a OTRS hasta que vuelvan los datos.</div>':'')
+   +'<div style="display:flex;gap:6px;flex-wrap:wrap;margin:8px 12px">'+[['📤 Pendientes',T.pend,'#e5484d'],['🎫 Abiertos',T.abiertos,'#4f8cff'],['⏳ Por autorizar',T.aut,'#a855f7']].map(function(x){return '<div style="flex:1;min-width:90px;background:#fff;border-radius:12px;padding:8px 10px;border-left:4px solid '+x[2]+'"><div style="font-size:12px;color:#5a6577">'+x[0]+'</div><b style="font-size:22px">'+(x[1]||0)+'</b></div>'}).join('')+'</div>'
+   +'<div style="margin:4px 14px;font-size:14px;color:#5a6577">Envío a OTRS: <b>'+(T.modo==='crear'?'🤖 AUTOMÁTICO':'✋ MANUAL')+'</b>'+(T.sim?' · 🧪 modo prueba (se simula)':'')+'</div>'
+   +'<div style="margin:8px 12px;display:flex;gap:6px"><input id="tkq" placeholder="🔎 Buscar: código, escuela o N.º de ticket" style="flex:1;font-size:16px;padding:10px;border-radius:10px;border:1px solid #ccd"><button class="op b chico" style="margin:0" data-f="buscar">Buscar</button></div>'
+   +(T.cola&&T.cola.total?'<div style="margin:8px 12px;background:#fff4dc;border-radius:12px;padding:8px 10px"><b>⏳ Sin cerrar en OTRS: '+T.cola.total+'</b>'+(T.cola.d3?' · <b style="color:#b42318">'+T.cola.d3+' con 3 días o más</b>':'')+T.cola.top.map(function(x){return '<div style="font-size:14px">'+(x[2]>=3?'🔴':'🟠')+' <b>'+esc(x[0])+'</b> · ticket '+esc(x[1])+' · <b>'+x[2]+' días</b></div>'}).join('')+'</div>':'')
+   +((T.al||[]).length?'<div style="margin:8px 12px;background:#fde2e1;border-radius:12px;padding:8px 10px"><b style="color:#b42318">🚨 Nunca atendidos</b>'+T.al.map(function(a){return '<div style="font-size:14px">'+(a[3]==='alta'?'🔴':'🟠')+' <b>'+esc(a[0])+'</b> '+esc(a[1])+' · '+a[2]+' sin atender</div>'}).join('')+'</div>':'')
+   +(T.env&&T.env.total?'<div style="margin:4px 14px;font-size:14px">📤 Último envío: '+(T.env.activo?'⏳ enviando '+T.env.hechos+'/'+T.env.total:'✅ '+T.env.creados+' creados · '+T.env.no_duplicados+' ya tenían ticket')+'</div>':'')
+   +(T.l.length?T.l.map(function(x,i){var pend=['por_crear','seguimiento','intermitente','reabrir'].indexOf(x.e)>=0,abierto=['creado','seguimiento','intermitente'].indexOf(x.e)>=0&&x.t;
+      return '<div style="margin:8px 12px;background:#fff;border-radius:14px;padding:10px 12px;border-left:5px solid '+(col[x.e]||'#8b949e')+'"><div style="font-size:16px"><b>'+esc(x.c)+'</b> '+esc(x.n)+'</div>'
+       +'<div style="font-size:13px;color:#5a6577">'+esc(x.g)+' · '+esc(x.et)+(x.m==='S'?' · 🧪 del simulacro':x.m==='E'?' · 🗳️ elecciones':'')+'</div>'
+       +'<div style="font-size:14px;margin-top:2px">'+(x.t?'🎫 <b>'+esc(x.t)+'</b>':'sin ticket todavía')+(x.o?' · OTRS: '+esc(x.o):'')+(x.h?' · 🔴 caído '+esc(x.h):x.up?' · 🟢 enlace arriba':'')+(x.i?' · 🔁 '+x.i+' insistencia(s)':'')+'</div>'
+       +'<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px">'
+       +(pend&&!T.sd?'<button class="op r chico" style="margin:0;flex:1" data-f="e'+i+'">📤 Enviar</button>':'')
+       +(abierto&&!x.up&&!T.sd?'<button class="op chico" style="margin:0;flex:1;background:#f5a524;color:#000" data-f="i'+i+'">🔁 Insistir</button>':'')
+       +(abierto?'<button class="op b chico" style="margin:0;flex:1" data-f="r'+i+'">🔎 Revisar</button>':'')+'</div></div>'}).join(''):'<div class="av ok">👍 No hay tickets abiertos.</div>');
+  var fn={};T.l.forEach(function(x,i){
+    fn['e'+i]=function(){if(confirm('📤 ¿Enviar a OTRS el ticket de '+x.c+'?'+(T.sim?' (modo prueba: se simula)':'\n\nAntes se revisa que no haya otro abierto.')))tkPedir({accion:'tk_enviar',cod:x.c},'Enviando a OTRS…')};
+    fn['i'+i]=function(){if(confirm('🔁 ¿Insistir en el ticket '+x.t+' ('+x.c+')?\n\nSe agrega una nota al MISMO ticket (no se crea otro). Una vez cada 30 min.'))tkPedir({accion:'tk_insistir',cod:x.c},'Insistiendo en OTRS…')};
+    fn['r'+i]=function(){tkPedir({accion:'tk_revisar',cod:x.c},'Revisando en OTRS…')}});
+  fn.buscar=function(){var q=($('tkq').value||'').trim();if(q.length<2)return alert('Escriba al menos 2 letras o números');tkBuscar(q)};
+  var ops=[['🔄 ACTUALIZAR','b',tickets]];
+  if(T.nac&&T.cola&&T.cola.total)ops.push(['🔎 REVISAR EN OTRS LOS SIN CERRAR ('+T.cola.total+')','b',function(){tkPedir({accion:'tk_cola'},'Revisando la cola en OTRS…')}]);
+  if(T.nac){if(T.pend&&!T.sd)ops.push(['📤 ENVIAR TODOS LOS PENDIENTES ('+T.pend+')','r',function(){if(confirm('📤 ¿Enviar TODOS los '+T.pend+' tickets pendientes a OTRS?'+(T.sim?' (se simulan)':'\n\nSe crean de VERDAD, uno por uno, sin duplicar.'))&&confirm('⚠️ ¿Está seguro?'))tkPedir({accion:'tk_enviar'},'Enviando a OTRS…')}]);
+    if(T.abiertos)ops.push(['🔎 REVISAR TODOS EN OTRS ('+T.abiertos+')','b',function(){tkPedir({accion:'tk_revisar'},'Revisando en OTRS…')}])}
+  ops.push(['🏠 VOLVER AL PANEL','n',inicio,1]);
+  pantalla({atras:inicio,tit:'🎫 Tickets · OTRS',sub:(T.total||0)+' casos'+(T.l.length<(T.total||0)?' (se muestran '+T.l.length+')':''),html:h,fn:fn,ops:ops,nota:'El reporte completo (historial, soluciones, Excel) está en la página web → Tickets → 📑 Reporte.'})}
 function sinJornada(){vibra('mal');pantalla({atras:inicio,tit:'📶 Test de conexión',e:'⛔',h1:'No hay ningún simulacro activado',
   p:'Las pruebas de conexión solo se pueden pedir cuando está activado un modo (🔧 Prueba, 🧪 Simulacro o 🗳️ Elecciones).<br><br>Mientras tanto no se le avisa a ningún operador.',ops:(D.pp?[['🎛️ ACTIVAR UN MODO AHORA','g',modos]]:[]).concat([['🏠 VOLVER AL PANEL','n',inicio,1]])})}
 function activar(){if(D.jm==='')return sinJornada();var n=sigTest(),hechos=(D.ord||[]).map(function(o){return '📶'+o[0]+' ✅ '+esc(o[1])}).join(' · ');
