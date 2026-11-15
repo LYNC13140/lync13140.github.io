@@ -89,7 +89,7 @@ function relojEspera(h1){var t0=Date.now();pantalla({e:'<span class="girar">⏳<
   var iv=setInterval(function(){var r=$('reloj');if(!r)return clearInterval(iv);var s=Math.floor((Date.now()-t0)/1000);r.textContent='⏱️ '+Math.floor(s/60)+':'+pad(s%60);
     if(s===20)$('relojTxt').innerHTML='Hay <b>mucha gente</b> enviando a la vez.<br>Espere, <b>no cierre</b>: puede tardar hasta 1 a 2 minutos.';
     if(s===60)$('relojTxt').innerHTML='Sigue en la fila… ya casi. <b>No cierre.</b>'},1000)}
-var GUARDABLE=['llegada','prueba','camino','mensaje','kit'];
+var GUARDABLE=['llegada','prueba','camino','mensaje','kit','retiro'];
 function porCanal(d){   // llegada, prueba, camino… se quedan en la app
   if(GUARDABLE.indexOf(d.accion)>=0&&(F.pend||navigator.onLine===false))return guardarCola(d);   // 📦 sin señal: se guarda
   if(LLENO)return porTelegram(d);
@@ -244,6 +244,7 @@ function home(){
   else if(q==='repetir'){o.e='🔁';o.h1='La prueba '+n+' salió mal';o.p='Apague el equipo, espere 30 segundos y préndalo. Luego repita.';ops=[['🔁 REPETIR LA PRUEBA '+n,'a',function(){prueba(n)}]]}
   else {o.e='🎉';o.h1='¡Listo por hoy!';o.p='Muchas gracias por su trabajo.'}
   if(BOT)ops.push(['📦 ESCANEAR MI KIT','b',kitInicio,1]);
+  if(BOT&&['salgo','viaje','salgo_rec','llegada'].indexOf(q)<0)ops.push(['🚪 ME RETIRO DEL COLEGIO','n',retiro,1]);
   ops.push(['📞 MI SUPERVISOR','n',supervisor,1]);if(BOT)ops.push(['❓ AYUDA','n',ayuda,1]);
   var nq=BOT?colaLeer().length:0;if(nq&&!o.aviso){o.aviso='📦 Hay <b>'+nq+'</b> envío(s) guardado(s) sin señal. Se mandan solos cuando vuelva la señal.';if(!gl&&!gp)ops.push(['🔄 ENVIAR LO GUARDADO','b',function(){enviarCola(true)},1])}
   if(BOT&&E.demo)ops.push(['🚪 SALIR DE LA PRUEBA','n',function(){trBorrar();if(E.ch)porCanal({accion:'salir_prueba'});else alBot({accion:'salir_prueba'})},1]);o.ops=ops;pantalla(o)}
@@ -275,6 +276,14 @@ function kitEstado(){pantalla({atras:kitCarnet,titulo:'Kit',e:'📦',h1:'¿Cómo
 function kitNota(e){escribir({atras:kitEstado,titulo:'Kit',e:e==='danado'?'🔧':'⚠️',h1:e==='danado'?'¿Qué está dañado?':'¿Qué le falta?',ph:'Ej.: falta el cargador',boton:'ENVIAR',vacio:true,luego:function(t){kitMandar(e,t)}})}
 function kitMandar(e,nota){relojEspera('Registrando el kit…');var d={accion:'kit',tipo:'llegada',kit:String(KS.kit).slice(0,200),carnet:String(KS.carnet||'').slice(0,500),estado:e,nota:nota||''};
   ubicacion(false).then(function(u){d.lat=u.lat;d.lon=u.lon;d.acc=u.acc;porCanal(d)},function(){porCanal(d)})}
+// ------------------------------------------------------------------ 🚪 me retiro del colegio: ¿cómo deja el equipo?
+function retiro(){pantalla({atras:home,titulo:'Me retiro',e:'🚪🖥️',h1:'¿Cómo deja el EQUIPO?',p:'Antes de irse, vea el equipo.',ops:[
+  ['⚫ LO DEJO APAGADO','r',function(){retiroPor()}],['🟢 LO DEJO PRENDIDO','g',function(){retiroMandar('prendido','')}]]})}
+function retiroPor(){pantalla({atras:retiro,titulo:'Me retiro',e:'⚫',h1:'¿Por qué lo apagó?',ops:[
+  ['🏁 TERMINÓ LA JORNADA','b',function(){retiroMandar('apagado','jornada')}],['🗣️ ME PIDIERON APAGARLO','b',function(){escribir({atras:retiroPor,titulo:'Me retiro',e:'🗣️',h1:'¿Quién se lo pidió?',ph:'Ej.: el rector / el supervisor',boton:'ENVIAR',vacio:true,luego:function(t){retiroMandar('apagado','pidieron',t)}})}],
+  ['💡 SE FUE LA LUZ','a',function(){retiroMandar('apagado','luz')}],['🔒 POR SEGURIDAD','a',function(){retiroMandar('apagado','seguridad')}],
+  ['📝 OTRO','n',function(){escribir({atras:retiroPor,titulo:'Me retiro',e:'📝',h1:'Cuéntenos por qué',ph:'Escriba aquí…',boton:'ENVIAR',luego:function(t){retiroMandar('apagado','otro',t)}})},1]]})}
+function retiroMandar(eq,mot,det){relojEspera('Registrando…');porCanal({accion:'retiro',equipo:eq,motivo:mot||'',detalle:det||''})}
 function problema(){   // 🛠️ reportar daño / problema desde la escuela, sin salir de la app
   var mandar=function(tipo){escribir({atras:problema,titulo:'Problema',e:'🛠️',h1:tipo,p:'Cuente en pocas palabras (opcional).',ph:'Ej.: el router tiene la luz roja',boton:'SIGUIENTE',vacio:true,
     luego:function(t){var txt='🛠️ PROBLEMA EN LA ESCUELA: '+tipo+(t?' — '+t:'');F.fotos=null;
