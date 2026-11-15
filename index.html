@@ -89,7 +89,7 @@ function relojEspera(h1){var t0=Date.now();pantalla({e:'<span class="girar">⏳<
   var iv=setInterval(function(){var r=$('reloj');if(!r)return clearInterval(iv);var s=Math.floor((Date.now()-t0)/1000);r.textContent='⏱️ '+Math.floor(s/60)+':'+pad(s%60);
     if(s===20)$('relojTxt').innerHTML='Hay <b>mucha gente</b> enviando a la vez.<br>Espere, <b>no cierre</b>: puede tardar hasta 1 a 2 minutos.';
     if(s===60)$('relojTxt').innerHTML='Sigue en la fila… ya casi. <b>No cierre.</b>'},1000)}
-var GUARDABLE=['llegada','prueba','camino','mensaje'];
+var GUARDABLE=['llegada','prueba','camino','mensaje','kit'];
 function porCanal(d){   // llegada, prueba, camino… se quedan en la app
   if(GUARDABLE.indexOf(d.accion)>=0&&(F.pend||navigator.onLine===false))return guardarCola(d);   // 📦 sin señal: se guarda
   if(LLENO)return porTelegram(d);
@@ -243,6 +243,7 @@ function home(){
     ops=[['🛠️ REPORTAR UN PROBLEMA','a',problema],['💬 MENSAJE AL SUPERVISOR','b',mensaje,1]];esperarOrden()}
   else if(q==='repetir'){o.e='🔁';o.h1='La prueba '+n+' salió mal';o.p='Apague el equipo, espere 30 segundos y préndalo. Luego repita.';ops=[['🔁 REPETIR LA PRUEBA '+n,'a',function(){prueba(n)}]]}
   else {o.e='🎉';o.h1='¡Listo por hoy!';o.p='Muchas gracias por su trabajo.'}
+  if(BOT)ops.push(['📦 ESCANEAR MI KIT','b',kitInicio,1]);
   ops.push(['📞 MI SUPERVISOR','n',supervisor,1]);if(BOT)ops.push(['❓ AYUDA','n',ayuda,1]);
   var nq=BOT?colaLeer().length:0;if(nq&&!o.aviso){o.aviso='📦 Hay <b>'+nq+'</b> envío(s) guardado(s) sin señal. Se mandan solos cuando vuelva la señal.';if(!gl&&!gp)ops.push(['🔄 ENVIAR LO GUARDADO','b',function(){enviarCola(true)},1])}
   if(BOT&&E.demo)ops.push(['🚪 SALIR DE LA PRUEBA','n',function(){trBorrar();if(E.ch)porCanal({accion:'salir_prueba'});else alBot({accion:'salir_prueba'})},1]);o.ops=ops;pantalla(o)}
@@ -253,13 +254,34 @@ function esperarOrden(){   // mientras está en «esperando», pregunta a la PC 
     if(document.visibilityState==='hidden'||!/Esperando la PRUEBA/.test(document.body.innerText))return;
     canal(E.ch,E.ci,E.fr,{accion:'estado'}).then(function(res){if(!res.s)return;try{var e2=leerS(res.s);if(e2.que!=='espera'){E=e2;S0=res.s;clearInterval(ESPERA_IV);ESPERA_IV=null;
       vibra('ok');try{tg.HapticFeedback.notificationOccurred('success')}catch(x){}home()}}catch(x){}}).catch(function(){})},120000)}
+// ------------------------------------------------------------------ 📦 ESCANEAR MI KIT (QR o código de barras) + carnet
+var KS={};
+function cargarLib(){return new Promise(function(ok,mal){if(window.Html5Qrcode)return ok();var s=document.createElement('script');s.src='https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js';s.onload=function(){ok()};s.onerror=function(){mal(new Error('No se pudo cargar el lector'))};document.head.appendChild(s)})}
+function leerCamara(titulo,atras,luego){   // 📷 cámara: lee QR y códigos de barras
+  pantalla({atras:atras,titulo:titulo,e:'📷',h1:'Apunte al código',p:'Ponga el código dentro del cuadro, con buena luz.',extra:'<div id="lector" style="margin:0 16px;border-radius:14px;overflow:hidden;background:#000;min-height:240px"></div>',ops:[['✖ CANCELAR','n',function(){parar();atras()}]]});
+  var H=null,parar=function(){try{if(H)H.stop().catch(function(){})}catch(x){}};
+  cargarLib().then(function(){H=new Html5Qrcode('lector');return H.start({facingMode:'environment'},{fps:10,qrbox:{width:260,height:160}},function(t){vibra('ok');parar();luego(t)},function(){})})
+   .catch(function(e){pantalla({atras:atras,titulo:titulo,e:'⚠️',h1:'No se pudo abrir la cámara',p:esc(e.message||'')+'<br>Puede escribir el número.',ops:[['⌨️ ESCRIBIR','b',function(){escribirCod(titulo,atras,luego)}],['↩ VOLVER','n',atras,1]]})})}
+function escribirCod(titulo,atras,luego){escribir({atras:atras,titulo:titulo,e:'⌨️',h1:'Escriba el número',p:titulo==='Carnet'?'Su número de cédula (10 dígitos).':'El número del kit (ej.: 469 o KIT-0469).',ph:'',boton:'LISTO',luego:luego})}
+function leerCodigo(titulo,que,atras,luego){
+  var ops=[];if(tg&&tg.showScanQrPopup&&tg.isVersionAtLeast&&tg.isVersionAtLeast('6.4'))ops.push(['🔳 ESCANEAR QR','g',function(){tg.showScanQrPopup({text:'Escanee el QR '+que},function(t){if(!t)return false;try{tg.closeScanQrPopup()}catch(x){}vibra('ok');setTimeout(function(){luego(t)},200);return true})}]);
+  ops.push(['📷 CÓDIGO DE BARRAS / QR CON LA CÁMARA','b',function(){leerCamara(titulo,atras,luego)}]);
+  ops.push(['⌨️ ESCRIBIR EL NÚMERO','n',function(){escribirCod(titulo,atras,luego)},1]);
+  pantalla({atras:atras,titulo:titulo,e:titulo==='Carnet'?'🪪':'📦',h1:'Escanee '+que,p:titulo==='Carnet'?'El código de su <b>carnet</b> (cédula). Debe coincidir con la persona a quien se le dio el kit.':'El código de barras o QR que tiene el <b>kit</b>.',ops:ops})}
+function kitInicio(){KS={};leerCodigo('Kit','el KIT',home,function(t){KS.kit=t;kitCarnet()})}
+function kitCarnet(){leerCodigo('Carnet','su CARNET',kitInicio,function(t){KS.carnet=t;kitEstado()})}
+function kitEstado(){pantalla({atras:kitCarnet,titulo:'Kit',e:'📦',h1:'¿Cómo llegó el kit?',p:'Kit leído: <b>'+esc(String(KS.kit).slice(0,40))+'</b>',ops:[
+  ['✅ COMPLETO Y BIEN','g',function(){kitMandar('ok')}],['⚠️ INCOMPLETO (falta algo)','a',function(){kitNota('incompleto')}],['🔧 DAÑADO','r',function(){kitNota('danado')}]]})}
+function kitNota(e){escribir({atras:kitEstado,titulo:'Kit',e:e==='danado'?'🔧':'⚠️',h1:e==='danado'?'¿Qué está dañado?':'¿Qué le falta?',ph:'Ej.: falta el cargador',boton:'ENVIAR',vacio:true,luego:function(t){kitMandar(e,t)}})}
+function kitMandar(e,nota){relojEspera('Registrando el kit…');var d={accion:'kit',tipo:'llegada',kit:String(KS.kit).slice(0,200),carnet:String(KS.carnet||'').slice(0,500),estado:e,nota:nota||''};
+  ubicacion(false).then(function(u){d.lat=u.lat;d.lon=u.lon;d.acc=u.acc;porCanal(d)},function(){porCanal(d)})}
 function problema(){   // 🛠️ reportar daño / problema desde la escuela, sin salir de la app
   var mandar=function(tipo){escribir({atras:problema,titulo:'Problema',e:'🛠️',h1:tipo,p:'Cuente en pocas palabras (opcional).',ph:'Ej.: el router tiene la luz roja',boton:'SIGUIENTE',vacio:true,
     luego:function(t){var txt='🛠️ PROBLEMA EN LA ESCUELA: '+tipo+(t?' — '+t:'');F.fotos=null;
       var go=function(){relojEspera('Avisando a su supervisor…');accion({accion:'mensaje',texto:txt})};
       if(!RELAY)return go();pantalla({e:'📷',h1:'¿Puede tomar una FOTO?',p:'Del equipo o del problema.',ops:[['📷 TOMAR FOTO','b',function(){camara('mensaje','PROBLEMA',go)}],['➡️ SIN FOTO, ENVIAR','g',go]]})}})};
   pantalla({atras:home,titulo:'Problema',e:'🛠️',h1:'¿Qué problema hay?',ops:[['📶 NO HAY INTERNET / ENLACE CAÍDO','r',function(){mandar('No hay internet / enlace caído')}],
-    ['🖥️ EQUIPO DAÑADO','a',function(){mandar('Equipo dañado')}],['💡 SE FUE LA LUZ','a',function(){mandar('Se fue la luz')}],['🔒 NO ME DEJAN ENTRAR / CERRARON','a',function(){mandar('No lo dejan entrar / cerraron')}],
+    ['🖥️ EQUIPO DAÑADO','a',function(){mandar('Equipo dañado')}],['🌐 EL EQUIPO NO TIENE IP','a',function(){mandar('El equipo no tiene IP (sin IP asignada / configuración)')}],['💡 SE FUE LA LUZ','a',function(){mandar('Se fue la luz')}],['🔒 NO ME DEJAN ENTRAR / CERRARON','a',function(){mandar('No lo dejan entrar / cerraron')}],
     ['📝 OTRO','b',function(){mandar('Otro')}]]})}
 function ayuda(){pantalla({atras:home,e:'❓',h1:'¿Cómo se usa?',extra:'<div class="sup" style="text-align:left;font-size:18px;line-height:1.5">'
   +'1️⃣ Al salir de casa toque <b>▶️ INICIAR MI DÍA</b>. Deje la pantalla abierta: le dice cuánto le falta.<br>'
