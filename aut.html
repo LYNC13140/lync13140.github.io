@@ -41,9 +41,10 @@ function inicio(){window.scrollTo(0,0);var av=D.av||[0,0,0];
    +((cc.luz||cc.inundado||cc.apagado||cc.sinip||cc.equipo)?' Causas conocidas: '+[['luz','💡 sin luz'],['inundado','🌊 inundación'],['apagado','⚫ equipo apagado'],['sinip','🌐 sin IP'],['equipo','🔧 equipo/fibra']].filter(function(x){return cc[x[0]]}).map(function(x){return x[1]+' '+cc[x[0]]}).join(' · ')+'.':'')
    +(cc.volvio_luz?' 🔌 En 24 h volvió la luz en '+cc.volvio_luz+'.':'')+((cc.seguridad||cc.acceso||cc.llegada)?' ⚠️ Seguridad / ingreso: '+((cc.seguridad||0)+(cc.acceso||0)+(cc.llegada||0))+' novedades.':'')+'</div></div>';
   if(av[2])h+='<div class="it"><b>🌐 Pruebas de conexión: '+av[1]+' de '+av[2]+' ('+av[0]+' %)</b><div class="av"><div style="width:'+Math.min(100,av[0])+'%"></div></div></div>';
+  h+='<button id="st" style="width:100%;margin-top:10px;font-size:16px;font-weight:700;padding:13px;border-radius:14px;border:1px solid #3b5ea8;background:#132a57;color:#fff">📈 VER ESTADÍSTICAS</button>';
   h+='<div class="grid">'+D.c.map(function(c){return '<div class="k '+(c[3]?(COL[c[0]]||''):'')+'" data-k="'+c[0]+'"><small>'+esc(c[2])+'</small><i>'+c[1]+'</i><b>'+c[3]+'</b></div>'}).join('')+'</div>';
   h+='<div class="mu" style="margin-top:12px">Para ver datos nuevos, cierre y vuelva a tocar <b>📊 VER TABLERO</b>.</div>';
-  $('app').innerHTML=h;[].forEach.call(document.querySelectorAll('[data-k]'),function(el){el.onclick=function(){lista(el.dataset.k)}});
+  $('app').innerHTML=h;$('st').onclick=stats;[].forEach.call(document.querySelectorAll('[data-k]'),function(el){el.onclick=function(){lista(el.dataset.k)}});
   try{tg.BackButton.hide()}catch(e){}}
 function lista(k,q){window.scrollTo(0,0);var c=D.c.filter(function(x){return x[0]===k})[0]||['','','',0],h='<div class="top"><button class="back" id="bk">← Volver</button><h1>'+c[1]+' '+esc(c[2])+': '+c[3]+'</h1><div class="mu">Datos de las '+esc(D.h)+'</div></div>';
   if(k==='grupos'){h+=D.g.map(function(g){return '<div class="it"><b>'+esc(g[0])+'</b><div class="d">'+g[2]+' escuelas · '+(g[1]?'🔴 '+g[1]+' con falla':'✅ todas funcionando')+'</div></div>'}).join('')}
@@ -51,9 +52,30 @@ function lista(k,q){window.scrollTo(0,0);var c=D.c.filter(function(x){return x[0
     if(k==='activos'||(!L.length&&c[3])){h+='<div class="it">'+(k==='activos'?'🟢 '+c[3]+' escuelas con el enlace funcionando.':'Sin detalle disponible.')+'</div>'}
     else{h+='<input id="q" placeholder="🔎 Buscar escuela, código, cantón o grupo" value="'+esc(q||'')+'">';var qq=(q||'').toLowerCase();
       var F=L.filter(function(cod){var e=D.e[cod]||[];return !qq||(cod+' '+e.join(' ')).toLowerCase().indexOf(qq)>=0});
-      h+=F.length?F.map(function(cod){var e=D.e[cod]||['','','',''];return '<div class="it"><b>'+esc(cod)+' · '+esc(e[0])+'</b><div class="mu">'+esc(e[1])+(e[3]?' · '+esc(e[3]):'')+'</div><div class="d">'+esc(e[2])+'</div></div>'}).join(''):'<div class="it">✅ Ninguna escuela.</div>'}}
-  $('app').innerHTML=h;$('bk').onclick=inicio;var qi=$('q');if(qi){qi.oninput=function(){var v=qi.value,p=qi.selectionStart;lista(k,v);var n=$('q');n.focus();try{n.setSelectionRange(p,p)}catch(e){}}}
+      h+=F.length?F.map(function(cod){var e=D.e[cod]||['','','',''];return '<div class="it" data-c="'+esc(cod)+'" style="cursor:pointer"><b>'+esc(cod)+' · '+esc(e[0])+'</b> <span style="float:right;color:#9fb2d6">›</span><div class="mu">'+esc(e[1])+(e[3]?' · '+esc(e[3]):'')+'</div><div class="d">'+esc(e[2])+'</div></div>'}).join(''):'<div class="it">✅ Ninguna escuela.</div>'}}
+  $('app').innerHTML=h;$('bk').onclick=inicio;[].forEach.call(document.querySelectorAll('[data-c]'),function(el){el.onclick=function(){escuela(el.dataset.c,function(){lista(k,($('q')||{}).value)})}});var qi=$('q');if(qi){qi.oninput=function(){var v=qi.value,p=qi.selectionStart;lista(k,v);var n=$('q');n.focus();try{n.setSelectionRange(p,p)}catch(e){}}}
   try{tg.BackButton.show();tg.BackButton.onClick(inicio)}catch(e){}}
+function escuela(cod,volver){window.scrollTo(0,0);var e=D.e[cod]||['','','',''],x=(D.x||{})[cod];
+  var f=function(a,b){return b?'<div class="it"><div class="mu">'+a+'</div><div style="font-size:15px;margin-top:3px">'+b+'</div></div>':''};
+  var h='<div class="top"><button class="back" id="bk">← Volver</button><h1>🏫 '+esc(cod)+' · '+esc(x?x[0]:e[0])+'</h1><div class="mu">'+esc(e[1])+(e[3]?' · '+esc(e[3]):'')+'</div></div>';
+  h+=f('📡 Estado ahora',esc(e[2]).replace(/ · /g,'<br>'));
+  if(x){h+=f('📍 Dirección',esc(x[1])+(x[2]?' · '+esc(x[2]):''))+f('🕐 Caído desde',esc(x[3]))+f('🏷️ Causa marcada por',esc(x[7]))+f('🎫 Ticket OTRS',esc(x[6]))
+    +f('📋 Último reporte del personal',esc(x[8]))+f('👤 Personal',(x[4]||[]).map(function(p){return (p[0]==='oper'?'Operador':p[0]==='asis'?'Asistente':'Responsable')+': '+esc(p[1])}).join('<br>'))
+    +f('🧭 Técnico (supervisor)',esc(x[5]))+f('📈 Historial',esc(x[9]))}
+  h+='<button id="fc" style="width:100%;margin-top:12px;font-size:16px;font-weight:700;padding:14px;border-radius:14px;border:none;background:#2f80ed;color:#fff">📩 RECIBIR LA FICHA COMPLETA EN EL CHAT<br><span style="font-weight:400;font-size:13px">(con los teléfonos del personal y del técnico)</span></button>';
+  $('app').innerHTML=h;$('bk').onclick=volver;$('fc').onclick=function(){try{tg.sendData(JSON.stringify({accion:'ficha',cod:cod}))}catch(er){alert('Abra el tablero desde el botón 📊 VER TABLERO del chat.')}};
+  try{tg.BackButton.show();tg.BackButton.offClick(inicio);tg.BackButton.onClick(volver)}catch(er){}}
+function stats(){window.scrollTo(0,0);var cc={};D.c.forEach(function(x){cc[x[0]]=x[3]});var tot=cc.todos||1;
+  var bar=function(t,n,m,col){var p=m?Math.round(n*100/m):0;return '<div style="margin:8px 0"><div style="display:flex;justify-content:space-between;font-size:14px"><span>'+t+'</span><b>'+n+(m?' · '+p+' %':'')+'</b></div><div class="av"><div style="width:'+Math.min(100,p)+'%;background:'+(col||'#3ccf7a')+'"></div></div></div>'};
+  var h='<div class="top"><button class="back" id="bk">← Volver</button><h1>📈 Estadísticas · Guayas</h1><div class="mu">Datos de las '+esc(D.h)+'</div></div>';
+  h+='<div class="it"><b>📡 Disponibilidad de los enlaces</b>'+bar('🟢 Funcionando',cc.activos||0,tot)+bar('🔴 Caídos',cc.fallos||0,tot,'#ff6b6b')+bar('〰️ Intermitentes (2 días)',cc.intermitentes||0,tot,'#ffc04d')+'</div>';
+  var cs=[['luz','💡 Sin luz'],['apagado','⚫ Equipo apagado'],['inundado','🌊 Inundación / lluvia'],['sinip','🌐 Sin IP / configuración'],['equipo','🔧 Equipo / fibra / proveedor']],mx=Math.max(1,cc.fallos||0);
+  h+='<div class="it"><b>🏷️ Por qué se cayeron (de '+(cc.fallos||0)+' caídos)</b>'+cs.map(function(x){return bar(x[1],cc[x[0]]||0,mx,'#ff9f43')}).join('')+'</div>';
+  var G=(D.g||[]).slice().sort(function(a,b){return b[1]-a[1]});
+  h+='<div class="it"><b>👥 Caídos por grupo / técnico</b>'+G.map(function(g){return bar(esc(g[0]),g[1],g[2],'#ff6b6b')}).join('')+'</div>';
+  var av=D.av||[0,0,0];h+='<div class="it"><b>🌐 Pruebas de conexión</b>'+bar('Escuelas que ya hicieron la prueba',av[1],av[2]||tot,'#2f80ed')+'</div>';
+  h+='<div class="it"><b>🚓 Seguridad e ingreso</b>'+bar('Sin Policía / Militares',cc.seguridad||0,tot,'#ff6b6b')+bar('No se pudo ingresar',cc.acceso||0,tot,'#ff6b6b')+bar('No se pudo llegar',cc.llegada||0,tot,'#ff6b6b')+'</div>';
+  $('app').innerHTML=h;$('bk').onclick=inicio;try{tg.BackButton.show();tg.BackButton.onClick(inicio)}catch(er){}}
 var m=location.search.match(/[?&]z=([^&]+)/);
 if(!m)$('app').innerHTML='<div class="it">Abra el tablero desde el bot de Telegram (botón 📊 VER TABLERO).</div>';
 else cargarZ(m[1],function(d,err){if(!d){$('app').innerHTML='<div class="it">⚠️ '+esc(err||'No se pudo leer el tablero. Vuelva a tocar 📊 VER TABLERO.')+'</div>';return}D=d;inicio()});
