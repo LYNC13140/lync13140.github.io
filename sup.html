@@ -162,10 +162,13 @@ function personalHtml(){var p=D.ps;if(!p)return '';
     +l('🧑‍✈️','Supervisores de grupo',p.sg)+l('🧑‍💼','Supervisores nacionales',p.sn)
     +(p.cpe?l('🖥️','Personal del CPE',p.cpe)+(p.cpe_c||[]).map(function(c){return '<div style="font-size:14px;color:#5a6577;padding:2px 0 2px 26px">'+esc(c[0])+': '+c[1]+'</div>'}).join('')
       :l('🖥️','Personal del CPE','sin cargar','#c0392b'))+'</div>'}
+function czHtml(){var c=D.czc||{},N={sin_luz:'💡 Sin luz',lluvia:'🌧️ Lluvia',fibra:'🧵 Fibra',equipo:'🖥️ Equipo',proveedor:'📡 Proveedor',otro:'❓ Otro'};var k=Object.keys(c);
+  var sin=(D.f||[]).filter(function(x){return x.e==='F'&&!x.cz&&(x.pt||1)===1}).length;if(!k.length&&!sin)return '';
+  return '<div style="margin:6px 14px;font-size:15px">🏷️ <b>¿Por qué se cayeron?</b> '+k.map(function(x){return '<span style="display:inline-block;background:#fff;border-radius:10px;padding:2px 8px;margin:2px">'+(N[x]||x)+': <b>'+c[x]+'</b></span>'}).join('')+(sin?' <span style="display:inline-block;background:#fff4dc;border-radius:10px;padding:2px 8px;margin:2px">sin marcar: <b>'+sin+'</b></span>':'')+'</div>'}
 function inicio(){F={};
   pantalla({e:'🧑‍✈️📊',h1:'Así va tu grupo',p:'Datos de las <b>'+esc(D.h)+'</b>'+edad(),
     html:'<div class="kp"><div class="k v"><b>'+D.t.act+'/'+D.t.esc+'</b><span>🟢 Enlaces activos</span></div><div class="k '+(D.t.cai?'r':'v')+'"><b>'+D.t.cai+'</b><span>🔴 Enlaces caídos</span></div>'
-      +'<div class="k '+(D.t.lleg?'v':'')+'"><b>'+D.t.lleg+'/'+D.t.esc+'</b><span>📍 Operadores llegaron</span></div><div class="k '+(D.pr.length?'r':'v')+'"><b>'+(D.npr||D.pr.length)+'</b><span>🚨 Problemas</span></div></div>'+modoHtml()+personalHtml(),
+      +'<div class="k '+(D.t.lleg?'v':'')+'"><b>'+D.t.lleg+'/'+D.t.esc+'</b><span>📍 Operadores llegaron</span></div><div class="k '+(D.pr.length?'r':'v')+'"><b>'+(D.npr||D.pr.length)+'</b><span>🚨 Problemas</span></div></div>'+czHtml()+modoHtml()+personalHtml(),
     ops:[['🚨 PROBLEMAS','r',problemas,0,(D.npr||D.pr.length)||''],['🔴 ENLACES CAÍDOS ('+D.t.cai+')','r',function(){escuelas('cai')}],['🏫 MIS ESCUELAS ('+D.t.esc+')','b',function(){escuelas('todas')}],].concat([['🎫 TICKETS · OTRS','b',tickets]]).concat(D.pp?[['🎛️ CAMBIAR EL MODO ('+modoNom()+')','n',modos]].concat(D.om?[['🎫 TICKETS A OTRS: '+(D.om.m==='crear'?'🤖 AUTOMÁTICO':'✋ MANUAL'),'n',otrsEnvio,0,D.om.n||'']]:[]).concat([[activarTxt(),'g',activar],['📢 Pedir test solo a unas escuelas','g',pedir,1]]):[]).concat([
       ['📥 POR AUTORIZAR','a',autorizar,0,D.pa.length||''],['🛠️ REPORTAR DAÑO (TICKET)','n',function(){elegirDanio()},1],D.dv?['🚪 SALIR DE LA PRUEBA (volver a mi panel)','r',function(){hacer({accion:'salir'})}]:['🧪 VER COMO LO VE…','n',verComo,1],['☰ MÁS OPCIONES (incidencias, reportes, QR…)','n',function(){masOpc({accion:'mas'})},1]]),
     nota:'Para ver datos nuevos, cierre y vuelva a tocar <b>📱 ABRIR MI PANEL</b>.'})}
