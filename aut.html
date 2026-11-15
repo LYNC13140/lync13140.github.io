@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>Tablero · Monitoreo CNE Guayas</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<style>
+:root{--bg:#0b1428;--card:#16264a;--line:#2a3f6b;--tx:#eef3ff;--mu:#9fb2d6;--ok:#3ccf7a;--bad:#ff6b6b;--warn:#ffc04d}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;background:var(--bg);color:var(--tx);font-family:-apple-system,"Segoe UI",Roboto,Arial,sans-serif}
+#app{padding:0 12px calc(20px + env(safe-area-inset-bottom))}
+.top{position:sticky;top:0;z-index:3;background:var(--bg);padding:12px 0 8px;border-bottom:1px solid var(--line)}
+.top h1{font-size:19px;margin:0}.mu{color:var(--mu);font-size:13px}
+.modo{margin-top:6px;font-size:13px;font-weight:700;padding:6px 10px;border-radius:10px;background:#ffc04d22;border:1px solid #ffc04d66}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+.k{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:12px;min-height:96px;position:relative;cursor:pointer}
+.k:active{transform:scale(.98)}.k small{display:block;font-size:13px;color:#d6e0f5;padding-right:28px;line-height:1.25}.k i{position:absolute;right:10px;top:10px;font-style:normal;font-size:22px}
+.k b{display:block;font-size:30px;margin-top:8px}
+.bad b{color:var(--bad)}.ok b{color:var(--ok)}.warn b{color:var(--warn)}
+.back{background:none;border:none;color:var(--tx);font-size:16px;padding:8px 0;cursor:pointer}
+.it{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:10px 12px;margin-top:8px}
+.it b{font-size:15px}.it .d{font-size:13px;color:#d6e0f5;margin-top:3px}
+input{width:100%;font-size:16px;padding:11px;border-radius:12px;border:1px solid var(--line);background:#0f1c38;color:#fff;margin-top:10px}
+.av{height:10px;background:#0f1c38;border-radius:6px;overflow:hidden;margin-top:6px}.av div{height:100%;background:var(--ok)}
+</style>
+</head>
+<body><div id="app">Cargando…</div>
+<script>
+var tg=window.Telegram&&window.Telegram.WebApp;try{tg.ready();tg.expand()}catch(e){}
+var D=null,$=function(i){return document.getElementById(i)};
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+function cargarZ(z,cb){var t=z.replace(/-/g,'+').replace(/_/g,'/');while(t.length%4)t+='=';var b=atob(t),u=new Uint8Array(b.length);for(var i=0;i<b.length;i++)u[i]=b.charCodeAt(i);
+  if(!window.DecompressionStream)return cb(null,'Actualice Telegram o el teléfono para abrir el tablero.');
+  new Response(new Blob([u]).stream().pipeThrough(new DecompressionStream('deflate'))).text().then(function(s){cb(JSON.parse(s))}).catch(function(){cb(null)})}
+var COL={fallos:'bad',recientes:'bad',luz:'bad',apagado:'warn',inundado:'bad',sinip:'bad',equipo:'bad',seguridad:'bad',acceso:'bad',llegada:'bad',intermitentes:'warn',sin_datos:'warn',activos:'ok',volvio_luz:'ok'};
+function inicio(){window.scrollTo(0,0);var av=D.av||[0,0,0];
+  var h='<div class="top"><h1>📊 Monitoreo CNE · Guayas</h1><div class="mu">Datos de las '+esc(D.h)+' · toque un cuadro para ver las escuelas</div>'+(D.m?'<div class="modo">'+esc(D.m)+'</div>':'')+'</div>';
+  if(av[2])h+='<div class="it"><b>🌐 Pruebas de conexión: '+av[1]+' de '+av[2]+' ('+av[0]+' %)</b><div class="av"><div style="width:'+Math.min(100,av[0])+'%"></div></div></div>';
+  h+='<div class="grid">'+D.c.map(function(c){return '<div class="k '+(COL[c[0]]||'')+'" data-k="'+c[0]+'"><small>'+esc(c[2])+'</small><i>'+c[1]+'</i><b>'+c[3]+'</b></div>'}).join('')+'</div>';
+  h+='<div class="mu" style="margin-top:12px">Para ver datos nuevos, cierre y vuelva a tocar <b>📊 VER TABLERO</b>.</div>';
+  $('app').innerHTML=h;[].forEach.call(document.querySelectorAll('[data-k]'),function(el){el.onclick=function(){lista(el.dataset.k)}});
+  try{tg.BackButton.hide()}catch(e){}}
+function lista(k,q){window.scrollTo(0,0);var c=D.c.filter(function(x){return x[0]===k})[0]||['','','',0],h='<div class="top"><button class="back" id="bk">← Volver</button><h1>'+c[1]+' '+esc(c[2])+': '+c[3]+'</h1><div class="mu">Datos de las '+esc(D.h)+'</div></div>';
+  if(k==='grupos'){h+=D.g.map(function(g){return '<div class="it"><b>'+esc(g[0])+'</b><div class="d">'+g[2]+' escuelas · '+(g[1]?'🔴 '+g[1]+' con falla':'✅ todas funcionando')+'</div></div>'}).join('')}
+  else{var L=(D.l[k]||[]);
+    if(k==='activos'||(!L.length&&c[3])){h+='<div class="it">'+(k==='activos'?'🟢 '+c[3]+' escuelas con el enlace funcionando.':'Sin detalle disponible.')+'</div>'}
+    else{h+='<input id="q" placeholder="🔎 Buscar escuela, código, cantón o grupo" value="'+esc(q||'')+'">';var qq=(q||'').toLowerCase();
+      var F=L.filter(function(cod){var e=D.e[cod]||[];return !qq||(cod+' '+e.join(' ')).toLowerCase().indexOf(qq)>=0});
+      h+=F.length?F.map(function(cod){var e=D.e[cod]||['','','',''];return '<div class="it"><b>'+esc(cod)+' · '+esc(e[0])+'</b><div class="mu">'+esc(e[1])+(e[3]?' · '+esc(e[3]):'')+'</div><div class="d">'+esc(e[2])+'</div></div>'}).join(''):'<div class="it">✅ Ninguna escuela.</div>'}}
+  $('app').innerHTML=h;$('bk').onclick=inicio;var qi=$('q');if(qi){qi.oninput=function(){var v=qi.value,p=qi.selectionStart;lista(k,v);var n=$('q');n.focus();try{n.setSelectionRange(p,p)}catch(e){}}}
+  try{tg.BackButton.show();tg.BackButton.onClick(inicio)}catch(e){}}
+var m=location.search.match(/[?&]z=([^&]+)/);
+if(!m)$('app').innerHTML='<div class="it">Abra el tablero desde el bot de Telegram (botón 📊 VER TABLERO).</div>';
+else cargarZ(m[1],function(d,err){if(!d){$('app').innerHTML='<div class="it">⚠️ '+esc(err||'No se pudo leer el tablero. Vuelva a tocar 📊 VER TABLERO.')+'</div>';return}D=d;inicio()});
+</script>
+</body></html>
