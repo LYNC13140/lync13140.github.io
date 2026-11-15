@@ -166,14 +166,19 @@ var CZN={sin_luz:'💡 Sin luz',inundacion:'🌊 Inundación',equipo_mojado:'�
 function czF(x){return x.czf&&x.czf.length?x.czf:(x.cz?[x.cz]:[])}
 function czTxt(x){return czF(x).map(function(k){return CZN[k]||k}).join(' + ')}
 function czDec(x){var f=czF(x);if(!f.length)return '';return f.some(function(k){return CZ_CREA.indexOf(k)>=0})?'crear':'no'}
+function hm(sg){sg=sg||0;var h=Math.floor(sg/3600),m=Math.floor(sg%3600/60);return h?h+' h '+m+' min':m+' min'}
+function luzHtml(){var sl=D.sl||[],vl=D.vl||[];if(!sl.length&&!vl.length)return '';
+  return '<div style="margin:6px 14px;font-size:14px;background:#fff;border-radius:12px;padding:8px 10px">'
+   +(sl.length?'<b>💡 Sin luz ahora ('+sl.length+')</b>'+sl.map(function(x){return '<div>• '+esc(x[0])+' '+esc(x[1])+' · <b>'+hm(x[2])+'</b> sin luz</div>'}).join(''):'')
+   +(vl.length?'<div style="margin-top:6px"><b style="color:#1a7f37">🔌 Volvió la luz (24 h): '+vl.length+'</b></div>'+vl.map(function(x){return '<div>• '+esc(x[0])+' '+esc(x[1])+' · volvió hace <b>'+hm(x[2])+'</b> (estuvo '+hm(x[3])+' sin luz)</div>'}).join(''):'')+'</div>'}
 function czHtml(){var c=D.czc||{},N=CZN;var k=Object.keys(c);
   var sin=(D.f||[]).filter(function(x){return x.e==='F'&&!x.cz&&(x.pt||1)===1}).length;if(!k.length&&!sin)return '';
   return '<div style="margin:6px 14px;font-size:15px">🏷️ <b>¿Por qué se cayeron?</b> '+k.map(function(x){return '<span style="display:inline-block;background:#fff;border-radius:10px;padding:2px 8px;margin:2px">'+(N[x]||x)+': <b>'+c[x]+'</b></span>'}).join('')+(sin?' <span style="display:inline-block;background:#fff4dc;border-radius:10px;padding:2px 8px;margin:2px">sin marcar: <b>'+sin+'</b></span>':'')+'</div>'}
 function inicio(){F={};
   pantalla({e:'🧑‍✈️📊',h1:'Así va tu grupo',p:'Datos de las <b>'+esc(D.h)+'</b>'+edad(),
     html:'<div class="kp"><div class="k v"><b>'+D.t.act+'/'+D.t.esc+'</b><span>🟢 Enlaces activos</span></div><div class="k '+(D.t.cai?'r':'v')+'"><b>'+D.t.cai+'</b><span>🔴 Enlaces caídos</span></div>'
-      +'<div class="k '+(D.t.lleg?'v':'')+'"><b>'+D.t.lleg+'/'+D.t.esc+'</b><span>📍 Operadores llegaron</span></div><div class="k '+(D.pr.length?'r':'v')+'"><b>'+(D.npr||D.pr.length)+'</b><span>🚨 Problemas</span></div></div>'+czHtml()+modoHtml()+personalHtml(),
-    ops:[['🚨 PROBLEMAS','r',problemas,0,(D.npr||D.pr.length)||''],['🔴 ENLACES CAÍDOS ('+D.t.cai+')','r',function(){escuelas('cai')}],['🏫 MIS ESCUELAS ('+D.t.esc+')','b',function(){escuelas('todas')}],].concat([['🎫 TICKETS · OTRS','b',tickets],['📦 KITS (a quién se le dio)','b',function(){kitPedir({accion:'kits'})}]]).concat(D.pp?[['🎛️ CAMBIAR EL MODO ('+modoNom()+')','n',modos]].concat(D.om?[['🎫 TICKETS A OTRS: '+(D.om.m==='crear'?'🤖 AUTOMÁTICO':'✋ MANUAL'),'n',otrsEnvio,0,D.om.n||'']]:[]).concat([[activarTxt(),'g',activar],['📢 Pedir test solo a unas escuelas','g',pedir,1]]):[]).concat([
+      +'<div class="k '+(D.t.lleg?'v':'')+'"><b>'+D.t.lleg+'/'+D.t.esc+'</b><span>📍 Operadores llegaron</span></div><div class="k '+(D.pr.length?'r':'v')+'"><b>'+(D.npr||D.pr.length)+'</b><span>🚨 Problemas</span></div></div>'+czHtml()+luzHtml()+modoHtml()+personalHtml(),
+    ops:[['🚨 PROBLEMAS','r',problemas,0,(D.npr||D.pr.length)||''],['🔴 ENLACES CAÍDOS ('+D.t.cai+')','r',function(){escuelas('cai')}],['🏫 MIS ESCUELAS ('+D.t.esc+')','b',function(){escuelas('todas')}],].concat([['🎫 TICKETS · OTRS','b',tickets],['🔎 BUSCAR (escuela, kit, persona, ticket)','b',buscarTodo],['📦 KITS (a quién se le dio)','b',function(){kitPedir({accion:'kits'})}]]).concat(D.pp?[['🎛️ CAMBIAR EL MODO ('+modoNom()+')','n',modos]].concat(D.om?[['🎫 TICKETS A OTRS: '+(D.om.m==='crear'?'🤖 AUTOMÁTICO':'✋ MANUAL'),'n',otrsEnvio,0,D.om.n||'']]:[]).concat([[activarTxt(),'g',activar],['📢 Pedir test solo a unas escuelas','g',pedir,1]]):[]).concat([
       ['📥 POR AUTORIZAR','a',autorizar,0,D.pa.length||''],['🛠️ REPORTAR DAÑO (TICKET)','n',function(){elegirDanio()},1],D.dv?['🚪 SALIR DE LA PRUEBA (volver a mi panel)','r',function(){hacer({accion:'salir'})}]:['🧪 VER COMO LO VE…','n',verComo,1],['☰ MÁS OPCIONES (incidencias, reportes, QR…)','n',function(){masOpc({accion:'mas'})},1]]),
     nota:'Para ver datos nuevos, cierre y vuelva a tocar <b>📱 ABRIR MI PANEL</b>.'})}
 
@@ -232,6 +237,19 @@ function causaPanel(x,k,volver){if(!D.ch)return alert('Abra el panel otra vez de
     pantalla({atras:volver,e:'🏷️',h1:k==='quitar'?'Causas quitadas':'Guardado',html:'<div class="av ok" style="text-align:left;font-size:16px">'+(res.tkmsg||'Listo')+'</div>',ops:[['↩ VOLVER A LA ESCUELA','g',volver],['🏠 VOLVER AL PANEL','n',inicio,1]]})},
   function(e){pantalla({atras:volver,e:'⚠️',h1:'No se pudo',p:esc(e.message||''),ops:[['↩ VOLVER','n',volver]]})})}
 function tickets(){tkPedir({accion:'tickets'})}
+var BT=null,BTQ='';
+function buscarTodo(){pantalla({atras:inicio,tit:'🔎 Buscar',e:'🔎',h1:'¿Qué busca?',p:'Código o nombre de escuela, número de kit (469 / KIT-0469), nombre, cédula o celular de una persona, o N.º de ticket.',
+  html:'<div style="margin:8px 12px;display:flex;gap:6px"><input id="btq" value="'+esc(BTQ)+'" placeholder="Ej.: 5194, Balzar, 469, Pérez, 0991234567" style="flex:1;font-size:17px;padding:12px;border-radius:12px;border:1px solid #ccd"><button class="op b chico" style="margin:0" data-f="ir">Buscar</button></div>',
+  fn:{ir:function(){var q=($('btq').value||'').trim();if(q.length<2)return alert('Escriba al menos 2 letras o números');btPedir(q)}}});setTimeout(function(){var i=$('btq');if(i){i.focus();i.onkeydown=function(e){if(e.key==='Enter'){e.preventDefault();var q=(i.value||'').trim();if(q.length>=2)btPedir(q)}}}},150)}
+function btPedir(q){if(!D.ch)return alert('Abra el panel otra vez desde el chat');BTQ=q;pantalla({atras:buscarTodo,tit:'🔎 Buscar',e:'<span class="girar">⏳</span>',h1:'Buscando «'+esc(q)+'»…'});
+  canal(D.ch,D.ci,D.fr,{accion:'buscar_todo',q:q}).then(function(res){BT=res.bt||{e:[],k:[],p:[]};btVer()},function(e){pantalla({atras:buscarTodo,tit:'🔎 Buscar',e:'⚠️',h1:'No se pudo',p:esc(e.message||''),ops:[['🔄 INTENTAR OTRA VEZ','b',function(){btPedir(q)}],['↩ VOLVER','n',buscarTodo,1]]})})}
+window._btVer=function(b,q,d){if(d)D=d;BT=b;BTQ=q||'';btVer()};
+function btVer(){var B=BT||{e:[],k:[],p:[]},h='',fn={};
+  if(B.e.length)h+='<div style="margin:10px 12px 4px;font-weight:800">🏫 Escuelas</div>'+B.e.map(function(x,i){fn['e'+i]=function(){if(busca(x[0]))escuela(x[0],null,btVer)};return '<button class="esc '+(x[3]==='FALLO'?'r':x[3]==='ACTIVO'?'v':'')+'" data-f="e'+i+'" style="text-align:left"><b>'+esc(x[0])+' · '+esc(x[1])+'</b><div class="s">'+esc(x[2])+' · '+(x[3]==='FALLO'?'🔴 CAÍDO'+(x[7]?' hace '+esc(x[7]):''):x[3]==='ACTIVO'?'🟢 ACTIVO':'⚪ '+esc(x[3]))+'</div>'+(x[4]?'<div class="m">🏷️ '+esc(x[4])+'</div>':'')+(x[5]?'<div class="m">🎫 '+esc(x[5])+' · '+esc(x[6])+'</div>':'')+'</button>'}).join('');
+  if(B.k.length)h+='<div style="margin:10px 12px 4px;font-weight:800">📦 Kits</div>'+B.k.map(function(x){return '<div style="margin:6px 12px;background:#fff;border-radius:12px;padding:10px;border-left:4px solid #4f8cff"><b>'+esc(x[0])+'</b> · '+esc(x[1])+'<div style="font-size:13px;color:#5a6577">'+esc(x[3])+' · '+esc(x[4])+' · 🧭 '+esc(x[5])+'</div>'+(x[6]?'<div style="font-size:13px">'+esc(x[6])+' '+esc(x[7])+'</div>':'')+(x[8]?'<div style="font-size:13px;color:#b45309">⚠️ '+esc(x[8])+'</div>':'')+'</div>'}).join('');
+  if(B.p.length)h+='<div style="margin:10px 12px 4px;font-weight:800">👤 Personas</div>'+B.p.map(function(x){return '<div style="margin:6px 12px;background:#fff;border-radius:12px;padding:10px"><b>'+esc(x[0])+'</b> · '+esc(x[1])+' · escuela '+esc(x[2])+(x[4]?' · 📦 '+esc(x[4]):' · <span style="color:#b42318">sin kit</span>')+(x[3]?'<div><a href="tel:'+esc(x[3])+'" style="font-size:16px">📞 '+esc(x[3])+'</a></div>':'')+'</div>'}).join('');
+  if(!h)h='<div class="av">No encontré nada con «'+esc(BTQ)+'».</div>';
+  pantalla({atras:buscarTodo,tit:'🔎 «'+esc(BTQ)+'»',html:h,fn:fn,ops:[['🔎 BUSCAR OTRA COSA','b',buscarTodo],['🏠 VOLVER AL PANEL','n',inicio,1]]})}
 var KT=null;
 function kitPedir(d,msg){if(!D.ch){pantalla({atras:inicio,tit:'📦 Kits',e:'⚠️',h1:'No disponible',p:'Abra el panel otra vez desde el chat.'});return}
   pantalla({atras:inicio,tit:'📦 Kits',e:'<span class="girar">⏳</span>',h1:msg||'Leyendo los kits…'});
