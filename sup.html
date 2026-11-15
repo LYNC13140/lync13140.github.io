@@ -241,6 +241,9 @@ function tkVer(msg){var T=TK||{l:[]};var col={por_autorizar:'#a855f7',reabrir:'#
       return '<div style="margin:8px 12px;background:#fff;border-radius:14px;padding:10px 12px;border-left:5px solid '+(col[x.e]||'#8b949e')+'"><div style="font-size:16px"><b>'+esc(x.c)+'</b> '+esc(x.n)+'</div>'
        +'<div style="font-size:13px;color:#5a6577">'+esc(x.g)+' · '+esc(x.et)+(x.m==='S'?' · 🧪 del simulacro':x.m==='E'?' · 🗳️ elecciones':'')+'</div>'
        +'<div style="font-size:14px;margin-top:2px">'+(x.t?'🎫 <b>'+esc(x.t)+'</b>':'sin ticket todavía')+(x.o?' · OTRS: '+esc(x.o):'')+(x.h?' · 🔴 caído '+esc(x.h):x.up?' · 🟢 enlace arriba':'')+(x.i?' · 🔁 '+x.i+' insistencia(s)':'')+'</div>'
+       +(x.v?'<div style="font-size:13px;margin-top:2px">'+(x.v==='auto'?'🤖 <b>Enviado AUTOMÁTICO</b>':'✋ <b>Enviado MANUAL</b>')+'</div>':'')
+       +(x.au==='ok'?'<div style="font-size:13px;color:#1a7f37">🤖 el automático lo puede crear</div>':x.au==='causa'?'<div style="font-size:13px;color:#b45309">⛔ el automático NO lo crea ('+esc({lluvia:'🌧️ Lluvia',sin_luz:'💡 Sin luz',fibra:'🧵 Fibra',equipo:'🖥️ Equipo',proveedor:'📡 Proveedor',otro:'❓ Otro'}[x.cz]||x.cz)+'): decide el personal</div>':x.au==='sin_causa'?'<div style="font-size:13px;color:#5a6577">⏸️ el automático espera que marquen qué pasó</div>':'')
+       +(x.h?'<div style="font-size:13px;margin-top:4px">🏷️ ¿Qué pasó? '+(x.cz?'<b>'+esc({lluvia:'🌧️ Lluvia',sin_luz:'💡 Sin luz',fibra:'🧵 Fibra',equipo:'🖥️ Equipo',proveedor:'📡 Proveedor',otro:'❓ Otro'}[x.cz]||x.cz)+'</b>':'<i>sin marcar</i>')+'</div><div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:4px">'+['fibra','equipo','proveedor','sin_luz','lluvia','otro'].map(function(k){return '<button class="op chico" style="margin:0;padding:4px 8px;font-size:13px;flex:0 0 auto;'+(x.cz===k?'outline:2px solid #1a7f37;':'')+'background:#eef2f7;color:#1f2d3d" data-f="c'+i+'_'+k+'">'+{lluvia:'🌧️ Lluvia',sin_luz:'💡 Sin luz',fibra:'🧵 Fibra',equipo:'🖥️ Equipo',proveedor:'📡 Proveedor',otro:'❓ Otro'}[k]+'</button>'}).join('')+'</div>':'')
        +'<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px">'
        +(pend&&!T.sd?'<button class="op r chico" style="margin:0;flex:1" data-f="e'+i+'">📤 Enviar</button>':'')
        +(abierto&&!x.up&&!T.sd?'<button class="op chico" style="margin:0;flex:1;background:#f5a524;color:#000" data-f="i'+i+'">🔁 Insistir</button>':'')
@@ -248,7 +251,8 @@ function tkVer(msg){var T=TK||{l:[]};var col={por_autorizar:'#a855f7',reabrir:'#
   var fn={};T.l.forEach(function(x,i){
     fn['e'+i]=function(){if(confirm('📤 ¿Enviar a OTRS el ticket de '+x.c+'?'+(T.sim?' (modo prueba: se simula)':'\n\nAntes se revisa que no haya otro abierto.')))tkPedir({accion:'tk_enviar',cod:x.c},'Enviando a OTRS…')};
     fn['i'+i]=function(){if(confirm('🔁 ¿Insistir en el ticket '+x.t+' ('+x.c+')?\n\nSe agrega una nota al MISMO ticket (no se crea otro). Una vez cada 30 min.'))tkPedir({accion:'tk_insistir',cod:x.c},'Insistiendo en OTRS…')};
-    fn['r'+i]=function(){tkPedir({accion:'tk_revisar',cod:x.c},'Revisando en OTRS…')}});
+    fn['r'+i]=function(){tkPedir({accion:'tk_revisar',cod:x.c},'Revisando en OTRS…')};
+    ['fibra','equipo','proveedor','sin_luz','lluvia','otro'].forEach(function(k){fn['c'+i+'_'+k]=function(){tkPedir({accion:'tk_causa_'+(x.cz===k?'quitar':k),cod:x.c},'Guardando la causa…')}})});
   fn.buscar=function(){var q=($('tkq').value||'').trim();if(q.length<2)return alert('Escriba al menos 2 letras o números');tkBuscar(q)};
   var ops=[['🔄 ACTUALIZAR','b',tickets]];
   if(T.nac&&T.cola&&T.cola.total)ops.push(['🔎 REVISAR EN OTRS LOS SIN CERRAR ('+T.cola.total+')','b',function(){tkPedir({accion:'tk_cola'},'Revisando la cola en OTRS…')}]);
