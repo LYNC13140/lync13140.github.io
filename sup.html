@@ -166,7 +166,7 @@ function inicio(){F={};
   pantalla({e:'🧑‍✈️📊',h1:'Así va tu grupo',p:'Datos de las <b>'+esc(D.h)+'</b>'+edad(),
     html:'<div class="kp"><div class="k v"><b>'+D.t.act+'/'+D.t.esc+'</b><span>🟢 Enlaces activos</span></div><div class="k '+(D.t.cai?'r':'v')+'"><b>'+D.t.cai+'</b><span>🔴 Enlaces caídos</span></div>'
       +'<div class="k '+(D.t.lleg?'v':'')+'"><b>'+D.t.lleg+'/'+D.t.esc+'</b><span>📍 Operadores llegaron</span></div><div class="k '+(D.pr.length?'r':'v')+'"><b>'+(D.npr||D.pr.length)+'</b><span>🚨 Problemas</span></div></div>'+modoHtml()+personalHtml(),
-    ops:[['🚨 PROBLEMAS','r',problemas,0,(D.npr||D.pr.length)||''],['🔴 ENLACES CAÍDOS ('+D.t.cai+')','r',function(){escuelas('cai')}],['🏫 MIS ESCUELAS ('+D.t.esc+')','b',function(){escuelas('todas')}],].concat(D.pp?[['🎛️ CAMBIAR EL MODO ('+modoNom()+')','n',modos],[activarTxt(),'g',activar],['📢 Pedir test solo a unas escuelas','g',pedir,1]]:[]).concat([
+    ops:[['🚨 PROBLEMAS','r',problemas,0,(D.npr||D.pr.length)||''],['🔴 ENLACES CAÍDOS ('+D.t.cai+')','r',function(){escuelas('cai')}],['🏫 MIS ESCUELAS ('+D.t.esc+')','b',function(){escuelas('todas')}],].concat(D.pp?[['🎛️ CAMBIAR EL MODO ('+modoNom()+')','n',modos]].concat(D.om?[['🎫 TICKETS A OTRS: '+(D.om.m==='crear'?'🤖 AUTOMÁTICO':'✋ MANUAL'),'n',otrsEnvio,0,D.om.n||'']]:[]).concat([[activarTxt(),'g',activar],['📢 Pedir test solo a unas escuelas','g',pedir,1]]):[]).concat([
       ['📥 POR AUTORIZAR','a',autorizar,0,D.pa.length||''],['🛠️ REPORTAR DAÑO (TICKET)','n',function(){elegirDanio()},1],D.dv?['🚪 SALIR DE LA PRUEBA (volver a mi panel)','r',function(){hacer({accion:'salir'})}]:['🧪 VER COMO LO VE…','n',verComo,1],['☰ MÁS OPCIONES (incidencias, reportes, QR…)','n',function(){masOpc({accion:'mas'})},1]]),
     nota:'Para ver datos nuevos, cierre y vuelva a tocar <b>📱 ABRIR MI PANEL</b>.'})}
 
@@ -193,6 +193,23 @@ function modos(){   // 🎛️ solo supervisor nacional / administrador (el serv
          ['🧪 SIMULACRO','b',c('simulacro','Activar SIMULACRO','🧪','Se cuenta todo como simulacro. Tickets a los 30 minutos de caído (máx. 1 día para autorizar).')],
          ['🗳️ ELECCIONES','r',c('elecciones','Activar ELECCIONES','🗳️','<b>Día de elecciones:</b> los tickets se mandan a los 30 minutos de caído, sin preguntar.')],
          ['⛔ VOLVER A MODO NORMAL','n',c('normal','Volver a MODO NORMAL','⛔','Se cierra y se guarda la jornada de hoy (informe en la página web). Ya no se pedirán tests.')]].filter(function(o){return !(D.jm===''&&/NORMAL/.test(o[0]))||true})})}
+function otrsEnvio(){   // 🎫 manual / automático: solo supervisor nacional y administrador (el servidor lo vuelve a revisar). La clave NUNCA se pone aquí.
+  var o=D.om||{},auto=o.m==='crear';
+  var p='<b>'+(auto?'🤖 AUTOMÁTICO':'✋ MANUAL')+'</b> · '+(auto?'el programa crea, revisa y da seguimiento a los tickets solo.':'el programa prepara el ticket y una persona lo sube a OTRS desde la página web.')
+    +(o.sim?'<br><br>🧪 Ahora está en <b>modo prueba</b>: los tickets se SIMULAN (no van a OTRS).':'')
+    +'<br><br>📦 Autorizados esperando: <b>'+(o.n||0)+'</b>'+(o.pa?' · ⏳ por autorizar: <b>'+o.pa+'</b>':'')
+    +(o.k?'':'<br><br>⚠️ <b>Falta la clave de OTRS</b>: se pone solo en la PC (página web → Tickets).')
+    +(o.e?'<br><br>⚠️ Última conexión: '+esc(o.e):'');
+  var aAuto=function(){vibra('mal');pantalla({atras:otrsEnvio,tit:'🎫 Tickets a OTRS',e:'⚠️',h1:'¿ESTÁ USTED SEGURO?',
+      p:'Con el modo <b>🤖 AUTOMÁTICO</b> el programa crea tickets <b>REALES</b> en OTRS (soporteelectoral) con el usuario configurado.'
+        +(o.n?'<br><br>📦 Hay <b>'+o.n+'</b> ticket(s) autorizados esperando: <b>empiezan a salir en unos minutos</b> (de 5 en 5).':'')
+        +'<br><br>🛡️ Antes de crear, siempre revisa en OTRS: si el enlace ya tiene un ticket abierto, <b>NO crea otro</b>.',
+      ops:[['⚠️ SÍ, ACTIVAR AUTOMÁTICO','r',function(){hacer({accion:'otrs_modo',m:'crear'})}],['❌ NO, CANCELAR','n',otrsEnvio,1]]})};
+  pantalla({atras:inicio,tit:'🎫 Tickets a OTRS',e:auto?'🤖':'✋',h1:'Envío de tickets: '+(auto?'AUTOMÁTICO':'MANUAL'),p:p,
+    ops:(auto?[['✋ PASAR A MANUAL','b',function(){hacer({accion:'otrs_modo',m:'manual'})}]]
+             :(o.k?[['🤖 ACTIVAR AUTOMÁTICO','g',function(){pantalla({atras:otrsEnvio,tit:'🎫 Tickets a OTRS',e:'🤖',h1:'¿Activar el envío AUTOMÁTICO?',
+                  p:'Los tickets autorizados se mandan solos a OTRS.',ops:[['✅ SÍ, CONTINUAR','g',aAuto],['❌ No','n',otrsEnvio,1]]})}]]:[]))
+        .concat([['🏠 VOLVER AL PANEL','n',inicio,1]])})}
 function sinJornada(){vibra('mal');pantalla({atras:inicio,tit:'📶 Test de conexión',e:'⛔',h1:'No hay ningún simulacro activado',
   p:'Las pruebas de conexión solo se pueden pedir cuando está activado un modo (🔧 Prueba, 🧪 Simulacro o 🗳️ Elecciones).<br><br>Mientras tanto no se le avisa a ningún operador.',ops:(D.pp?[['🎛️ ACTIVAR UN MODO AHORA','g',modos]]:[]).concat([['🏠 VOLVER AL PANEL','n',inicio,1]])})}
 function activar(){if(D.jm==='')return sinJornada();var n=sigTest(),hechos=(D.ord||[]).map(function(o){return '📶'+o[0]+' ✅ '+esc(o[1])}).join(' · ');
