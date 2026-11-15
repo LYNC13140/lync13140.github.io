@@ -162,7 +162,11 @@ function personalHtml(){var p=D.ps;if(!p)return '';
     +l('🧑‍✈️','Supervisores de grupo',p.sg)+l('🧑‍💼','Supervisores nacionales',p.sn)
     +(p.cpe?l('🖥️','Personal del CPE',p.cpe)+(p.cpe_c||[]).map(function(c){return '<div style="font-size:14px;color:#5a6577;padding:2px 0 2px 26px">'+esc(c[0])+': '+c[1]+'</div>'}).join('')
       :l('🖥️','Personal del CPE','sin cargar','#c0392b'))+'</div>'}
-function czHtml(){var c=D.czc||{},N={sin_luz:'💡 Sin luz',lluvia:'🌧️ Lluvia',fibra:'🧵 Fibra',equipo:'🖥️ Equipo',proveedor:'📡 Proveedor',otro:'❓ Otro'};var k=Object.keys(c);
+var CZN={sin_luz:'💡 Sin luz',inundacion:'🌊 Inundación',equipo_mojado:'💧 Equipo mojado',luz_volvio:'🔌 Volvió la luz, sigue caído',fibra:'🧵 Fibra rota',equipo:'🖥️ Equipo dañado',proveedor:'📡 Proveedor',lluvia:'🌧️ Lluvia',otro:'❓ Otro'},CZK=Object.keys(CZN),CZ_CREA=['fibra','equipo','proveedor','equipo_mojado','luz_volvio'];
+function czF(x){return x.czf&&x.czf.length?x.czf:(x.cz?[x.cz]:[])}
+function czTxt(x){return czF(x).map(function(k){return CZN[k]||k}).join(' + ')}
+function czDec(x){var f=czF(x);if(!f.length)return '';return f.some(function(k){return CZ_CREA.indexOf(k)>=0})?'crear':'no'}
+function czHtml(){var c=D.czc||{},N=CZN;var k=Object.keys(c);
   var sin=(D.f||[]).filter(function(x){return x.e==='F'&&!x.cz&&(x.pt||1)===1}).length;if(!k.length&&!sin)return '';
   return '<div style="margin:6px 14px;font-size:15px">🏷️ <b>¿Por qué se cayeron?</b> '+k.map(function(x){return '<span style="display:inline-block;background:#fff;border-radius:10px;padding:2px 8px;margin:2px">'+(N[x]||x)+': <b>'+c[x]+'</b></span>'}).join('')+(sin?' <span style="display:inline-block;background:#fff4dc;border-radius:10px;padding:2px 8px;margin:2px">sin marcar: <b>'+sin+'</b></span>':'')+'</div>'}
 function inicio(){F={};
@@ -224,8 +228,8 @@ function tkPedir(d,msg){   // 🎫 tickets: se pide a la PC y se muestra aquí m
 window._tkVer=function(t,d){if(d)D=d;TK=t;tkVer('')};   // para revisar la pantalla sin la PC
 
 function causaPanel(x,k,volver){if(!D.ch)return alert('Abra el panel otra vez desde el chat');pantalla({e:'<span class="girar">⏳</span>',h1:'Guardando…'});
-  canal(D.ch,D.ci,D.fr,{accion:'tk_causa_'+k,cod:x.c}).then(function(res){x.cz=(k==='quitar'?'':k);
-    pantalla({atras:volver,e:'🏷️',h1:k==='quitar'?'Causa quitada':'Causa guardada',html:'<div class="av ok" style="text-align:left;font-size:16px">'+(res.tkmsg||'Listo')+'</div>',ops:[['↩ VOLVER A LA ESCUELA','g',volver],['🏠 VOLVER AL PANEL','n',inicio,1]]})},
+  canal(D.ch,D.ci,D.fr,{accion:'tk_causa_'+k,cod:x.c}).then(function(res){var f=czF(x).slice();if(k==='quitar')f=[];else if(f.indexOf(k)>=0)f.splice(f.indexOf(k),1);else{if(k==='sin_luz')f=f.filter(function(z){return z!=='luz_volvio'});if(k==='luz_volvio')f=f.filter(function(z){return z!=='sin_luz'});f.push(k)}x.czf=f;x.cz=f[0]||'';
+    pantalla({atras:volver,e:'🏷️',h1:k==='quitar'?'Causas quitadas':'Guardado',html:'<div class="av ok" style="text-align:left;font-size:16px">'+(res.tkmsg||'Listo')+'</div>',ops:[['↩ VOLVER A LA ESCUELA','g',volver],['🏠 VOLVER AL PANEL','n',inicio,1]]})},
   function(e){pantalla({atras:volver,e:'⚠️',h1:'No se pudo',p:esc(e.message||''),ops:[['↩ VOLVER','n',volver]]})})}
 function tickets(){tkPedir({accion:'tickets'})}
 function tkBuscar(q){if(!D.ch)return;var t0=Date.now();pantalla({atras:tickets,tit:'🔎 Buscar tickets',e:'<span class="girar">⏳</span>',h1:'Buscando «'+esc(q)+'»…'});
@@ -250,8 +254,8 @@ function tkVer(msg){var T=TK||{l:[]};var col={por_autorizar:'#a855f7',reabrir:'#
        +'<div style="font-size:13px;color:#5a6577">'+esc(x.g)+' · '+esc(x.et)+(x.m==='S'?' · 🧪 del simulacro':x.m==='E'?' · 🗳️ elecciones':'')+'</div>'
        +'<div style="font-size:14px;margin-top:2px">'+(x.t?'🎫 <b>'+esc(x.t)+'</b>':'sin ticket todavía')+(x.o?' · OTRS: '+esc(x.o):'')+(x.h?' · 🔴 caído '+esc(x.h):x.up?' · 🟢 enlace arriba':'')+(x.i?' · 🔁 '+x.i+' insistencia(s)':'')+'</div>'
        +(x.v?'<div style="font-size:13px;margin-top:2px">'+(x.v==='auto'?'🤖 <b>Enviado AUTOMÁTICO</b>':'✋ <b>Enviado MANUAL</b>')+'</div>':'')
-       +(x.au==='ok'?'<div style="font-size:13px;color:#1a7f37">🤖 el automático lo puede crear</div>':x.au==='causa'?'<div style="font-size:13px;color:#b45309">⛔ el automático NO lo crea ('+esc({lluvia:'🌧️ Lluvia',sin_luz:'💡 Sin luz',fibra:'🧵 Fibra',equipo:'🖥️ Equipo',proveedor:'📡 Proveedor',otro:'❓ Otro'}[x.cz]||x.cz)+'): decide el personal</div>':x.au==='sin_causa'?'<div style="font-size:13px;color:#5a6577">⏸️ el automático espera que marquen qué pasó</div>':'')
-       +(x.h?'<div style="font-size:13px;margin-top:4px">🏷️ ¿Qué pasó? '+(x.cz?'<b>'+esc({lluvia:'🌧️ Lluvia',sin_luz:'💡 Sin luz',fibra:'🧵 Fibra',equipo:'🖥️ Equipo',proveedor:'📡 Proveedor',otro:'❓ Otro'}[x.cz]||x.cz)+'</b>':'<i>sin marcar</i>')+'</div><div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:4px">'+['fibra','equipo','proveedor','sin_luz','lluvia','otro'].map(function(k){return '<button class="op chico" style="margin:0;padding:4px 8px;font-size:13px;flex:0 0 auto;'+(x.cz===k?'outline:2px solid #1a7f37;':'')+'background:#eef2f7;color:#1f2d3d" data-f="c'+i+'_'+k+'">'+{lluvia:'🌧️ Lluvia',sin_luz:'💡 Sin luz',fibra:'🧵 Fibra',equipo:'🖥️ Equipo',proveedor:'📡 Proveedor',otro:'❓ Otro'}[k]+'</button>'}).join('')+'</div>':'')
+       +(x.au==='ok'?'<div style="font-size:13px;color:#1a7f37">🤖 el automático lo puede crear</div>':x.au==='causa'?'<div style="font-size:13px;color:#b45309">⛔ el automático NO lo crea ('+esc(czTxt(x))+'): decide el administrador</div>':x.au==='sin_causa'?'<div style="font-size:13px;color:#5a6577">⏸️ el automático espera que marquen qué pasó</div>':'')
+       +(x.h?'<div style="font-size:13px;margin-top:4px">🏷️ ¿Qué pasó? (varias a la vez) '+(czF(x).length?'<b>'+esc(czTxt(x))+'</b> → '+(czDec(x)==='crear'?'🎫 corresponde ticket':'✋ no se crea solo'):'<i>sin marcar</i>')+'</div><div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:4px">'+CZK.map(function(k){var on=czF(x).indexOf(k)>=0;return '<button class="op chico" style="margin:0;padding:4px 8px;font-size:13px;flex:0 0 auto;'+(on?'background:#1a7f37;color:#fff':'background:#eef2f7;color:#1f2d3d')+'" data-f="c'+i+'_'+k+'">'+(on?'✔ ':'')+CZN[k]+'</button>'}).join('')+'</div>':'')
        +'<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px">'
        +(pend&&!T.sd?'<button class="op r chico" style="margin:0;flex:1" data-f="e'+i+'">📤 Enviar</button>':'')
        +(abierto&&!x.up&&!T.sd?'<button class="op chico" style="margin:0;flex:1;background:#f5a524;color:#000" data-f="i'+i+'">🔁 Insistir</button>':'')
@@ -260,7 +264,7 @@ function tkVer(msg){var T=TK||{l:[]};var col={por_autorizar:'#a855f7',reabrir:'#
     fn['e'+i]=function(){if(confirm('📤 ¿Enviar a OTRS el ticket de '+x.c+'?'+(T.sim?' (modo prueba: se simula)':'\n\nAntes se revisa que no haya otro abierto.')))tkPedir({accion:'tk_enviar',cod:x.c},'Enviando a OTRS…')};
     fn['i'+i]=function(){if(confirm('🔁 ¿Insistir en el ticket '+x.t+' ('+x.c+')?\n\nSe agrega una nota al MISMO ticket (no se crea otro). Una vez cada 30 min.'))tkPedir({accion:'tk_insistir',cod:x.c},'Insistiendo en OTRS…')};
     fn['r'+i]=function(){tkPedir({accion:'tk_revisar',cod:x.c},'Revisando en OTRS…')};
-    ['fibra','equipo','proveedor','sin_luz','lluvia','otro'].forEach(function(k){fn['c'+i+'_'+k]=function(){tkPedir({accion:'tk_causa_'+(x.cz===k?'quitar':k),cod:x.c},'Guardando la causa…')}})});
+    CZK.forEach(function(k){fn['c'+i+'_'+k]=function(){tkPedir({accion:'tk_causa_'+k,cod:x.c},'Guardando…')}})});
   fn.buscar=function(){var q=($('tkq').value||'').trim();if(q.length<2)return alert('Escriba al menos 2 letras o números');tkBuscar(q)};
   var ops=[['🔄 ACTUALIZAR','b',tickets]];
   if(T.nac&&T.cola&&T.cola.total)ops.push(['🔎 REVISAR EN OTRS LOS SIN CERRAR ('+T.cola.total+')','b',function(){tkPedir({accion:'tk_cola'},'Revisando la cola en OTRS…')}]);
@@ -285,9 +289,9 @@ function elegirGrupo(){var h='<div class="lista">';(D.gl||[]).forEach(function(g
 // ------------------------------------------------------------ 2 · mis escuelas
 function escuelas(fl){var filtros=[['todas','Todas'],['cai','🔴 Caídos'],['mal','🚨 Problemas'],['atr','⏰ Atrasadas'],['sin','⬜ Sin llegar']];
   var l=D.f.filter(function(x){var e=estadoEsc(x);return fl==='todas'||(fl==='cai'&&x.e==='F')||(fl==='mal'&&e==='r')||(fl==='atr'&&x.p.indexOf('f')>=0)||(fl==='sin'&&!x.ls)});
-  var orden={r:0,a:1,n:2,'':3};l.sort(function(a,b){return fl==='cai'?(b.es||0)-(a.es||0):orden[estadoEsc(a)]-orden[estadoEsc(b)]});
+  var orden={r:0,a:1,n:2,'':3};l.sort(function(a,b){return fl==='cai'?(a.es||0)-(b.es||0):orden[estadoEsc(a)]-orden[estadoEsc(b)]});
   var h='<div style="display:flex;gap:8px;margin:0 14px 10px"><input id="bq" inputmode="numeric" placeholder="🔎 Código de la escuela" style="flex:1;font-size:19px;padding:12px;border-radius:12px;border:2px solid #cfd6e2"><button data-f="bq" style="font-size:18px;padding:0 16px;border-radius:12px;border:0;background:#1f6feb;color:#fff;font-weight:700">BUSCAR</button></div><div class="fil">'+filtros.map(function(f){return '<button data-f="fil" data-v="'+f[0]+'" class="'+(f[0]===fl?'on':'')+'">'+f[1]+'</button>'}).join('')+'</div><div class="lista">';
-  l.forEach(function(x){h+='<button class="esc '+estadoEsc(x)+'" data-f="ver" data-c="'+x.c+'" data-p="'+x.pt+'"><b>'+esc(x.c)+(x.pt>1?' (punto '+x.pt+')':'')+' · '+esc(x.n)+'</b><div class="s">'+chipsEsc(x)+'</div><div class="m">'+(notaEsc(x)||'&nbsp;')+(x.e==='F'||x.tk?'<br>'+tkTxt(x):'')+(x.e==='F'?'<br>'+(x.cz?'🏷️ <b>'+esc({fibra:'Fibra rota',equipo:'Equipo dañado',proveedor:'Proveedor',sin_luz:'Sin luz',lluvia:'Lluvia',otro:'Otro'}[x.cz]||x.cz)+'</b>':'🏷️ <b style="color:#b45309">¿por qué se cayó? → tocar para marcar</b>'):'')+'</div></button>'});
+  l.forEach(function(x){h+='<button class="esc '+estadoEsc(x)+'" data-f="ver" data-c="'+x.c+'" data-p="'+x.pt+'"><b>'+esc(x.c)+(x.pt>1?' (punto '+x.pt+')':'')+' · '+esc(x.n)+'</b><div class="s">'+chipsEsc(x)+'</div><div class="m">'+(notaEsc(x)||'&nbsp;')+(x.e==='F'||x.tk?'<br>'+tkTxt(x):'')+(x.e==='F'?'<br>'+(x.cz?'🏷️ <b>'+esc(czTxt(x))+'</b>':'🏷️ <b style="color:#b45309">¿por qué se cayó? → tocar para marcar</b>'):'')+'</div></button>'});
   if(fl==='cai'&&l.length)h='<div class="av" style="text-align:left">🔴 <b>'+l.length+' caído(s)</b> · el que más lleva: <b>'+esc(l[0].c)+'</b> '+esc(l[0].n)+' — hace <b>'+dura(l[0].es)+'</b><br>🎫 con ticket: '+l.filter(function(x){return x.tk}).length+' · 🚫 sin ticket: '+l.filter(function(x){return !x.tk}).length+'</div>'+h;
   if(!l.length)h+='<div class="av ok"><b class="t">✅ Nada por aquí</b></div>';
   h+='</div>'+(D.mas?'<div class="nota">… y '+D.mas+' puntos más que están bien.</div>':'');
@@ -308,13 +312,14 @@ function escuela(c,pt,volver){var x=busca(c,pt);if(!x)return inicio();var l=x.l,
   x.p.forEach(function(e,i){var d=(x.pd||[])[i]||['','',''];
     h+='<div class="lin"><i>'+(e==='b'?'✅':e==='m'?'❌':e==='f'?'⏰':'⬜')+'</i><div>Prueba '+(i+1)+(d[0]?' · '+esc(d[0]):'')+(d[1]?' ('+esc(d[1])+')':'')
       +'<small>'+(e==='b'?'Bien':e==='m'?esc(d[2]||'Con problema'):e==='f'?'Ya le tocaba y no la hace':'Todavía no le toca')+'</small></div></div>'});
-  if(x.e==='F'){var CZ={fibra:'🧵 Fibra rota',equipo:'🖥️ Equipo dañado',proveedor:'📡 Proveedor',sin_luz:'💡 Sin luz',lluvia:'🌧️ Lluvia',otro:'❓ Otro'};
-    h+='<div style="margin:10px 12px;padding:10px 12px;border-radius:14px;border:2px solid '+(x.cz?'#1a7f37':'#e39a19')+';background:'+(x.cz?'#e8f5ec':'#fff4dc')+'"><b style="font-size:17px">🏷️ ¿Por qué se cayó?</b>'
-      +(x.cz?' <b style="color:#1a7f37">'+esc(CZ[x.cz]||x.cz)+'</b>':' <b style="color:#b45309">sin marcar</b>')
-      +'<div style="font-size:13px;color:#5a6577;margin:4px 0">🤖 Fibra / Equipo / Proveedor → el ticket se crea solo. 💡 Sin luz / 🌧️ Lluvia → NO se crea (lo decide el personal).</div>'
-      +'<div style="display:flex;gap:6px;flex-wrap:wrap">'+Object.keys(CZ).map(function(k){return '<button class="op chico" style="margin:0;flex:1 1 45%;padding:10px 6px;font-size:15px;'+(x.cz===k?'background:#1a7f37;color:#fff':'background:#fff;color:#1f2d3d;border:1px solid #ccd')+'" data-f="cz_'+k+'">'+CZ[k]+'</button>'}).join('')+'</div></div>'}
+  if(x.e==='F'){var CZ=CZN,fz=czF(x),dz=czDec(x);
+    h+='<div style="margin:10px 12px;padding:10px 12px;border-radius:14px;border:2px solid '+(fz.length?'#1a7f37':'#e39a19')+';background:'+(fz.length?'#e8f5ec':'#fff4dc')+'"><b style="font-size:17px">🏷️ ¿Por qué se cayó?</b>'
+      +(fz.length?' <b style="color:#1a7f37">'+esc(czTxt(x))+'</b><div style="font-weight:700;margin-top:4px;color:'+(dz==='crear'?'#c62828':'#1a7f37')+'">'+(dz==='crear'?'🎫 CORRESPONDE TICKET':'✋ NO se crea ticket solo (decide el administrador)')+'</div>':' <b style="color:#b45309">sin marcar</b>')
+      +'<div style="font-size:13px;color:#5a6577;margin:4px 0">Puede marcar <b>varias</b> (toque otra vez para quitar). 🎫 Crea ticket: fibra, equipo dañado, proveedor, <b>equipo mojado</b>, <b>volvió la luz y sigue caído</b>. ✋ No crea: solo sin luz, inundación con equipo seco, lluvia.</div>'
+      +'<div style="display:flex;gap:6px;flex-wrap:wrap">'+CZK.map(function(k){var on=fz.indexOf(k)>=0;return '<button class="op chico" style="margin:0;flex:1 1 45%;padding:10px 6px;font-size:15px;'+(on?'background:#1a7f37;color:#fff':'background:#fff;color:#1f2d3d;border:1px solid #ccd')+'" data-f="cz_'+k+'">'+(on?'✔ ':'')+CZ[k]+'</button>'}).join('')+'</div>'
+      +(fz.length?'<button class="op chico" style="margin:6px 0 0;padding:6px 10px;font-size:13px;background:#eef2f7;color:#1f2d3d" data-f="cz_quitar">✖ Quitar todo</button>':'')+'</div>'}
   var sig=x.p.indexOf('m')>=0?x.p.indexOf('m')+1:x.p.indexOf('f')>=0?x.p.indexOf('f')+1:Math.min(3,x.p.lastIndexOf('b')+2||1);
-  var fnz={};['fibra','equipo','proveedor','sin_luz','lluvia','otro'].forEach(function(k){fnz['cz_'+k]=function(){causaPanel(x,k===x.cz?'quitar':k,function(){escuela(c,pt,volver)})}});
+  var fnz={};CZK.concat(['quitar']).forEach(function(k){fnz['cz_'+k]=function(){causaPanel(x,k,function(){escuela(c,pt,volver)})}});
   pantalla({fn:fnz,atras:volver||inicio,tit:esc(x.c)+' · '+esc(x.n),sub:'Punto '+x.pt,html:h,
     ops:[['📞 LLAMAR AL OPERADOR','g',function(){hacer({accion:'llamar',cod:x.c})}],['📷 VER LAS FOTOS','b',function(){hacer({accion:'fotos',cod:x.c})}],
       ].concat(D.pp?[['📢 PEDIRLE LA PRUEBA '+sig,'a',function(){if(D.jm==='')return sinJornada();hacer({accion:'pedir',n:sig,cods:[x.c]})}]]:[]).concat([['🛠️ REPORTAR DAÑO (TICKET)','r',function(){danio(x.c,function(){escuela(c,pt,volver)})}]]),
