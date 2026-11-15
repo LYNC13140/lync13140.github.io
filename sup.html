@@ -352,7 +352,7 @@ function confirma(a,cods){pantalla({atras:pedir,tit:'📢 Pedir prueba',e:'📢'
   ops:[['✅ SÍ, ENVIAR AHORA','g',function(){hacer({accion:'pedir',n:F.n,cods:cods||[]})}],['↩ No, volver','n',pedir,1]]})}
 
 // ------------------------------------------------------------ 6 · por autorizar
-var TIPO={fibra:'🧵 Fibra',equipo:'🖥️ Equipo',enlace:'📡 Enlace caído',otro:'❓ Otro'};
+var TIPO={fibra:'🧵 Fibra',equipo:'🖥️ Equipo',enlace:'📡 Enlace caído',otro:'❓ Otro',luz:'💡 Sin luz',lluvia:'🌧️ Lluvia'};
 function autorizar(){var h='';
   if(!D.pa.length)h='<div class="av ok"><b class="t">✅ Nada por autorizar</b>Ningún operador reportó daños.</div>';
   D.pa.forEach(function(p){h+='<div class="av am" style="text-align:left"><b>'+esc(p[0])+' · '+esc(p[1])+'</b><br>👤 '+esc(p[4])+': '+(TIPO[p[2]]||'')+(p[3]?' <i>«'+esc(p[3])+'»</i>':'')
@@ -367,7 +367,11 @@ function elegirDanio(){var h='<div class="lista">';
   pantalla({atras:inicio,tit:'🛠️ Reportar daño',sub:'¿En qué escuela?',html:h+'</div>',fn:{c:function(el){danio(el.dataset.c,elegirDanio)}}})}
 function danio(c,volver){var x=busca(c)||{n:''};
   pantalla({atras:volver,tit:'🛠️ '+esc(c)+' · '+esc(x.n),sub:'El ticket se genera solo',e:'🛠️❓',h1:'¿Qué se dañó?',
-    ops:[['🧵 FIBRA','r',function(){danioOk(c,'fibra',volver)}],['🖥️ EQUIPO','r',function(){danioOk(c,'equipo',volver)}],['📡 ENLACE CAÍDO','a',function(){danioOk(c,'enlace',volver)}],['❓ OTRO','n',function(){danioOk(c,'otro',volver)}]]})}
+    p:'🧵 Fibra / 🖥️ Equipo / 📡 Enlace / ❓ Otro → se crea el ticket. 💡 Sin luz / 🌧️ Lluvia → NO se crea ticket: solo queda marcado.',
+    ops:[['🧵 FIBRA','r',function(){danioOk(c,'fibra',volver)}],['🖥️ EQUIPO','r',function(){danioOk(c,'equipo',volver)}],['📡 ENLACE CAÍDO','a',function(){danioOk(c,'enlace',volver)}],
+      ['💡 SIN LUZ (no se crea ticket)','b',function(){luzOk(c,'luz',volver)}],['🌧️ LLUVIA (no se crea ticket)','b',function(){luzOk(c,'lluvia',volver)}],['❓ OTRO','n',function(){danioOk(c,'otro',volver)}]]})}
+function luzOk(c,t,volver){pantalla({atras:function(){danio(c,volver)},tit:'🛠️ '+esc(c),e:t==='luz'?'💡':'🌧️',h1:t==='luz'?'¿Marcar SIN LUZ?':'¿Marcar LLUVIA?',p:'En la escuela <b>'+esc(c)+'</b>. <b>No se crea ticket</b>: queda guardado como causa de la caída.',
+  ops:[['✅ SÍ, MARCAR','g',function(){hacer({accion:'danio',cod:c,tipo:t})}],['↩ No, volver','n',function(){danio(c,volver)},1]]})}
 function danioOk(c,t,volver){pantalla({atras:function(){danio(c,volver)},tit:'🛠️ '+esc(c),e:'🎫',h1:'¿Generar el ticket?',p:esc(TIPO[t])+' en la escuela <b>'+esc(c)+'</b>.',
   html:D.otrs?'<div class="av am" style="text-align:left;font-size:15px">'+D.otrs.replace(/\n/g,'<br>')+'</div>':'',
   ops:[['✅ SÍ, GENERAR TICKET','g',function(){hacer({accion:'danio',cod:c,tipo:t})}],['↩ No, volver','n',function(){danio(c,volver)},1]]})}
