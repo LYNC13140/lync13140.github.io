@@ -180,7 +180,7 @@ function inicio(){F={};
     html:'<div class="kp"><div class="k v"><b>'+D.t.act+'/'+D.t.esc+'</b><span>🟢 Enlaces activos</span></div><div class="k '+(D.t.cai?'r':'v')+'"><b>'+D.t.cai+'</b><span>🔴 Enlaces caídos</span></div>'
       +'<div class="k '+(D.t.lleg?'v':'')+'"><b>'+D.t.lleg+'/'+D.t.esc+'</b><span>📍 Operadores llegaron</span></div><div class="k '+(D.pr.length?'r':'v')+'"><b>'+(D.npr||D.pr.length)+'</b><span>🚨 Problemas</span></div></div>'+czHtml()+luzHtml()+modoHtml()+personalHtml(),
     ops:[['🚨 PROBLEMAS','r',problemas,0,(D.npr||D.pr.length)||''],['🔴 ENLACES CAÍDOS ('+D.t.cai+')','r',function(){escuelas('cai')}],['🏫 MIS ESCUELAS ('+D.t.esc+')','b',function(){escuelas('todas')}],].concat([['🎫 TICKETS · OTRS','b',tickets],['🔎 BUSCAR (escuela, kit, persona, ticket)','b',buscarTodo],['📦 KITS (a quién se le dio)','b',function(){kitPedir({accion:'kits'})}]]).concat(D.pp?[['🎛️ CAMBIAR EL MODO ('+modoNom()+')','n',modos]].concat(D.om?[['🎫 TICKETS A OTRS: '+(D.om.m==='crear'?'🤖 AUTOMÁTICO':'✋ MANUAL'),'n',otrsEnvio,0,D.om.n||'']]:[]).concat([[activarTxt(),'g',activar],['📢 Pedir test solo a unas escuelas','g',pedir,1]]):[]).concat([
-      ['📥 POR AUTORIZAR','a',autorizar,0,D.pa.length||''],['🛠️ REPORTAR DAÑO (TICKET)','n',function(){elegirDanio()},1],D.dv?['🚪 SALIR DE LA PRUEBA (volver a mi panel)','r',function(){hacer({accion:'salir'})}]:['🧪 VER COMO LO VE…','n',verComo,1],['☰ MÁS OPCIONES (incidencias, reportes, QR…)','n',function(){masOpc({accion:'mas'})},1]]),
+      ['📥 POR AUTORIZAR','a',autorizar,0,D.pa.length||'']]).concat(puedeEncerar()?[['🧹 ENCERAR (volver a empezar)','n',encerarMenu,1]]:[]).concat([['🛠️ REPORTAR DAÑO (TICKET)','n',function(){elegirDanio()},1],D.dv?['🚪 SALIR DE LA PRUEBA (volver a mi panel)','r',function(){hacer({accion:'salir'})}]:['🧪 VER COMO LO VE…','n',verComo,1],['☰ MÁS OPCIONES (incidencias, reportes, QR…)','n',function(){masOpc({accion:'mas'})},1]]),
     nota:'Para ver datos nuevos, cierre y vuelva a tocar <b>📱 ABRIR MI PANEL</b>.'})}
 
 // ------------------------------------------------------------ 📶 activar test 1 → 2 → 3 (solo supervisor nacional y administrador)
@@ -371,13 +371,23 @@ function escuela(c,pt,volver){var x=busca(c,pt);if(!x)return inicio();var l=x.l,
   var fnz={};CZK.concat(['quitar']).forEach(function(k){fnz['cz_'+k]=function(){causaPanel(x,k,function(){escuela(c,pt,volver)})}});
   pantalla({fn:fnz,atras:volver||inicio,tit:esc(x.c)+' · '+esc(x.n),sub:'Punto '+x.pt,html:h,
     ops:[['📞 LLAMAR AL OPERADOR','g',function(){hacer({accion:'llamar',cod:x.c})}],['📷 VER LAS FOTOS','b',function(){hacer({accion:'fotos',cod:x.c})}],
-      ].concat(D.pp?[['📢 PEDIRLE LA PRUEBA '+sig,'a',function(){if(D.jm==='')return sinJornada();hacer({accion:'pedir',n:sig,cods:[x.c]})}]]:[]).concat([['🛠️ REPORTAR DAÑO (TICKET)','r',function(){danio(x.c,function(){escuela(c,pt,volver)})}]]),
+      ].concat(D.pp?[['📢 PEDIRLE LA PRUEBA '+sig,'a',function(){if(D.jm==='')return sinJornada();hacer({accion:'pedir',n:sig,cods:[x.c]})}]]:[]).concat([['🛠️ REPORTAR DAÑO (TICKET)','r',function(){danio(x.c,function(){escuela(c,pt,volver)})}]]).concat(puedeEncerar()?[['🧹 ENCERAR ESTA ESCUELA (volver a empezar)','n',function(){encerar([x.c],0,function(){escuela(c,pt,volver)})},1]]:[]),
     nota:D.ch?'Teléfonos y fotos se ven aquí mismo.':'Teléfonos y fotos le llegan en el chat del bot.'})}
+
+// 🧹 ENCERAR: poner en cero (solo PRUEBAS / SIMULACRO)
+function puedeEncerar(){return D.jm==='prueba'||D.jm==='ensayo'||D.jm==='simulacro'}
+function encerar(cods,todo,volver){vibra('mal');var que=todo?'TODAS sus escuelas':(cods.length===1?'la escuela '+esc(cods[0]):cods.length+' escuelas');
+  pantalla({atras:volver||inicio,tit:'🧹 Encerar',e:'🧹',h1:'¿Poner en CERO '+que+'?',
+    p:'Se anula lo que hicieron en este '+modoNom()+': <b>salida, llegada y pruebas de conexión</b>.<br><br>Sus operadores y asistentes reciben un aviso y <b>vuelven a hacer TODO desde el principio</b>.<br><br><small>Lo anulado no se borra: queda guardado como «encerado».</small>',
+    ops:[['🧹 SÍ, PONER EN CERO','r',function(){hacer(todo?{accion:'encerar',todo:1}:{accion:'encerar',cods:cods})}],['↩ No, volver','n',volver||inicio,1]]})}
+function encerarMenu(){if(!puedeEncerar())return pantalla({atras:inicio,e:'⛔',h1:'Solo en PRUEBAS o SIMULACRO',p:'Encerar solo se puede cuando está activado el modo pruebas o simulacro.',ops:[['↩ Volver','n',inicio,1]]});
+  pantalla({atras:inicio,tit:'🧹 Encerar',e:'🧹',h1:'Encerar (volver a empezar)',p:'Si alguien se <b>adelantó</b> o hizo mal la prueba, póngalo en <b>cero</b> y vuelve a hacer todo.<br><br>Para <b>una escuela</b>: ábrala en 🏫 MIS ESCUELAS y toque <b>🧹 ENCERAR ESTA ESCUELA</b>.',
+    ops:[['🏫 ELEGIR UNA ESCUELA','b',function(){escuelas('todas')}],['🧹 ENCERAR TODAS MIS ESCUELAS','r',function(){encerar([],1,encerarMenu)}],['↩ Volver','n',inicio,1]]})}
 
 function escuelaCod(c,volver){
   pantalla({atras:volver,tit:'🏫 Escuela '+esc(c),e:'🏫',h1:'Escuela '+esc(c),p:'Esta escuela está bien, por eso no sale en la lista. Igual puede:',
     ops:[['📞 LLAMAR AL OPERADOR','g',function(){hacer({accion:'llamar',cod:c})}],['📷 VER LAS FOTOS','b',function(){hacer({accion:'fotos',cod:c})}]]
-      .concat(D.pp?[['📢 PEDIRLE UNA PRUEBA','a',function(){if(D.jm==='')return sinJornada();hacer({accion:'pedir',n:D.nx>3?3:D.nx,cods:[c]})}]]:[]).concat([['🛠️ REPORTAR DAÑO (TICKET)','r',function(){danio(c,function(){escuelaCod(c,volver)})}]])})}
+      .concat(D.pp?[['📢 PEDIRLE UNA PRUEBA','a',function(){if(D.jm==='')return sinJornada();hacer({accion:'pedir',n:D.nx>3?3:D.nx,cods:[c]})}]]:[]).concat([['🛠️ REPORTAR DAÑO (TICKET)','r',function(){danio(c,function(){escuelaCod(c,volver)})}]]).concat(puedeEncerar()?[['🧹 ENCERAR ESTA ESCUELA (volver a empezar)','n',function(){encerar([c],0,function(){escuelaCod(c,volver)})},1]]:[])})}
 
 // ------------------------------------------------------------ 4 · problemas
 function problemas(){var h='';
@@ -396,7 +406,7 @@ function pedir(){if(D.jm==='')return sinJornada();F.n=F.n||1;F.cods=F.cods||null
   var ns=[1,2,3,D.nx],h='<div class="seg">'+ns.map(function(n,i){return '<button data-f="n" data-n="'+n+'" class="'+(F.n===n?'on':'')+'">'+(i===3?'➕'+n:n)+'</button>'}).join('')+'</div>';
   var falta=D.f.filter(function(x){return x.p[Math.min(F.n,3)-1]!=='b'}).length;
   h+='<h3>¿A quién?</h3>';
-  pantalla({atras:inicio,tit:'📢 Pedir prueba',sub:'Les llega el aviso al instante',e:'📢📶',h1:'¿Qué prueba?',p:'Horas normales: '+esc((D.hp||[]).join(', ')),html:h,
+  pantalla({atras:inicio,tit:'📢 Pedir prueba',sub:'Les llega el aviso al instante',e:'📢📶',h1:'¿Qué prueba?',p:'La prueba empieza cuando usted la activa (no hay horas fijas).',html:h,
     ops:[['👥 A TODOS<br><small style="font-weight:600">(solo a los que ya están en su recinto; de los demás le digo quiénes son)</small>','b',function(){confirma('todo su grupo',null)}],
       ['🏫 ELEGIR ESCUELAS','n',elegir]],fn:{n:function(el){F.n=+el.dataset.n;pedir()}}})}
 function elegir(){F.sel=F.sel||{};var h='<div class="lista">';

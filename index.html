@@ -246,7 +246,7 @@ function home(){
     ops=[['🛠️ REPORTAR UN PROBLEMA','a',problema],['💬 MENSAJE AL SUPERVISOR','b',mensaje,1]];esperarOrden()}
   else if(q==='repetir'){o.e='🔁';o.h1='La prueba '+n+' salió mal';o.p='Apague el equipo, espere 30 segundos y préndalo. Luego repita.';ops=[['🔁 REPETIR LA PRUEBA '+n,'a',function(){prueba(n)}]]}
   else {o.e='🎉';o.h1='¡Listo por hoy!';o.p='Muchas gracias por su trabajo.'}
-  if(BOT)ops.push(['📦 ESCANEAR MI KIT','b',kitInicio,1]);
+  // 📦 «ESCANEAR MI KIT» quitado del operador y del asistente: los kits se escanean solo en la estación de recepción
   if(BOT&&['salgo','viaje','salgo_rec','llegada'].indexOf(q)<0)ops.push(['🚪 ME RETIRO DEL COLEGIO','n',retiro,1]);
   ops.push(['📞 MI SUPERVISOR','n',supervisor,1]);if(BOT)ops.push(['❓ AYUDA','n',ayuda,1]);
   var nq=BOT?colaLeer().length:0;if(nq&&!o.aviso){o.aviso='📦 Hay <b>'+nq+'</b> envío(s) guardado(s) sin señal. Se mandan solos cuando vuelva la señal.';if(!gl&&!gp)ops.push(['🔄 ENVIAR LO GUARDADO','b',function(){enviarCola(true)},1])}
