@@ -59,7 +59,7 @@ var S0=(location.search.match(/[?&]s=([^&]+)/)||[])[1], BOT=!!S0, RELAY=false;  
 function leerS(t){t=t.replace(/-/g,'+').replace(/_/g,'/');while(t.length%4)t+='=';var b=atob(t),u=new Uint8Array(b.length);for(var i=0;i<b.length;i++)u[i]=b.charCodeAt(i);
   var d=JSON.parse(new TextDecoder().decode(u));
   RELAY=!!d.ft;
-  ALT=d.frs||[];return {ve:d.ve||0,ff:d.ff||'',ffs:d.ffs||[],ch:d.ch,ci:d.ci,ft:d.ft,fr:d.fr||'https://ntfy.sh',frs:d.frs||[],nombre:d.nm,demo:!!d.dm,codigo:d.c,escuela:d.e,que:d.q,n:d.k,capacitacion:!!d.cap,co:d.co,lim:d.lim,t:d.t,
+  ALT=d.frs||[];return {ve:d.ve||0,ff:d.ff||'',ffs:d.ffs||[],ch:d.ch,ci:d.ci,ft:d.ft,fr:d.fr||'https://ntfy.sh',frs:d.frs||[],nombre:d.nm,demo:!!d.dm,codigo:d.c,escuela:d.e,que:d.q,n:d.k,capacitacion:!!d.cap,fs:!!d.fs,co:d.co,lim:d.lim,cpe:d.cpe||null,t:d.t,
     pruebas:(d.p||[]).map(function(x){return {n:x[0],hora:x[1],pedida:!!x[2],estado:x[3]==='b'?'bien':x[3]==='m'?'mal':''}}),
     llegada:d.l?{hora:d.l[0],llego:!!d.l[1],abierta:!!d.l[2]}:null,viaje:{activo:d.q==='viaje'},supervisores:[],quien:d.qn||d.nm||''}}
 function metros(a,b,c,d){var R=6371000,r=Math.PI/180,x=Math.sin((c-a)*r/2),y=Math.sin((d-b)*r/2);return 2*R*Math.asin(Math.sqrt(x*x+Math.cos(a*r)*Math.cos(c*r)*y*y))}
@@ -129,7 +129,7 @@ function guardarCola(d){
   it.d.t_cli=it.t;it.d.offline=1;
   var l=colaLeer();l.push(it);var ok=colaGuardar(l);
   if(!ok){it.pend=null;l[l.length-1]=it;ok=colaGuardar(l)}           // sin espacio: al menos el reporte, sin fotos
-  F.pend=null;F.fotos=null;vibra(ok?'ok':'mal');
+  F.pend=null;F.fotos=null;F.fsim=null;vibra(ok?'ok':'mal');
   if(d.accion==='llegada')E.que=d.llegada==='no'?'nollego_g':'llegada_g';if(d.accion==='prueba')E.que='prueba_g';
   pantalla({e:'📦📶',h1:'GUARDADO SIN SEÑAL',p:'Ahora no hay señal. Lo que hizo quedó <b>guardado en el teléfono</b> con la hora <b>'+hhmm(it.t)+'</b>.<br><br>Se enviará <b>solo</b> cuando vuelva la señal. <b>No tiene que repetirlo.</b>',
     aviso:ok?'💡 Si puede, muévase a un lugar con señal y toque «Intentar enviar ahora».':'⚠️ El teléfono no tiene espacio: se guardó sin las fotos.',avisoMal:!ok,
@@ -178,11 +178,14 @@ if(tg){try{tg.ready();tg.expand();if(tg.disableVerticalSwipes)tg.disableVertical
 function api(url,cuerpo,tipo){return fetch(url,{method:'POST',headers:{'X-Init-Data':initData,'Content-Type':tipo||'application/json'},body:tipo?cuerpo:JSON.stringify(cuerpo||{})})
   .then(function(r){return r.json().then(function(j){if(!r.ok)throw new Error(j.error||('Error '+r.status));return j})})}
 function accion(d){
+  if(F&&F.fsim&&F.fsim.length&&!d.fsim&&d.accion!=='ubic')d.fsim=F.fsim.slice();   // 🧪 pruebas: fotos simuladas (no viajan)
   if(!BOT)return api('/tg/app/accion',d);
   if(d.accion==='ubic'){F.u={lat:d.lat,lon:d.lon,acc:d.acc};
+    var hol=Math.min(d.acc||0,50);
+    if(E.capacitacion&&E.cpe){var mc=Math.round(metros(E.cpe[0],E.cpe[1],d.lat,d.lon));if(mc-hol<=(E.cpe[2]||300))return Promise.resolve({ok:true,distancia_m:mc,lugar:'cpe'})}
     if(!E.co)return Promise.resolve({ok:true,distancia_m:null});
-    var m=Math.round(metros(E.co[0],E.co[1],d.lat,d.lon)),ok=m-Math.min(d.acc||0,50)<=E.lim;
-    return Promise.resolve({ok:ok,distancia_m:m,demo:!ok&&E.demo,error:ok?'':'Está a '+km(m)+' de '+(E.capacitacion?'el CPE':'su recinto')+'. Debe estar a '+E.lim+' m o menos.'})}
+    var m=Math.round(metros(E.co[0],E.co[1],d.lat,d.lon)),ok=m-hol<=E.lim;
+    return Promise.resolve({ok:ok,distancia_m:m,demo:!ok&&E.demo,error:ok?'':(E.capacitacion?'Está a '+km(m)+' de su recinto. En PRUEBAS debe estar en el CPE o en su recinto.':'Está a '+km(m)+' de su recinto. Debe estar a '+E.lim+' m o menos.')})}
   if(d.accion==='llegada'||d.accion==='prueba'){if(F.u&&d.lat==null){d.lat=F.u.lat;d.lon=F.u.lon;d.acc=F.u.acc}}
   if((d.accion==='llegada'||d.accion==='camino')&&TR&&TR.pts&&TR.pts.length){d.ruta={ini:Math.round(TR.ini/1000),dest:TR.dest,pts:TR.pts.slice(-120)}}
   if(d.accion==='llegada'){trBorrar()}
@@ -286,7 +289,7 @@ function retiroPor(){pantalla({atras:retiro,titulo:'Me retiro',e:'⚫',h1:'¿Por
 function retiroMandar(eq,mot,det){relojEspera('Registrando…');porCanal({accion:'retiro',equipo:eq,motivo:mot||'',detalle:det||''})}
 function problema(){   // 🛠️ reportar daño / problema desde la escuela, sin salir de la app
   var mandar=function(tipo){escribir({atras:problema,titulo:'Problema',e:'🛠️',h1:tipo,p:'Cuente en pocas palabras (opcional).',ph:'Ej.: el router tiene la luz roja',boton:'SIGUIENTE',vacio:true,
-    luego:function(t){var txt='🛠️ PROBLEMA EN LA ESCUELA: '+tipo+(t?' — '+t:'');F.fotos=null;
+    luego:function(t){var txt='🛠️ PROBLEMA EN LA ESCUELA: '+tipo+(t?' — '+t:'');F.fotos=null;F.fsim=null;
       var go=function(){relojEspera('Avisando a su supervisor…');accion({accion:'mensaje',texto:txt})};
       if(!RELAY)return go();pantalla({e:'📷',h1:'¿Puede tomar una FOTO?',p:'Del equipo o del problema.',ops:[['📷 TOMAR FOTO','b',function(){camara('mensaje','PROBLEMA',go)}],['➡️ SIN FOTO, ENVIAR','g',go]]})}})};
   pantalla({atras:home,titulo:'Problema',e:'🛠️',h1:'¿Qué problema hay?',ops:[['📶 NO HAY INTERNET / ENLACE CAÍDO','r',function(){mandar('No hay internet / enlace caído')}],
@@ -353,7 +356,7 @@ function cerca(u,falta){F.problema=true;pantalla({e:'🚗🏫',h1:'Ya está CERC
 function camino(){F.problema=true;pantalla({atras:function(){F.problema=false;inicio()},e:'⚠️🚗',h1:'¿Qué pasa en el camino?',ops:[
   ['🌊 INUNDACIÓN','r',function(){avisarCamino('inundacion')}],['🚧 DIFÍCIL ACCESO','a',function(){avisarCamino('acceso')}],
   ['⛔ NO SE PUEDE PASAR','r',function(){avisarCamino('paso')}],['💡 CORTE DE LUZ','a',function(){avisarCamino('luz')}],['📝 OTRO','b',function(){avisarCamino('otro')}]]})}
-function avisarCamino(tipo,u,preguntarIgual,det){F.fotos=null;
+function avisarCamino(tipo,u,preguntarIgual,det){F.fotos=null;F.fsim=null;
   if(tipo==='otro'&&det==null&&RELAY)return escribir({atras:camino,titulo:'En camino',e:'📝',h1:'¿Qué pasa en el camino?',p:'Cuéntelo en pocas palabras.',ph:'Ej.: hay un derrumbe en la vía',boton:'SIGUIENTE',luego:function(t){avisarCamino(tipo,u,preguntarIgual,t)}});
   var seguir=function(u){if(BOT&&!RELAY)return enviar(u);pantalla({e:'📷',h1:'¿Puede tomar una foto?',p:'Solo si es seguro.',ops:[
     ['📷 TOMAR FOTO','b',function(){camara('camino','PROBLEMA EN EL CAMINO',function(){enviar(u)})}],['⏭️ SIN FOTO','n',function(){enviar(u,true)}]]})};
@@ -364,10 +367,10 @@ function avisarCamino(tipo,u,preguntarIgual,det){F.fotos=null;
 function escribir(o){   // pantalla con casilla para escribir (sin salir de la app)
   pantalla({atras:o.atras,titulo:o.titulo,e:o.e||'✍️',h1:o.h1,p:o.p||'',extra:'<div style="margin:0 16px"><textarea id="txl" rows="4" maxlength="500" placeholder="'+esc(o.ph||'Escriba aquí…')+'" style="width:100%;box-sizing:border-box;font-size:20px;padding:12px;border-radius:14px;border:2px solid #cfd6e2"></textarea></div>',
     ops:[['➡️ '+(o.boton||'ENVIAR'),'g',function(){var t=($('txl').value||'').trim();if(!t&&!o.vacio){vibra('mal');$('txl').focus();return}o.luego(t)}]].concat(o.extraOps||[])})}
-function mensaje(){F.fotos=null;var mandar=function(t){var go=function(){cargando('Enviando…');accion({accion:'mensaje',texto:t})};
+function mensaje(){F.fotos=null;F.fsim=null;var mandar=function(t){var go=function(){cargando('Enviando…');accion({accion:'mensaje',texto:t})};
     if(!RELAY)return go();pantalla({e:'📷',h1:'¿Quiere mandar una FOTO también?',ops:[['📷 TOMAR FOTO','b',function(){camara('mensaje','MENSAJE AL SUPERVISOR',go)}],['➡️ SIN FOTO, ENVIAR','g',go]]})};
   escribir({atras:home,titulo:'Mensaje',e:'💬',h1:'Mensaje a su supervisor',p:'Escriba qué pasa. Le llega a su supervisor por Telegram.',ph:'Ej.: la escuela no tiene luz desde las 8',luego:mandar})}
-function noLlego(u,motivo){pararViaje();F.fotos=null;
+function noLlego(u,motivo){pararViaje();F.fotos=null;F.fsim=null;
   var mandar0=function(m,det){cargando('Avisando a su supervisor…');accion({accion:'llegada',llegada:'no',problemas:[m],detalle:det||'',lat:u&&u.lat,lon:u&&u.lon}).then(function(){vibra('ok');
     pantalla({e:'📞',h1:'Su supervisor ya sabe',p:'Por favor <b>comuníquese con su supervisor o administrador</b>.',extra:supTxt(),ops:[['🏠 INICIO','n',inicio]]})}).catch(function(e){error(e.message)})};
   var mandar=function(m,det){if(!RELAY)return mandar0(m,det);   // foto opcional de por qué no puede llegar
@@ -384,8 +387,8 @@ function trClave(){return 'mon_viaje_'+(E&&E.codigo)}
 function trCargar(){try{var x=JSON.parse(localStorage.getItem(trClave())||'null');if(x&&x.dia===hoyS())return x}catch(e){}return null}
 function trGuardar(){try{if(TR)localStorage.setItem(trClave(),JSON.stringify(TR))}catch(e){}}
 function trBorrar(){try{localStorage.removeItem(trClave())}catch(e){}}
-function destC(){if(TR&&TR.dest==='cpe'&&!E.capacitacion)return E.cpe?[E.cpe[0],E.cpe[1],E.cpe[2]||300]:null;return E.co?[E.co[0],E.co[1],E.lim||300]:null}
-function destNom(){return TR&&TR.dest==='cpe'&&!E.capacitacion?'el CPE':'su recinto'}
+function destC(){if(TR&&TR.dest==='cpe'&&E.cpe)return E.cpe?[E.cpe[0],E.cpe[1],E.cpe[2]||300]:null;return E.co?[E.co[0],E.co[1],E.lim||300]:null}
+function destNom(){return TR&&TR.dest==='cpe'?'el CPE':'su recinto'}
 function horaDe(ms){var d=new Date(ms);return pad(d.getHours())+':'+pad(d.getMinutes())}
 function minutos(){return TR?Math.round((Date.now()-TR.ini)/60000):0}
 function explicar(u,d){   // por qué no lo deja: compara con cómo va el viaje
@@ -442,8 +445,8 @@ function supTxt(){var s=(E&&E.supervisores)||[];return s.length?'<div class="sup
 
 // ------------------------------------------------------------------ 📍 llegada
 function llegada(u){pararViaje();F={tipo:'llegada',check:{}};
-  var validar=function(u){cargando('Revisando que esté en su recinto…');accion({accion:'ubic',para:'llegada',lat:u.lat,lon:u.lon,acc:u.acc}).then(function(r){
-    if(!r.ok){vibra('mal');return pantalla({atras:inicio,e:'📍⛔',h1:'Todavía no está en su recinto',p:esc(r.error),aviso:BOT?explicar(u,r.distancia_m):'',avisoMal:true,
+  var validar=function(u){cargando(E.capacitacion?'Revisando que esté en el CPE o en su recinto…':'Revisando que esté en su recinto…');accion({accion:'ubic',para:'llegada',lat:u.lat,lon:u.lon,acc:u.acc}).then(function(r){
+    if(!r.ok){vibra('mal');return pantalla({atras:inicio,e:'📍⛔',h1:E.capacitacion?'No está en el CPE ni en su recinto':'Todavía no está en su recinto',p:esc(r.error),aviso:BOT?explicar(u,r.distancia_m):'',avisoMal:true,
       ops:[['🔄 YA ESTOY, PROBAR OTRA VEZ','b',function(){llegada()}],['⛔ NO PUEDO LLEGAR','r',function(){noLlego(u)}]].concat(r.demo?[['🧪 SEGUIR IGUAL (solo en prueba)','n',function(){F.dist=r.distancia_m;pregunta(0)},1]]:[])})}
     F.dist=r.distancia_m;vibra('ok');pregunta(0)}).catch(function(e){error(e.message)})};
   if(u)return validar(u);
@@ -505,7 +508,10 @@ function mandarPrueba(){cargando('Enviando…');accion({accion:'prueba',n:F.n,te
 
 // ------------------------------------------------------------------ 📷 cámara (en vivo; si no, la del teléfono)
 var stream=null,blob=null,camCfg=null;
-function camara(parte,titulo,luego){camCfg={parte:parte,titulo:titulo,luego:luego};blob=null;
+function camara(parte,titulo,luego){
+  if(E&&E.fs){return pantalla({e:'🧪📷',h1:'FOTO SIMULADA',p:'<b>MODO PRUEBAS.</b> En elecciones aquí se toma la foto de <b>'+esc(titulo)+'</b>.<br><br>Hoy la foto <b>no se envía</b> (así no se gastan los servidores). Toque el botón para seguir.',
+    ops:[['📷 SIMULAR LA FOTO Y SEGUIR','g',function(){F.fsim=F.fsim||[];if(F.fsim.indexOf(parte)<0)F.fsim.push(parte);vibra('ok');luego()}]]})}
+  camCfg={parte:parte,titulo:titulo,luego:luego};blob=null;
   $('camTit').textContent='📷 '+titulo;$('cam').classList.remove('oculto');$('prev').classList.add('oculto');$('vid').classList.remove('oculto');
   $('bTomar').classList.remove('oculto');$('bRev').classList.add('oculto');
   if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia)return camaraTelefono();
