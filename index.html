@@ -59,7 +59,7 @@ var S0=(location.search.match(/[?&]s=([^&]+)/)||[])[1], BOT=!!S0, RELAY=false;  
 function leerS(t){t=t.replace(/-/g,'+').replace(/_/g,'/');while(t.length%4)t+='=';var b=atob(t),u=new Uint8Array(b.length);for(var i=0;i<b.length;i++)u[i]=b.charCodeAt(i);
   var d=JSON.parse(new TextDecoder().decode(u));
   RELAY=!!d.ft;
-  ALT=d.frs||[];return {ve:d.ve||0,ff:d.ff||'',ffs:d.ffs||[],ch:d.ch,ci:d.ci,ft:d.ft,fr:d.fr||'https://ntfy.sh',frs:d.frs||[],nombre:d.nm,demo:!!d.dm,codigo:d.c,escuela:d.e,que:d.q,n:d.k,capacitacion:!!d.cap,fs:!!d.fs,co:d.co,lim:d.lim,cpe:d.cpe||null,t:d.t,
+  ALT=d.frs||[];return {ve:d.ve||0,ff:d.ff||'',ffs:d.ffs||[],ch:d.ch,ci:d.ci,ft:d.ft,fr:d.fr||'https://ntfy.sh',frs:d.frs||[],nombre:d.nm,demo:!!d.dm,codigo:d.c,escuela:d.e,que:d.q,n:d.k,capacitacion:!!d.cap,fs:!!d.fs,casa:!!d.casa,co:d.co,lim:d.lim,cpe:d.cpe||null,t:d.t,
     pruebas:(d.p||[]).map(function(x){return {n:x[0],hora:x[1],pedida:!!x[2],estado:x[3]==='b'?'bien':x[3]==='m'?'mal':''}}),
     llegada:d.l?{hora:d.l[0],llego:!!d.l[1],abierta:!!d.l[2]}:null,viaje:{activo:d.q==='viaje'},supervisores:[],quien:d.qn||d.nm||''}}
 function metros(a,b,c,d){var R=6371000,r=Math.PI/180,x=Math.sin((c-a)*r/2),y=Math.sin((d-b)*r/2);return 2*R*Math.asin(Math.sqrt(x*x+Math.cos(a*r)*Math.cos(c*r)*y*y))}
@@ -182,6 +182,7 @@ function accion(d){
   if(!BOT)return api('/tg/app/accion',d);
   if(d.accion==='ubic'){F.u={lat:d.lat,lon:d.lon,acc:d.acc};
     var hol=Math.min(d.acc||0,50);
+    if(E.capacitacion&&E.casa)return Promise.resolve({ok:true,distancia_m:E.co?Math.round(metros(E.co[0],E.co[1],d.lat,d.lon)):null,lugar:'casa'});
     if(E.capacitacion&&E.cpe){var mc=Math.round(metros(E.cpe[0],E.cpe[1],d.lat,d.lon));if(mc-hol<=(E.cpe[2]||300))return Promise.resolve({ok:true,distancia_m:mc,lugar:'cpe'})}
     if(!E.co)return Promise.resolve({ok:true,distancia_m:null});
     var m=Math.round(metros(E.co[0],E.co[1],d.lat,d.lon)),ok=m-hol<=E.lim;
@@ -509,10 +510,9 @@ function mandarPrueba(){cargando('Enviando…');accion({accion:'prueba',n:F.n,te
 // ------------------------------------------------------------------ 📷 cámara (en vivo; si no, la del teléfono)
 var stream=null,blob=null,camCfg=null;
 function camara(parte,titulo,luego){
-  if(E&&E.fs){return pantalla({e:'🧪📷',h1:'FOTO SIMULADA',p:'<b>MODO PRUEBAS.</b> En elecciones aquí se toma la foto de <b>'+esc(titulo)+'</b>.<br><br>Hoy la foto <b>no se envía</b> (así no se gastan los servidores). Toque el botón para seguir.',
-    ops:[['📷 SIMULAR LA FOTO Y SEGUIR','g',function(){F.fsim=F.fsim||[];if(F.fsim.indexOf(parte)<0)F.fsim.push(parte);vibra('ok');luego()}]]})}
-  camCfg={parte:parte,titulo:titulo,luego:luego};blob=null;
-  $('camTit').textContent='📷 '+titulo;$('cam').classList.remove('oculto');$('prev').classList.add('oculto');$('vid').classList.remove('oculto');
+  // 🧪 MODO PRUEBAS: la cámara se abre igual y se toma la foto, pero NO se envía (pasa al siguiente paso)
+  camCfg={parte:parte,titulo:titulo,luego:luego,sim:!!(E&&E.fs)};blob=null;
+  $('camTit').textContent=(camCfg.sim?'🧪 PRUEBA (la foto NO se envía) · ':'📷 ')+titulo;$('cam').classList.remove('oculto');$('prev').classList.add('oculto');$('vid').classList.remove('oculto');
   $('bTomar').classList.remove('oculto');$('bRev').classList.add('oculto');
   if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia)return camaraTelefono();
   navigator.mediaDevices.getUserMedia({audio:false,video:{facingMode:{ideal:'environment'},width:{ideal:1920},height:{ideal:1080}}})
@@ -542,6 +542,7 @@ function subirRelay(parte,b){   // la foto pasa por un servidor gratis de paso (
     .catch(function(e){if(e.lleno){LLENO=true;throw e}throw new Error('No se pudo enviar la foto (revise el internet). Toque «Usar foto» otra vez.')})}
 $('usar').onclick=function(){if(!blob)return;var b=$('usar');b.disabled=true;b.textContent='Enviando…';
   var listo=function(){b.disabled=false;b.textContent='✅ Usar foto';cerrarCam();vibra('ok');camCfg.luego()};
+  if(camCfg.sim){F.fsim=F.fsim||[];if(F.fsim.indexOf(camCfg.parte)<0)F.fsim.push(camCfg.parte);aviso1('🧪 Modo pruebas: la foto NO se envió (se practicó el paso)');blob=null;return listo()}
   var guardar=function(){return fotoSinSenal(camCfg.parte,blob).then(function(){aviso1('📦 Sin señal: la foto quedó guardada en el teléfono');listo()})};
   if(BOT&&RELAY&&(F.pend||navigator.onLine===false))return guardar();      // 📦 sin señal: la foto se guarda y se manda después
   (BOT?subirRelay(camCfg.parte,blob):api('/tg/app/foto?parte='+camCfg.parte,blob,'image/jpeg')).then(listo)
