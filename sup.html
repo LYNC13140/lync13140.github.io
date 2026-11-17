@@ -325,9 +325,11 @@ function sinJornada(){vibra('mal');pantalla({atras:inicio,tit:'📶 Test de cone
   p:'Las pruebas de conexión solo se pueden pedir cuando está activado un modo (🔧 Prueba, 🧪 Simulacro o 🗳️ Elecciones).<br><br>Mientras tanto no se le avisa a ningún operador.',ops:(D.pp?[['🎛️ ACTIVAR UN MODO AHORA','g',modos]]:[]).concat([['🏠 VOLVER AL PANEL','n',inicio,1]])})}
 function activar(){if(D.jm==='')return sinJornada();var n=sigTest(),hechos=(D.ord||[]).map(function(o){return '📶'+o[0]+' ✅ '+esc(o[1])}).join(' · ');
   pantalla({atras:inicio,tit:'📶 Test de conexión',sub:'Les llega el aviso al instante',e:'📶📢',h1:'¿Activar el TEST '+n+' ahora?',
-    p:'Se avisa a los operadores que <b>ya están en su recinto</b>. De los que no llegaron le digo quiénes son, para que los llame.',
+    p:'Se avisa a los operadores que <b>ya están en su recinto</b>. De los que no llegaron le digo quiénes son, para que los llame.<br><br>🟢 El test queda <b>ABIERTO</b> hasta que lo termine. Si activa otro, el anterior se cierra.',
     html:hechos?'<div class="av ok"><b>Ya activados hoy:</b><br>'+hechos+'</div>':'',
-    ops:[['✅ SÍ, ACTIVAR TEST '+n,'g',function(){hacer({accion:'pedir',n:n,cods:[]})}],['↩ No, volver','n',inicio,1]]})}
+    ops:[['✅ SÍ, ACTIVAR TEST '+n,'g',function(){hacer({accion:'pedir',n:n,cods:[]})}],
+         ['🛑 TERMINAR EL TEST ABIERTO','r',function(){if(confirm('🛑 ¿Está seguro de TERMINAR el test de conexión abierto?\n\nLos que no lo hicieron quedarán como «NO lo hicieron».'))hacer({accion:'terminar_test'})}],
+         ['↩ No, volver','n',inicio,1]]})}
 
 // ------------------------------------------------------------ 🧪 ver como lo ve otro rol
 function verComo(){pantalla({atras:inicio,tit:'🧪 Ver como lo ve…',sub:'Es solo para revisar: no cambia nada de nadie',e:'🧪👀',h1:'¿Cómo quiere verlo?',
