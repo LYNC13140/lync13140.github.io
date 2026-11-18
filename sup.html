@@ -514,11 +514,11 @@ function confirma(a,cods){pantalla({atras:pedir,tit:'📢 Pedir prueba',e:'📢'
 // ------------------------------------------------------------ 6 · por autorizar
 var TIPO={fibra:'🧵 Fibra',equipo:'🖥️ Equipo',enlace:'📡 Enlace caído',otro:'❓ Otro',luz:'💡 Sin luz',lluvia:'🌧️ Lluvia',mojado:'💧 Equipo mojado',inundacion:'🌊 Inundación (equipo seco)',sinip:'🌐 Sin IP / configuración',apagado:'⚫ Equipo apagado'};
 function autorizar(){var h='';
-  if(!D.pa.length)h='<div class="av ok"><b class="t">✅ Nada por autorizar</b>Ningún operador reportó daños.</div>';
+  if(!D.pa.length)h='<div class="av ok"><b class="t">✅ Nada por autorizar</b>No hay tickets esperando tu decisión.</div>';
   D.pa.forEach(function(p){h+='<div class="av am" style="text-align:left"><b>'+esc(p[0])+' · '+esc(p[1])+'</b><br>👤 '+esc(p[4])+': '+(TIPO[p[2]]||'')+(p[3]?' <i>«'+esc(p[3])+'»</i>':'')
-    +'<br>📡 El monitoreo marca: <b>'+esc(p[5]||'—')+'</b> · espera '+esc(p[6])+'</div>'
+    +'<br>📡 El monitoreo marca: <b>'+esc(p[5]||'—')+'</b> · espera '+esc(p[6])+(p[7]?'<br>🏷️ Causa marcada: <b>'+esc(p[7])+'</b>':'<br>🏷️ <span style="opacity:.8">Sin causa marcada todavía</span>')+'</div>'
     +'<div class="fila2"><button class="op g" data-f="a" data-v="si" data-c="'+p[0]+'">✅ CREAR</button><button class="op r" data-f="a" data-v="no" data-c="'+p[0]+'">❌ NO</button><button class="op n" data-f="a" data-v="lu" data-c="'+p[0]+'">⏸️ DESPUÉS</button></div>'});
-  pantalla({atras:inicio,tit:'📥 Por autorizar ('+D.pa.length+')',sub:'Daños que reportaron los operadores',e:D.pa.length?'🛠️🌐':'',h1:D.pa.length?'¿Se crea el ticket?':'',html:h+'<div style="height:10px"></div>',
+  pantalla({atras:inicio,tit:'📥 Por autorizar ('+D.pa.length+')',sub:'Tickets que esperan tu decisión: caídas del monitoreo y daños de los operadores',e:D.pa.length?'🛠️🌐':'',h1:D.pa.length?'¿Se crea el ticket?':'',html:h+'<div style="height:10px"></div>',
     fn:{a:function(el){hacer({accion:'autorizar',cod:el.dataset.c,val:el.dataset.v})}}})}
 
 // ------------------------------------------------------------ 🛠️ daño
