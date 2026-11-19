@@ -40,7 +40,7 @@ h3{margin:14px 16px 4px;color:var(--azul);font-size:17px}
 .seg{display:flex;gap:8px;padding:6px 14px}.seg button{flex:1;padding:15px 0;border-radius:16px;background:#fff;border:3px solid var(--gris);font-size:22px;font-weight:800;color:var(--azul);font-family:inherit}
 .seg .on{background:var(--azul);color:#fff;border-color:var(--azul)}
 .nota{font-size:14px;color:var(--mut);text-align:center;padding:10px 16px}
-.girar{display:inline-block;animation:g 1.2s linear infinite}@keyframes g{to{transform:rotate(360deg)}}
+.girar{display:inline-block;animation:g 1.2s linear infinite}.pill{display:inline-block;padding:2px 9px;border-radius:999px;font-size:12px;font-weight:800;background:#e8eefc;color:#1f3b66;margin:0 4px 4px 0}@keyframes g{to{transform:rotate(360deg)}}
 </style>
 <style id="tema2026">
 /* ✨ TEMA 2026 «futurista» para las Mini Apps de Telegram — SOLO aspecto. No cambia nada de cómo funciona. */
@@ -228,7 +228,7 @@ function notaEsc(x){var n=[];if(x.o)n.push(esc(x.o));
   else{i=x.p.indexOf('f');if(i>=0&&x.pd&&x.pd[i][1])n.push('prueba '+(i+1)+' atrasada '+esc(x.pd[i][1]))}
   if(x.ls==='nov')n.push('llegó con novedades');if(x.cm)n.push('🚧 '+esc(x.cm[1]));return n.join(' · ')}
 function unicas(){var v={};return D.f.filter(function(x){if(v[x.c])return false;v[x.c]=1;return true})}
-var TKE={por_autorizar:'⏳ por autorizar',consulta_op:'📞 preguntando al operador',por_crear:'🆕 por crear',creado:'🎫 creado',seguimiento:'🔁 seguimiento',intermitente:'〰️ intermitente',reabrir:'↩️ se reabre',en_revision:'🔎 en revisión'};
+var TKE={por_autorizar:'⏳ por autorizar (grupo)',por_general:'👑 en el supervisor general',consulta_op:'📞 preguntando al operador',por_crear:'🆕 por crear',creado:'🎫 creado',seguimiento:'🔁 seguimiento',intermitente:'〰️ intermitente',reabrir:'↩️ se reabre',en_revision:'🔎 en revisión'};
 function dura(seg){if(seg==null)return '';var m=Math.round(seg/60),h=Math.floor(m/60),d=Math.floor(h/24);return d?d+' d '+(h%24)+' h':h?h+' h '+(m%60)+' min':m+' min'}
 function tkTxt(x){return x.tk?'🎫 '+(x.tk[1]?'<b>'+esc(x.tk[1])+'</b> · ':'')+(TKE[x.tk[0]]||esc(x.tk[0])):(x.e==='F'?'🚫 <b>sin ticket</b>':'')}
 function busca(c,pt){return D.f.filter(function(x){return x.c===c&&(!pt||x.pt===pt)})[0]}
@@ -325,13 +325,18 @@ function tkPedir(d,msg){   // 🎫 tickets: se pide a la PC y se muestra aquí m
 window._tkVer=function(t,d){if(d)D=d;TK=t;tkVer('')};
 window._supPrueba=function(d,cf){if(d)D=d;if(cf)canal=cf;return {autorizar:autorizar,crearTodos:crearTodos,modoGrupo:modoGrupo,causaPanel:causaPanel}};   // para revisar las pantallas sin la PC   // para revisar la pantalla sin la PC
 
-function causaPanel(x,k,volver,ok){if(!D.ch)return alert('Abra el panel otra vez desde el chat');
+function causaPanel(x,k,volver,ok,cf){if(!D.ch)return alert('Abra el panel otra vez desde el chat');
   var quita=k==='quitar'||czF(x).indexOf(k)>=0,nom=k==='quitar'?'TODAS las causas':(CZN[k]||k);
   if(quita&&!ok)return pantalla({atras:volver,tit:'🏷️ '+esc(x.c),e:'↩️',h1:'¿Quitar «'+nom+'»?',
     p:'Usted había marcado <b>'+nom+'</b> en la escuela <b>'+esc(x.c)+'</b>.<br>Si lo marcó <b>por error</b>, toque SÍ. Queda anotado en el informe.',
     ops:[['✅ SÍ, LO MARQUÉ POR ERROR: QUITAR','r',function(){causaPanel(x,k,volver,1)}],['↩ NO, DEJARLO MARCADO','g',volver]]});
   pantalla({e:'<span class="girar">⏳</span>',h1:'Guardando…'});
-  canal(D.ch,D.ci,D.fr,{accion:'tk_causa_'+k,cod:x.c,pe:quita?1:0}).then(function(res){var m=res.tkmsg||'';
+  canal(D.ch,D.ci,D.fr,{accion:'tk_causa_'+k,cod:x.c,pe:quita?1:0,cf:cf?1:0}).then(function(res){var m=res.tkmsg||'';
+    if(m.indexOf('❓')===0)return pantalla({atras:volver,tit:'🏷️ '+esc(x.c),e:'⚠️',h1:'¿Está seguro?',     // ⚠️ cambios seguidos (menos de 10 min)
+      html:'<div class="av am" style="text-align:left;font-size:16px">'+m.slice(1)+'<br><br><small>Si dice SÍ o SALIR, queda anotado y se avisa a su supervisor de grupo y al general.</small></div>',
+      ops:[['✅ SÍ, ESTOY SEGURO: CAMBIAR','r',function(){causaPanel(x,k,volver,1,1)}],['✖ SALIR SIN CAMBIAR','g',function(){
+        pantalla({e:'<span class="girar">⏳</span>',h1:'Anotando…'});canal(D.ch,D.ci,D.fr,{accion:'tk_causaobs_'+k,cod:x.c}).then(function(r2){
+          pantalla({atras:volver,e:'✖',h1:'No se cambió nada',html:'<div class="av ok" style="text-align:left">'+(r2.tkmsg||'Listo')+'</div>',ops:[['↩ VOLVER A LA ESCUELA','g',volver]]})},function(){volver()})}]]});
     if(m.indexOf('⏳')===0){var s=parseInt((m.match(/espere (\d+) s/i)||[])[1]||'60',10),t0=Date.now();
       pantalla({atras:volver,tit:'🏷️ '+esc(x.c),e:'⏳',h1:'Espere un momento',html:'<div class="av am" style="text-align:left;font-size:16px">'+m+'<br><b id="czr" style="font-size:24px"></b></div>',
         ops:[['↩ VOLVER A LA ESCUELA','n',volver]]});
@@ -394,7 +399,7 @@ function tkBuscar(q){if(!D.ch)return;var t0=Date.now();pantalla({atras:tickets,t
     pantalla({atras:tickets,tit:'🔎 Buscar tickets',sub:'«'+esc(q)+'» · '+L.length+' escuela(s)',html:h,ops:[['🔎 BUSCAR OTRA','b',tickets],['🏠 VOLVER AL PANEL','n',inicio,1]]})},
   function(e){pantalla({atras:tickets,tit:'🔎 Buscar tickets',e:'⚠️',h1:'No se pudo',p:esc(e.message||''),ops:[['↩ VOLVER','n',tickets]]})})}
 
-function tkVer(msg){var T=TK||{l:[]};var col={por_autorizar:'#a855f7',reabrir:'#e5484d',por_crear:'#e5484d',seguimiento:'#f5a524',intermitente:'#f5a524',creado:'#4f8cff',en_revision:'#30a46c',consulta_op:'#a855f7'};
+function tkVer(msg){var T=TK||{l:[]};var col={por_autorizar:'#a855f7',por_general:'#f59e0b',reabrir:'#e5484d',por_crear:'#e5484d',seguimiento:'#f5a524',intermitente:'#f5a524',creado:'#4f8cff',en_revision:'#30a46c',consulta_op:'#a855f7'};
   var h=(msg?'<div class="av ok" style="text-align:left;font-size:15px">'+msg+'</div>':'')
    +(T.sd?'<div class="av" style="background:#fde2e1;font-size:15px">🛑 <b>Base madre SIN DATOS</b>: no se manda nada a OTRS hasta que vuelvan los datos.</div>':'')
    +'<div style="display:flex;gap:6px;flex-wrap:wrap;margin:8px 12px">'+[['📤 Pendientes',T.pend,'#e5484d'],['🎫 Abiertos',T.abiertos,'#4f8cff'],['⏳ Por autorizar',T.aut,'#a855f7']].map(function(x){return '<div style="flex:1;min-width:90px;background:#fff;border-radius:12px;padding:8px 10px;border-left:4px solid '+x[2]+'"><div style="font-size:12px;color:#5a6577">'+x[0]+'</div><b style="font-size:22px">'+(x[1]||0)+'</b></div>'}).join('')+'</div>'
@@ -529,7 +534,7 @@ function confirma(a,cods){pantalla({atras:pedir,tit:'📢 Pedir prueba',e:'📢'
 var TIPO={fibra:'🧵 Fibra',equipo:'🖥️ Equipo',enlace:'📡 Enlace caído',otro:'❓ Otro',luz:'💡 Sin luz',lluvia:'🌧️ Lluvia',mojado:'💧 Equipo mojado',inundacion:'🌊 Inundación (equipo seco)',sinip:'🌐 Sin IP / configuración',apagado:'⚫ Equipo apagado'};
 var OMT={auto:'🤖 AUTOMÁTICO',manual:'✋ MANUAL'};
 function modosHtml(){var om=D.om||{},gs=Object.keys(om);if(!gs.length)return '';
-  return '<div class="av" style="text-align:left;background:#eef4ff;border:2px solid #4f8cff"><b class="t">🎛️ ¿Cómo se mandan los tickets de su grupo?</b>'
+  return '<div class="av" style="text-align:left;background:#eef4ff;border:2px solid #4f8cff"><b class="t">🎛️ ¿Cómo se mandan los tickets '+(D.gen?'de cada grupo':'de su grupo')+'?</b>'
    +gs.map(function(g){var m=om[g];return '<div style="margin-top:8px"><b>'+esc(g)+'</b>: '+OMT[m]+'<div class="fila2" style="margin-top:4px">'
      +'<button class="op '+(m==='manual'?'g':'n')+' chico" style="margin:0" data-f="gm" data-g="'+esc(g)+'" data-m="manual">'+(m==='manual'?'✔ ':'')+'✋ MANUAL</button>'
      +'<button class="op '+(m==='auto'?'g':'n')+' chico" style="margin:0" data-f="gm" data-g="'+esc(g)+'" data-m="auto">'+(m==='auto'?'✔ ':'')+'🤖 AUTOMÁTICO</button></div></div>'}).join('')
@@ -538,26 +543,54 @@ function modoGrupo(g,m){var o=(D.om||{})[g];if(o===m)return;
   pantalla({atras:autorizar,tit:'🎛️ '+esc(g),e:m==='auto'?'🤖':'✋',h1:'¿Poner '+OMT[m]+'?',
     p:m==='auto'?'Las reglas deciden solas: con fibra, equipo o caído mucho tiempo <b>se manda el ticket</b>; con SIN LUZ, lluvia o inundación <b>NO</b>. Lo que hoy está en su bandeja (caídas del monitoreo) se manda con esas reglas. Le llega un informe.':'Todo lo nuevo llega a <b>📥 Por autorizar</b> y no se manda nada hasta que usted lo decida.',
     ops:[['✅ SÍ, CAMBIAR','g',function(){hacer({accion:'otrs_gmodo',g:g,m:m})}],['↩ No, volver','n',autorizar,1]]})}
-function crearTodos(){var n=D.pa.length;pantalla({atras:autorizar,tit:'📤 Crear todos',e:'📤',h1:'¿Mandar a crear los '+n+' tickets?',
-  html:'<div class="av am" style="text-align:left">'+D.pa.map(function(p){return '🎫 <b>'+esc(p[0])+'</b> '+esc(p[1])+(p[7]?' · 🏷️ '+esc(p[7]):'')}).join('<br>')+'</div>',
+function crearTodos(){var gen=D.gen&&D.dos,L=D.pa.filter(function(p){return gen?(p[8]==='g'&&!p[9]):true}),n=L.length;pantalla({atras:autorizar,tit:'📤 Crear todos',e:'📤',h1:gen?'¿Autorizar los '+n+' tickets técnicos?':(D.dos?'¿Pasar los '+n+' al supervisor general?':'¿Mandar a crear los '+n+' tickets?'),
+  html:'<div class="av am" style="text-align:left">'+L.map(function(p){return '🎫 <b>'+esc(p[0])+'</b> '+esc(p[1])+(p[7]?' · 🏷️ '+esc(p[7]):'')}).join('<br>')+'</div>',
   p:'Se crea un ticket por cada escuela (sin duplicar) y cada uno queda en el informe a su nombre.',
   ops:[['📤 SÍ, CREAR LOS '+n,'r',function(){hacer({accion:'autorizar_todos'})}],['↩ No, uno por uno','n',autorizar,1]]})}
-function autorizar(){var h=modosHtml();
-  if(!D.pa.length)h+='<div class="av ok"><b class="t">✅ Nada por autorizar</b>No hay tickets esperando tu decisión.</div>';
-  else if(D.pa.length>1)h+='<button class="op r" data-f="todos">📤 CREAR TODOS ('+D.pa.length+')</button>';
-  D.pa.forEach(function(p){h+='<div class="av am" style="text-align:left"><b>'+esc(p[0])+' · '+esc(p[1])+'</b><br>👤 '+esc(p[4])+': '+(TIPO[p[2]]||'')+(p[3]?' <i>«'+esc(p[3])+'»</i>':'')
-    +'<br>📡 El monitoreo marca: <b>'+esc(p[5]||'—')+'</b> · espera '+esc(p[6])+(p[7]?'<br>🏷️ Causa marcada: <b>'+esc(p[7])+'</b>':'<br>🏷️ <span style="opacity:.8">Sin causa marcada todavía</span>')+'</div>'
-    +'<div class="fila2"><button class="op g" data-f="a" data-v="si" data-c="'+p[0]+'">✅ CREAR</button><button class="op r" data-f="a" data-v="no" data-c="'+p[0]+'">❌ NO</button><button class="op n" data-f="a" data-v="lu" data-c="'+p[0]+'">⏸️ DESPUÉS</button></div>'});
-  pantalla({atras:inicio,tit:'📥 Por autorizar ('+D.pa.length+')',sub:'Tickets que esperan tu decisión: caídas del monitoreo y daños de los operadores',e:D.pa.length?'🛠️🌐':'',h1:D.pa.length?'¿Se crea el ticket?':'',html:h+'<div style="height:10px"></div>',
-    fn:{a:function(el){hacer({accion:'autorizar',cod:el.dataset.c,val:el.dataset.v})},gm:function(el){modoGrupo(el.dataset.g,el.dataset.m)},todos:crearTodos}})}
+function generalHtml(){if(!D.gen||!D.dos)return '';var m=D.gm||'manual';
+  return '<div class="av" style="text-align:left;background:#fff7e6;border:2px solid #f59e0b"><b class="t">👑 Usted es el SUPERVISOR GENERAL</b>Lo que piden los grupos llega aquí y usted lo autoriza.'
+   +'<div class="fila2" style="margin-top:8px"><button class="op '+(m==='manual'?'g':'n')+' chico" style="margin:0" data-f="gm" data-g="__general__" data-m="manual">'+(m==='manual'?'✔ ':'')+'✋ MANUAL</button>'
+   +'<button class="op '+(m==='auto'?'g':'n')+' chico" style="margin:0" data-f="gm" data-g="__general__" data-m="auto">'+(m==='auto'?'✔ ':'')+'🤖 AUTOMÁTICO</button></div>'
+   +'<div style="font-size:13px;color:#5a6577;margin-top:6px">✋ <b>Manual</b>: usted autoriza cada ticket. 🤖 <b>Automático</b>: lo técnico (fibra, equipo, caído) que le pasen se crea solo. Las 🚨 <b>incidencias</b> (sin luz, inundación, lluvia) <b>siempre</b> esperan su decisión.</div></div>'}
+function incidHtml(){var l=(D.ic||[]).filter(function(i){return i[6]==='a'});if(!D.gen||!l.length)return '';
+  return '<div class="av" style="text-align:left;border:2px solid #e5484d"><b class="t"><span class="girar">🚨</span> Incidencias recientes · '+l.length+'</b>'
+   +l.map(function(i){return '<div style="margin-top:6px;padding-top:6px;border-top:1px solid #0001">'+esc(i[3])+' <b>'+esc(i[1])+'</b> '+esc(i[2])+' · hace '+i[4]+' min'+(i[5]?' · 💾 guardada':'')
+     +'<div class="fila2" style="margin-top:4px"><button class="op g chico" style="margin:0" data-f="ir" data-i="'+esc(i[0])+'" data-a="res">✅ RESUELTA</button>'+(i[5]?'':'<button class="op n chico" style="margin:0" data-f="ir" data-i="'+esc(i[0])+'" data-a="gu">💾 GUARDAR</button>')+'</div></div>'}).join('')
+   +'<div style="font-size:12px;color:#5a6577;margin-top:6px">En la pantalla de ELEC titilan hasta que se ponga ✅ resuelta.</div></div>'}
+function egHtml(){var l=D.eg||[];if(D.gen||!l.length)return '';
+  return '<div class="av" style="text-align:left;background:#fff7e6"><b class="t">👑 En el supervisor general · '+l.length+'</b>Usted ya los pidió; el supervisor general los autoriza:'
+   +l.map(function(e){return '<br>'+(e[4]?'🚨':'🎫')+' <b>'+esc(e[0])+'</b> '+esc(e[1])+' · hace '+esc(e[3])}).join('')+'</div>'}
+function crearIncid(p){var t0=p[10]||'';
+  pantalla({atras:autorizar,tit:'🎫 '+esc(p[0]),e:'✏️',h1:'Ticket de una incidencia',
+    p:'Es <b>incidencia</b> ('+esc(p[7]||'luz / inundación')+'), no una falla técnica. Para crear el ticket <b>tiene que cambiar el texto</b> y explicar qué falla técnica hay.',
+    html:'<textarea id="txg" style="width:100%;min-height:130px;font-size:16px;border-radius:12px;padding:10px">'+esc(t0)+'</textarea><div id="txm" style="color:#e5484d;font-weight:700"></div>',
+    ops:[['🎫 CREAR TICKET CON ESTE TEXTO','r',function(){var v=($('txg').value||'').trim();if(v.length<15||v===t0.trim()){$('txm').textContent='✏️ Cambie el texto (mínimo 15 letras, distinto del sugerido).';return}
+      hacer({accion:'autorizar',cod:p[0],val:'si',texto:v})}],['↩ Volver','n',autorizar,1]]})}
+function autorizar(){var h=generalHtml()+incidHtml()+modosHtml()+egHtml(),gen=D.gen&&D.dos,tec=D.pa.filter(function(p){return gen?(p[8]==='g'&&!p[9]):true});
+  if(!D.pa.length)h+='<div class="av ok"><b class="t">✅ Nada por autorizar</b>No hay tickets esperando su decisión.</div>';
+  else if(tec.length>1)h+='<button class="op r" data-f="todos">📤 '+(gen?'AUTORIZAR TODOS LOS TÉCNICOS':'CREAR TODOS')+' ('+tec.length+')</button>';
+  D.pa.forEach(function(p,i){var g=p[8]==='g',inc=p[9];
+    h+='<div class="av '+(inc?'':'am')+'" style="text-align:left;'+(inc?'border:2px solid #e5484d':'')+'">'+(g?'<span class="pill" style="background:#f59e0b;color:#000">👑 '+(p[11]?'Lo pasó: '+esc(p[11]):'Para usted')+'</span> ':(gen?'<span class="pill">⏳ Sigue en el grupo '+esc(p[12]||'')+'</span> ':''))+(inc?'<span class="pill" style="background:#e5484d;color:#fff">🚨 INCIDENCIA</span>':'')
+    +'<br><b>'+esc(p[0])+' · '+esc(p[1])+'</b><br>👤 '+esc(p[4])+': '+(TIPO[p[2]]||'')+(p[3]?' <i>«'+esc(p[3])+'»</i>':'')
+    +'<br>📡 El monitoreo marca: <b>'+esc(p[5]||'—')+'</b> · espera '+esc(p[6])+(p[7]?'<br>🏷️ Causa marcada: <b>'+esc(p[7])+'</b>':'<br>🏷️ <span style="opacity:.8">Sin causa marcada todavía</span>')+'</div>';
+    if(gen&&g&&inc)h+='<div class="fila2"><button class="op n" data-f="a" data-v="gu" data-c="'+p[0]+'">💾 GUARDAR COMO INCIDENCIA</button><button class="op r" data-f="ti" data-i="'+i+'">🎫 CREAR TICKET (cambiar texto)</button></div>';
+    else if(gen&&g)h+='<div class="fila2"><button class="op g" data-f="a" data-v="si" data-c="'+p[0]+'">✅ AUTORIZAR · CREAR</button><button class="op r" data-f="a" data-v="no" data-c="'+p[0]+'">❌ NO</button><button class="op n" data-f="a" data-v="lu" data-c="'+p[0]+'">⏸️ DESPUÉS</button></div>';
+    else h+='<div class="fila2"><button class="op g" data-f="a" data-v="si" data-c="'+p[0]+'">'+(D.dos&&!gen?'✅ CREAR (pasa al general)':'✅ CREAR')+'</button><button class="op r" data-f="a" data-v="no" data-c="'+p[0]+'">❌ NO</button><button class="op n" data-f="a" data-v="lu" data-c="'+p[0]+'">⏸️ DESPUÉS</button></div>'});
+  pantalla({atras:inicio,tit:'📥 Por autorizar ('+D.pa.length+')',sub:gen?'👑 Supervisor general: usted autoriza lo que le pasan los grupos':(D.dos?'Usted pide el ticket; el supervisor general lo autoriza':'Tickets que esperan tu decisión'),e:D.pa.length?'🛠️🌐':'',h1:D.pa.length?'¿Se crea el ticket?':'',html:h+'<div style="height:10px"></div>',
+    fn:{a:function(el){hacer({accion:'autorizar',cod:el.dataset.c,val:el.dataset.v})},gm:function(el){el.dataset.g==='__general__'?modoGeneral(el.dataset.m):modoGrupo(el.dataset.g,el.dataset.m)},todos:crearTodos,
+        ti:function(el){crearIncid(D.pa[+el.dataset.i])},ir:function(el){hacer({accion:'incid',id:el.dataset.i,acc:el.dataset.a})}}})}
+function modoGeneral(m){if((D.gm||'manual')===m)return;
+  pantalla({atras:autorizar,tit:'👑 Supervisor general',e:m==='auto'?'🤖':'✋',h1:'¿Ponerse en '+OMT[m]+'?',
+    p:m==='auto'?'Todo lo <b>técnico</b> que le pasen los grupos (fibra, equipo, caído) <b>se crea solo</b>, también lo que hoy está esperándolo. Las <b>incidencias</b> (sin luz, inundación, lluvia) siguen esperando su decisión.':'Cada pedido de los grupos esperará su ✅ (uno por uno o «autorizar todos»).',
+    ops:[['✅ SÍ, CAMBIAR','g',function(){hacer({accion:'otrs_gmodo',g:'__general__',m:m})}],['↩ No, volver','n',autorizar,1]]})}
 
 // ------------------------------------------------------------ 🛠️ daño
 function elegirDanio(){var h='<div class="lista">';
   unicas().forEach(function(x){h+='<button class="esc '+estadoEsc(x)+'" data-f="c" data-c="'+x.c+'"><b>'+esc(x.c)+' · '+esc(x.n)+'</b><div class="s">'+chipsEsc(x)+'</div></button>'});
   pantalla({atras:inicio,tit:'🛠️ Reportar daño',sub:'¿En qué escuela?',html:h+'</div>',fn:{c:function(el){danio(el.dataset.c,elegirDanio)}}})}
 function danio(c,volver){var x=busca(c)||{n:''};
-  pantalla({atras:volver,tit:'🛠️ '+esc(c)+' · '+esc(x.n),sub:'El ticket se genera solo',e:'🛠️❓',h1:'¿Qué se dañó?',
-    p:'🧵 Fibra / 🖥️ Equipo / 💧 Equipo mojado / 🌐 Sin IP / 📡 Enlace / ❓ Otro → se crea el ticket. 💡 Sin luz / 🌧️ Lluvia / 🌊 Inundación con equipo seco → NO se crea ticket: solo queda marcado.',
+  pantalla({atras:volver,tit:'🛠️ '+esc(c)+' · '+esc(x.n),sub:D.dos&&!D.gen?'Usted pide el ticket; lo autoriza el supervisor general':'El ticket se genera solo',e:'🛠️❓',h1:'¿Qué se dañó?',
+    p:'🧵 Fibra / 🖥️ Equipo / 💧 Equipo mojado / 🌐 Sin IP / 📡 Enlace / ❓ Otro → '+(D.dos&&!D.gen?'se pide el ticket al supervisor general.':'se crea el ticket.')+' 💡 Sin luz / 🌧️ Lluvia / 🌊 Inundación con equipo seco → NO se crea ticket: solo queda marcado.',
     ops:[['🧵 FIBRA','r',function(){danioOk(c,'fibra',volver)}],['🖥️ EQUIPO','r',function(){danioOk(c,'equipo',volver)}],['💧 EQUIPO MOJADO (inundación)','r',function(){danioOk(c,'mojado',volver)}],
       ['🌐 SIN IP / CONFIGURACIÓN','r',function(){danioOk(c,'sinip',volver)}],['📡 ENLACE CAÍDO','a',function(){danioOk(c,'enlace',volver)}],
       ['💡 SIN LUZ (no se crea ticket)','b',function(){luzOk(c,'luz',volver)}],['🌧️ LLUVIA (no se crea ticket)','b',function(){luzOk(c,'lluvia',volver)}],['🌊 INUNDACIÓN, EQUIPO SECO (no ticket)','b',function(){luzOk(c,'inundacion',volver)}],['⚫ EQUIPO APAGADO (lo apagaron · no ticket)','b',function(){luzOk(c,'apagado',volver)}],['❓ OTRO','n',function(){danioOk(c,'otro',volver)}]]})}
