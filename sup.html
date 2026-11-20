@@ -185,6 +185,7 @@ function hacer(d){   // acciones del panel: con canal, se queda en la app y mues
   var iv=setInterval(function(){var r=$('reloj');if(!r)return clearInterval(iv);var s=Math.floor((Date.now()-t0)/1000);r.textContent='⏱️ '+Math.floor(s/60)+':'+(s%60<10?'0':'')+(s%60);
     if(s===20)$('relojTxt').innerHTML='Hay <b>mucha gente</b> usando el sistema a la vez.<br>Espere, <b>no cierre</b>: puede tardar 1 a 2 minutos.'},1000);
   canal(D.ch,D.ci,D.fr,d).then(function(res){vibra(res.ok?'ok':'mal');
+    if(res.au){pantalla({e:'🏛️',h1:'Abriendo el tablero de la Directora…'});location.href=res.au;return}
     if(res.s&&!res.z){pantalla({e:'👷',h1:'Abriendo la pantalla del operador…'});location.replace('index.html?s='+res.s);return}
     var imgs=(res.imgs||[]).map(function(i){return '<div style="margin:10px 14px 0"><img src="'+esc(i[0])+'" style="width:100%;border-radius:14px;display:block" loading="lazy"><div style="font-size:14px;color:#5a6577;padding:4px 2px">'+esc(i[1])+'</div></div>'}).join('');
     pantalla({e:res.ok?'✅':'⚠️',h1:res.ok?'Listo':'No se pudo',html:'<div class="av '+(res.ok?'ok':'')+'" style="text-align:left;font-size:16px">'+(res.txt||'')+'</div>'+imgs,
@@ -443,7 +444,8 @@ function activar(){if(D.jm==='')return sinJornada();var n=sigTest(),hechos=(D.or
 
 // ------------------------------------------------------------ 🧪 ver como lo ve otro rol
 function verComo(){pantalla({atras:inicio,tit:'🧪 Ver como lo ve…',sub:'Es solo para revisar: no cambia nada de nadie',e:'🧪👀',h1:'¿Cómo quiere verlo?',
-  ops:[['👷 OPERADOR / ASISTENTE','b',function(){hacer({accion:'probar'})}],['🧑‍✈️ SUPERVISOR DE GRUPO','b',elegirGrupo]].concat(D.adm?[['🧑‍💼 SUPERVISOR NACIONAL','b',function(){hacer({accion:'ver_como',como:'nacional'})}]]:[])})}
+  ops:[['👷 OPERADOR / ASISTENTE','b',function(){hacer({accion:'probar'})}],['🧑‍✈️ SUPERVISOR DE GRUPO','b',elegirGrupo]].concat(D.adm?[['🧑‍💼 SUPERVISOR NACIONAL','b',function(){hacer({accion:'ver_como',como:'nacional'})}]]:[])
+    .concat(D.pp?[['🏛️ DIRECTORA (su tablero)','b',function(){hacer({accion:'ver_como',como:'autoridad'})}],['💡 ELEC (lo que recibe por Telegram)','b',function(){hacer({accion:'ver_como',como:'elec'})}]]:[])})}
 function elegirGrupo(){var h='<div class="lista">';(D.gl||[]).forEach(function(g,i){h+='<button class="esc n" data-f="g" data-i="'+i+'"><b>🧑‍✈️ '+esc(g)+'</b></button>'});
   pantalla({atras:verComo,tit:'🧑‍✈️ Supervisor de grupo',sub:'¿Qué grupo?',html:h+'</div>',fn:{g:function(el){hacer({accion:'ver_como',como:'grupo',grupo:D.gl[+el.dataset.i]})}}})}
 

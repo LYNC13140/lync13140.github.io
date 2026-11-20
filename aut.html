@@ -136,6 +136,8 @@ function inicio(){window.scrollTo(0,0);var av=D.av||[0,0,0];
   h+='<button id="st" style="width:100%;margin-top:10px;font-size:16px;font-weight:700;padding:13px;border-radius:14px;border:1px solid #3b5ea8;background:#132a57;color:#fff">📈 VER ESTADÍSTICAS</button>';
   h+='<div class="grid">'+D.c.map(function(c){return '<div class="k '+(c[3]?(COL[c[0]]||''):'')+'" data-k="'+c[0]+'"><small>'+esc(c[2])+'</small><i>'+c[1]+'</i><b>'+c[3]+'</b></div>'}).join('')+'</div>';
   h+='<div class="mu" style="margin-top:12px">Para ver datos nuevos, cierre y vuelva a tocar <b>📊 VER TABLERO</b>.</div>';
+  if(document.referrer.indexOf('sup.html')>=0)h='<div style="margin:0 0 10px;padding:10px 12px;border-radius:12px;background:rgba(168,85,247,.18);border:1px solid rgba(168,85,247,.5);font-weight:700">🧪 VIENDO COMO LA DIRECTORA · así le sale a ella</div>'+h
+    +'<button onclick="history.back()" style="margin-top:14px;width:100%;min-height:52px;border-radius:14px;border:0;font:800 17px Arial;background:linear-gradient(135deg,#334155,#475569);color:#fff">↩ VOLVER A MI PANEL</button>';
   $('app').innerHTML=h;$('st').onclick=stats;[].forEach.call(document.querySelectorAll('[data-k]'),function(el){el.onclick=function(){lista(el.dataset.k)}});
   try{tg.BackButton.hide()}catch(e){}}
 function lista(k,q){window.scrollTo(0,0);var c=D.c.filter(function(x){return x[0]===k})[0]||['','','',0],h='<div class="top"><button class="back" id="bk">← Volver</button><h1>'+c[1]+' '+esc(c[2])+': '+c[3]+'</h1><div class="mu">Datos de las '+esc(D.h)+'</div></div>';
