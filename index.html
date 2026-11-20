@@ -135,7 +135,7 @@ button[style*="background:#1f6feb"]{background:linear-gradient(135deg,#6d5dfc,#3
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
 </head>
 <body>
-<div id="app"></div><div id="verApp" style="text-align:center;font-size:11px;opacity:.55;padding:10px 0 18px">versión 20-nov 16:55</div>
+<div id="app"></div><div id="verApp" style="text-align:center;font-size:11px;opacity:.55;padding:10px 0 18px">versión 20-nov 17:20</div>
 <div id="cam" class="cam oculto"><div class="tit" id="camTit"></div><video id="vid" playsinline muted autoplay></video><img id="prev" class="oculto" alt="">
   <div class="barra" id="bTomar"><button class="op n chico" id="camCancel" style="flex:0 0 90px">✕</button><button class="disparo" id="disparo" aria-label="Tomar foto"></button><span style="flex:0 0 90px"></span></div>
   <div class="barra oculto" id="bRev"><button class="op n" id="repetir">🔄 Otra vez</button><button class="op g" id="usar">✅ Usar foto</button></div>
@@ -306,10 +306,10 @@ var pilaAtras=[];
 function pantalla(o){   // o: {atras, titulo, paso:[i,n], e, h1, p, ops:[[texto,color,fn]], extra, aviso, avisoMal}
   window.scrollTo(0,0);if(o.titulo!=='Bienvenida')document.body.classList.remove('bienvF');
   var h='<div class="top">'+(o.atras?'<button class="atras" id="bAtras">↩</button>':'')+'<div><b>'+esc(E?E.codigo+' · '+E.escuela:'Monitoreo CNE')+'</b><small>'+esc(o.titulo||'Monitoreo CNE')+(E&&E.demo?' · 🧪 PRUEBA':'')+'</small></div></div>';
-  if(o.paso){h+='<div class="prog">';for(var i=0;i<o.paso[1];i++)h+='<i class="'+(i<o.paso[0]?'on':'')+'"></i>';h+='</div><div class="paso">Paso '+o.paso[0]+' de '+o.paso[1]+'</div>'}
+  if(o.paso){h+='<div class="prog">';for(var i=0;i<o.paso[1];i++)h+='<i class="'+(i<o.paso[0]?'on':'')+(i===o.paso[0]-1?' act':'')+'"></i>';h+='</div><div class="paso">Paso '+o.paso[0]+' de '+o.paso[1]+'</div>'}
   h+='<div class="q"><div class="e">'+o.e+'</div>'+(o.h1?'<h1>'+o.h1+'</h1>':'')+(o.p?'<p>'+o.p+'</p>':'')+'</div>'+(o.extra||'');
   if(o.aviso)h+='<div class="aviso'+(o.avisoMal?' mal':'')+'">'+o.aviso+'</div>';
-  if(o.paso&&o.atras&&o.ops&&o.ops.length&&!o.ops.some(function(x){return /CORREGIR/.test(x[0])}))o.ops=o.ops.concat([['↩ CORREGIR LA RESPUESTA ANTERIOR','n',o.atras,1]]);   // ✏️ se equivocó: vuelve a la pregunta anterior
+  if(o.paso&&o.atras&&o.ops&&o.ops.length&&!o.ops.some(function(x){return /CORREGIR/.test(x[0])}))o.ops=o.ops.concat([['↩ CORREGIR LO ANTERIOR','n',o.atras,1]]);   // ✏️ se equivocó: vuelve a la pregunta anterior
   h+='<div class="ops">';(o.ops||[]).forEach(function(b,i){h+='<button class="op '+(b[1]||'b')+(b[3]?' chico':'')+'" data-i="'+i+'">'+b[0]+'</button>'});h+='</div>';
   $('app').innerHTML=h;
   [].forEach.call(document.querySelectorAll('.op[data-i]'),function(el){el.onclick=function(){vibra();var b=o.ops[+el.dataset.i];el.disabled=true;setTimeout(function(){el.disabled=false},900);b[2]()}});
@@ -801,5 +801,32 @@ body.bienvF .q>.e{margin:0 0 6px}body.bienvF .q h1{text-align:left;margin:14px 4
 .bv-tit{font-size:21px;font-weight:800;padding:12px 0 6px}.bv-act{display:flex;gap:14px;align-items:center;padding:11px 0;font-size:18px}.bv-act+.bv-act{border-top:1px solid rgba(140,170,220,.25)}
 .bv-act i{flex:0 0 34px;height:34px;border-radius:50%;background:#2c4470;display:flex;align-items:center;justify-content:center;font-style:normal;font-weight:800}
 .bv-nota{margin:8px 18px;font-size:15px;color:#c9d5ec}</style>
+<style id="futuro2027">
+/* ✨ pasada futurista: movimiento suave, vidrio y brillo (no cambia pasos ni datos) */
+@keyframes fEntrar{from{opacity:0;transform:translateY(14px) scale(.985)}to{opacity:1;transform:none}}
+@keyframes fFlota{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+@keyframes fBrillo{0%{transform:translateX(-120%) skewX(-20deg)}60%,100%{transform:translateX(260%) skewX(-20deg)}}
+@keyframes fLatido{0%,100%{box-shadow:0 0 0 0 rgba(34,211,238,.55)}50%{box-shadow:0 0 14px 3px rgba(34,211,238,.55)}}
+@keyframes fAurora{0%{background-position:0% 0%,100% 0%,50% 100%}50%{background-position:30% 20%,70% 30%,40% 80%}100%{background-position:0% 0%,100% 0%,50% 100%}}
+body::before{content:'';position:fixed;inset:0;z-index:-1;pointer-events:none;
+ background:radial-gradient(60vmax 40vmax at 0% 0%,rgba(56,189,248,.16),transparent 60%),radial-gradient(50vmax 40vmax at 100% 0%,rgba(168,85,247,.13),transparent 60%),radial-gradient(70vmax 50vmax at 50% 100%,rgba(34,197,94,.10),transparent 60%);
+ background-repeat:no-repeat;animation:fAurora 18s ease-in-out infinite}
+.top{position:sticky;top:0;z-index:5;backdrop-filter:blur(14px) saturate(140%);-webkit-backdrop-filter:blur(14px) saturate(140%);
+ border-bottom:1px solid rgba(120,170,255,.22);box-shadow:0 8px 24px -18px rgba(0,0,0,.9)}
+.top::after{content:'';position:absolute;left:0;right:0;bottom:-1px;height:2px;background:linear-gradient(90deg,transparent,#22d3ee,#a855f7,transparent);opacity:.65}
+#app>.q,#app>.prog,#app>.paso,#app>.bienv,#app>.bv-card,#app>.aviso,#app>.sup,#app>details{animation:fEntrar .38s cubic-bezier(.2,.8,.2,1) both}
+#app .ops .op{animation:fEntrar .42s cubic-bezier(.2,.8,.2,1) both}
+#app .ops .op:nth-child(2){animation-delay:.05s}#app .ops .op:nth-child(3){animation-delay:.1s}#app .ops .op:nth-child(4){animation-delay:.15s}#app .ops .op:nth-child(n+5){animation-delay:.2s}
+#app .q>.e{animation:fFlota 4.5s ease-in-out infinite}
+body.bienvF #app .q>.e{animation:none}
+.prog i{transition:background .4s,box-shadow .4s}
+.prog i.act{animation:fLatido 1.8s ease-in-out infinite}
+.paso{display:block;width:max-content;max-width:calc(100% - 32px);margin:6px 16px 0;padding:3px 12px;border-radius:999px;background:rgba(34,211,238,.12);border:1px solid rgba(34,211,238,.35);font-weight:800;letter-spacing:.3px}
+.op{position:relative;overflow:hidden;transition:transform .12s ease,filter .2s}
+.op:active{transform:scale(.97);filter:brightness(1.12)}
+.op.g::after,.op.b::after{content:'';position:absolute;top:0;bottom:0;width:38%;left:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.28),transparent);animation:fBrillo 3.8s ease-in-out infinite;pointer-events:none}
+.q h1{text-shadow:0 2px 18px rgba(34,211,238,.18)}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
 </body>
 </html>
