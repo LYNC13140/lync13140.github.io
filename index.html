@@ -172,7 +172,12 @@ function canal(CH,CI,FR,d){
           if(e.title===id&&e.attachment)hallado=fetch(e.attachment.url).then(function(r){return r.json()});
           else{var m=JSON.parse(e.message);if(m.id===id)hallado=Promise.resolve(m)}}catch(x){}});
         if(hallado)return hallado.then(ok,mal);
-        if(n>32){var xp=new Error('La PC no respondió (¿está prendida?)');xp.pc=true;return mal(xp)}setTimeout(mira,n<6?2000:n<15?4000:6000)})
+        if(n>32){var xp=new Error('La PC no respondió (¿está prendida?)');xp.pc=true;return mal(xp)}
+        if(n===5&&CH.l&&FR.indexOf('ntfy.sh')<0){   // 💓 ¿la PC está viva? (late cada minuto): si no late, se avisa YA y no se hace esperar 2–3 min
+          return fetch(FR+'/'+CH.l+'/json?poll=1&since=4m').then(function(r){return r.ok?r.text():'?'}).then(function(t){
+            if(t!=='?'&&!/"event":"message"/.test(t)){var xq=new Error('La PC del monitoreo no está funcionando');xq.pc=true;return mal(xq)}
+            setTimeout(mira,2000)}).catch(function(){setTimeout(mira,2000)})}
+        setTimeout(mira,n<6?2000:n<15?4000:6000)})
       .catch(function(){if(n>32)return mal(new Error('Sin internet'));setTimeout(mira,4000)})})()})})}
 
 var LLENO=false;   // el servidor gratis de mensajes/fotos llegó a su límite: se usa Telegram
