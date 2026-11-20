@@ -135,7 +135,7 @@ button[style*="background:#1f6feb"]{background:linear-gradient(135deg,#6d5dfc,#3
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
 </head>
 <body>
-<div id="app"></div><div id="verApp" style="text-align:center;font-size:11px;opacity:.55;padding:10px 0 18px">versión 20-nov 13:45</div>
+<div id="app"></div><div id="verApp" style="text-align:center;font-size:11px;opacity:.55;padding:10px 0 18px">versión 20-nov 16:55</div>
 <div id="cam" class="cam oculto"><div class="tit" id="camTit"></div><video id="vid" playsinline muted autoplay></video><img id="prev" class="oculto" alt="">
   <div class="barra" id="bTomar"><button class="op n chico" id="camCancel" style="flex:0 0 90px">✕</button><button class="disparo" id="disparo" aria-label="Tomar foto"></button><span style="flex:0 0 90px"></span></div>
   <div class="barra oculto" id="bRev"><button class="op n" id="repetir">🔄 Otra vez</button><button class="op g" id="usar">✅ Usar foto</button></div>
@@ -150,7 +150,7 @@ var S0=(location.search.match(/[?&]s=([^&]+)/)||[])[1], BOT=!!S0, RELAY=false;  
 function leerS(t){t=t.replace(/-/g,'+').replace(/_/g,'/');while(t.length%4)t+='=';var b=atob(t),u=new Uint8Array(b.length);for(var i=0;i<b.length;i++)u[i]=b.charCodeAt(i);
   var d=JSON.parse(new TextDecoder().decode(u));
   RELAY=!!d.ft;
-  ALT=d.frs||[];return {ve:d.ve||0,ff:d.ff||'',ffs:d.ffs||[],ch:d.ch,ci:d.ci,ft:d.ft,fr:d.fr||'https://ntfy.sh',frs:d.frs||[],nombre:d.nm,demo:!!d.dm,codigo:d.c,escuela:d.e,que:d.q,n:d.k,capacitacion:!!d.cap,fs:!!d.fs,casa:!!d.casa,co:d.co,lim:d.lim,cpe:d.cpe||null,t:d.t,
+  ALT=d.frs||[];return {ve:d.ve||0,ff:d.ff||'',ffs:d.ffs||[],ch:d.ch,ci:d.ci,ft:d.ft,fr:d.fr||'https://ntfy.sh',frs:d.frs||[],nombre:d.nm,demo:!!d.dm&&!d.re,real:!!d.re,codigo:d.c,escuela:d.e,que:d.q,n:d.k,capacitacion:!!d.cap,fs:!!d.fs,casa:!!d.casa,co:d.co,lim:d.lim,cpe:d.cpe||null,t:d.t,
     pruebas:(d.p||[]).map(function(x){return {n:x[0],hora:x[1],pedida:!!x[2],estado:x[3]==='b'?'bien':x[3]==='m'?'mal':''}}),
     llegada:d.l?{hora:d.l[0],llego:!!d.l[1],abierta:!!d.l[2]}:null,viaje:{activo:d.q==='viaje'},supervisores:[],quien:d.qn||d.nm||''}}
 function metros(a,b,c,d){var R=6371000,r=Math.PI/180,x=Math.sin((c-a)*r/2),y=Math.sin((d-b)*r/2);return 2*R*Math.asin(Math.sqrt(x*x+Math.cos(a*r)*Math.cos(c*r)*y*y))}
@@ -309,6 +309,7 @@ function pantalla(o){   // o: {atras, titulo, paso:[i,n], e, h1, p, ops:[[texto,
   if(o.paso){h+='<div class="prog">';for(var i=0;i<o.paso[1];i++)h+='<i class="'+(i<o.paso[0]?'on':'')+'"></i>';h+='</div><div class="paso">Paso '+o.paso[0]+' de '+o.paso[1]+'</div>'}
   h+='<div class="q"><div class="e">'+o.e+'</div>'+(o.h1?'<h1>'+o.h1+'</h1>':'')+(o.p?'<p>'+o.p+'</p>':'')+'</div>'+(o.extra||'');
   if(o.aviso)h+='<div class="aviso'+(o.avisoMal?' mal':'')+'">'+o.aviso+'</div>';
+  if(o.paso&&o.atras&&o.ops&&o.ops.length&&!o.ops.some(function(x){return /CORREGIR/.test(x[0])}))o.ops=o.ops.concat([['↩ CORREGIR LA RESPUESTA ANTERIOR','n',o.atras,1]]);   // ✏️ se equivocó: vuelve a la pregunta anterior
   h+='<div class="ops">';(o.ops||[]).forEach(function(b,i){h+='<button class="op '+(b[1]||'b')+(b[3]?' chico':'')+'" data-i="'+i+'">'+b[0]+'</button>'});h+='</div>';
   $('app').innerHTML=h;
   [].forEach.call(document.querySelectorAll('.op[data-i]'),function(el){el.onclick=function(){vibra();var b=o.ops[+el.dataset.i];el.disabled=true;setTimeout(function(){el.disabled=false},900);b[2]()}});
@@ -335,12 +336,17 @@ function bienvenida(sig,otraVez){if(window.SIN_BIENVENIDA)return sig();var hoy=n
   var fecha=D[hoy.getDay()].charAt(0).toUpperCase()+D[hoy.getDay()].slice(1)+' '+hoy.getDate()+' de '+M[hoy.getMonth()];
   var qn=String(E.quien||E.nombre||'').replace(/^(operador|asistente|supervisor)\s+/i,'').trim();
   document.body.classList.add('bienvF');
-  pantalla({titulo:'Bienvenida',e:'<div class="hero">'+FONDO_B+'<div class="cneb"><div class="cneb-c">🎉</div><b>CNE</b><small>MONITOREO TÉCNICO · 2027</small><i></i></div><span class="hero-pie">Guayaquil · Columna de los Próceres del 9 de Octubre</span></div>',h1:'¡BIENVENIDOS! '+sal.replace('¡','')+'!',
-    p:(qn?'<b>'+esc(qn)+'</b><br>':'')+'Sistema de Monitoreo CNE · Guayas',
-    extra:'<div class="bienv"><div class="f">🗓️ '+fecha+'</div><div>🏫 Hoy está a cargo de <b>'+esc(E.escuela||'su recinto')+'</b></div>'
-      +(E.demo?'<div>🧪 Modo <b>PRUEBA</b>: es un ensayo, no es la elección real.</div>':'')
-      +'<div class="d bendi">🙏 Que tenga un <b>buen día, bendecido</b>, y que <b>todo le salga bien</b> en este día de elecciones. 🇪🇨</div>'
-      +'<div class="m">Hoy usted:<br>📍 Avisa que está en el recinto<br>📦 Recibe el kit y arma los equipos<br>📶 Hace las pruebas de conexión<br>📄 Envía el reporte final de actas</div></div>',
+  var nom1=(qn||String(E.nombre||'')).split(/\s+/)[0]||'';nom1=nom1.charAt(0).toUpperCase()+nom1.slice(1).toLowerCase();
+  pantalla({titulo:'Bienvenida',e:'<img class="bv-foto" src="img/bienvenida_guayas.jpg" alt="Río Guayas · Guayaquil" data-noemo>',
+    h1:sal.replace('¡','')+(nom1?', '+esc(nom1):''),
+    p:'Sistema de Monitoreo CNE · Guayas',
+    extra:'<div class="bv-card"><div class="bv-fila"><span class="bv-ico">📅</span><b>'+fecha+'</b></div>'
+      +'<div class="bv-fila"><span class="bv-ico">📍</span><div><small>Recinto asignado</small><b>'+esc(E.escuela||'su recinto')+'</b></div></div></div>'
+      +'<div class="bv-card"><div class="bv-tit">Actividades de hoy</div>'
+      +'<div class="bv-act"><i>1</i>Registrar llegada al recinto</div><div class="bv-act"><i>2</i>Recibir el kit y armar los equipos</div>'
+      +'<div class="bv-act"><i>3</i>Esperar la indicación para realizar la prueba de conexión</div></div>'
+      +(E.demo?'<div class="bv-nota">🧪 Modo <b>PRUEBA</b>: es un ensayo, no es la elección real.</div>':'')
+      +'<div class="bv-nota">🙏 Que tenga un <b>buen día, bendecido</b>, y que <b>todo le salga bien</b>. 🇪🇨</div>',
     ops:[['▶️ VER VIDEO EXPLICATIVO (3 min)','b',function(){verVideo(sig)}],['➡️ SEGUIR SIN VER EL VIDEO','g',function(){quitarFondo();sig()}]]})}
 function quitarFondo(){document.body.classList.remove('bienvF')}
 var VIDEOS={prep:['video/preparacion_cda','Cómo se trabaja en el CDA','Mírelo con el volumen alto. Puede pausarlo y volver a verlo cuando quiera desde <b>❓ AYUDA</b>.'],test:['video/test_conexion_cda','Cómo se hace la PRUEBA DE CONEXIÓN','Mírelo antes de hacer la prueba: el test se hace solo cuando se lo indiquen.']};
@@ -602,7 +608,7 @@ var NPASO=10;
 var SINFOTO=function(){return BOT&&!RELAY};   // sin servidor de fotos: las fotos se piden después en el chat
 function pregunta(i){var P=PREG[i];pantalla({atras:i?function(){pregunta(i-1)}:inicio,paso:[2+i,NPASO],e:P[1],h1:P[2],p:P[3],
   ops:P[4].map(function(b){return [b[0],b[1],function(){F.check[P[0]]=b[2];
-    var sig=function(){if(i<PREG.length-1)return pregunta(i+1);revCnt()};
+    var sig=function(){if(i<PREG.length-1)return pregunta(i+1);revCable()};
     if(P[0]==='abierta'&&b[2]==='no')return SINFOTO()?mandarLlegada():fotoCerrada();          // 🔒 cerrada: foto y aviso rápido
     if(P[0]==='kit'&&b[2]==='si'&&!SINFOTO())return fotoMilitar(sig);                          // 📦 kit: foto con el militar
     if(P[0]==='inundacion'&&b[2]==='si'&&!SINFOTO())return fotoInundacion(sig);              // 🌊 solo si HAY inundación
@@ -621,18 +627,24 @@ function ontSvg(marca){   // dibujo genérico del equipo de CNT (ONT) con sus lu
    +'<text x="24" y="46" font-size="15" font-weight="700" fill="#334155">EQUIPO DE CNT</text><path d="M300 92 C300 108 318 110 318 118" stroke="#facc15" stroke-width="4" fill="none"/><text x="250" y="114" font-size="11" fill="#facc15">fibra</text>';
   L.forEach(function(l,i){var x=40+i*70,on=marca==='todo'||marca===l[0];h+='<circle cx="'+x+'" cy="70" r="8" fill="'+(on?l[1]:'#94a3b8')+'"'+(on?' class="ont-on"':'')+'/><text x="'+(x+13)+'" y="75" font-size="13" font-weight="700" fill="#334155">'+l[0]+'</text>'});
   return h+'</svg><div class="ont-l">'+L.map(function(l){return '<span><i style="background:'+l[1]+'"></i><b>'+l[0]+'</b> '+l[2]+'</span>'}).join('')+'</div></div>'}
-function revCnt(){F.rev={};pantalla({atras:function(){pregunta(PREG.length-1)},paso:[6,NPASO],titulo:'Revisión de equipos',e:'📡🔎',h1:'¿El equipo de CNT está PRENDIDO?',
+// ✂️ PRIMERO el cable de fibra (pregunta simple). Si está roto: foto y se reporta. Si no: recién se mira el equipo de CNT.
+function revCable(){F.rev={};pantalla({atras:function(){pregunta(PREG.length-1)},paso:[6,NPASO],titulo:'Revisión de equipos',e:'✂️🧵',h1:'¿El CABLE de la fibra está ROTO o CORTADO?',
+  p:'Mire el <b>cable delgado</b> (amarillo o blanco) que llega a la <b>cajita de CNT</b>: ¿está roto, cortado o arrancado?',
+  ops:[['✅ NO, EL CABLE ESTÁ BIEN','g',function(){F.rev={fibra:'bien'};revCnt()}],['✂️ SÍ, ESTÁ ROTO O CORTADO','r',function(){F.rev={fibra:'danada',cnt:'si'};fotoCable()}]]})}
+function fotoCable(){if(SINFOTO())return armar();pantalla({atras:revCable,paso:[6,NPASO],titulo:'Revisión de equipos',e:'📷✂️',h1:'Foto del CABLE ROTO',p:'Que se vea bien dónde está roto. Se avisa a su supervisor para el <b>ticket</b>.',
+  ops:[['📷 TOMAR LA FOTO','b',function(){camara('cnt','CABLE DE FIBRA ROTO',armar)}]]})}
+function revCnt(){var fb=(F.rev&&F.rev.fibra)||'bien';F.rev={fibra:fb};pantalla({atras:revCable,paso:[7,NPASO],titulo:'Revisión de equipos',e:'📡🔎',h1:'¿El equipo de CNT está PRENDIDO?',
   p:'Es la cajita de CNT donde entra el <b>cable delgado de fibra</b> (amarillo o blanco). Si está prendido, la luz <b>PWR</b> está encendida.',extra:ontSvg('PWR'),
-  ops:[['🟢 SÍ, TIENE LUCES','g',function(){F.rev.cnt='si';fotoCnt(revFibra)}],['⚫ NO TIENE NINGUNA LUZ','r',function(){F.rev.cnt='no';fotoCnt(cntPrender)}]]})}
-function fotoCnt(luego){if(SINFOTO())return luego();pantalla({atras:revCnt,paso:[6,NPASO],titulo:'Revisión de equipos',e:'📷📡',h1:'Foto del equipo de CNT',p:'De frente, que se vean <b>las luces</b> '+(F.rev.cnt==='si'?'encendidas':'(apagadas)')+'.',
+  ops:[['🟢 SÍ, TIENE LUCES','g',function(){F.rev.cnt='si';fotoCnt(armar)}],['⚫ NO TIENE NINGUNA LUZ','r',function(){F.rev.cnt='no';fotoCnt(cntPrender)}]]})}
+function fotoCnt(luego){if(SINFOTO())return luego();pantalla({atras:revCnt,paso:[7,NPASO],titulo:'Revisión de equipos',e:'📷📡',h1:'Foto del equipo de CNT',p:'De frente, que se vean <b>las luces</b> '+(F.rev.cnt==='si'?'encendidas':'(apagadas)')+'.',
   ops:[['📷 TOMAR LA FOTO','b',function(){camara('cnt','EQUIPO CNT · '+(F.rev.cnt==='si'?'PRENDIDO':'APAGADO'),luego)}]]})}
-function cntPrender(){pantalla({atras:revCnt,paso:[6,NPASO],titulo:'Revisión de equipos',e:'🔌👆',h1:'Intente PRENDERLO',
+function cntPrender(){pantalla({atras:revCnt,paso:[7,NPASO],titulo:'Revisión de equipos',e:'🔌👆',h1:'Intente PRENDERLO',
   extra:'<div class="bienv" style="font-size:16px">1️⃣ ¿Está <b>enchufado</b>? Revise el cargador y el tomacorriente.<br>2️⃣ ¿El tomacorriente tiene <b>energía</b>? Pruebe con otro aparato.<br>3️⃣ Si tiene botón <b>ON/OFF</b> atrás, presiónelo.<br>4️⃣ Espere <b>2 minutos</b> a que se prendan las luces.</div>',
-  ops:[['🟢 YA PRENDIÓ','g',function(){F.rev.cnt='prendio';revFibra()}],['⛔ NO PRENDE','r',function(){F.rev.cnt='no';F.rev.fibra='nose';armar()}]]})}
+  ops:[['🟢 YA PRENDIÓ','g',function(){F.rev.cnt='prendio';armar()}],['⛔ NO PRENDE','r',function(){F.rev.cnt='no';armar()}]]})}
 function revFibra(){pantalla({atras:revCnt,paso:[7,NPASO],titulo:'Revisión de equipos',e:'🧵🔎',h1:'¿Cómo están las luces de la FIBRA?',p:'Mire en el equipo de CNT las luces <b>PON</b> y <b>LOS</b>.',extra:ontSvg('PON'),
   ops:[['🟢 PON VERDE FIJO (bien)','g',function(){F.rev.fibra='bien';armar()}],['🟡 PON PARPADEA','a',function(){F.rev.fibra='pon_parpadea';armar()}],
     ['🔴 LOS ROJA (fibra mal)','r',function(){F.rev.fibra='roja';armar()}],['✂️ SE VE EL CABLE ROTO / DOBLADO','r',function(){F.rev.fibra='danada';armar()}],['❓ NO SÉ','n',function(){F.rev.fibra='nose';armar()},1]]})}
-function armar(){pantalla({atras:F.rev&&F.rev.cnt==='no'?cntPrender:revFibra,paso:[8,NPASO],titulo:'Revisión de equipos',e:'🔧🖥️',h1:'ARME los equipos',p:'Conecte la <b>computadora</b> y el <b>escáner</b> del kit, y préndalos.',
+function armar(){pantalla({atras:F.rev&&F.rev.fibra==='danada'?revCable:F.rev&&F.rev.cnt==='no'?cntPrender:revCnt,paso:[8,NPASO],titulo:'Revisión de equipos',e:'🔧🖥️',h1:'ARME los equipos',p:'Conecte la <b>computadora</b> y el <b>escáner</b> del kit, y préndalos.',
   ops:[['✅ YA ESTÁN ARMADOS Y PRENDIDOS','g',ips],['⛔ LA COMPUTADORA NO PRENDE','r',function(){F.equipos='no';F.prendieron='no';F.ips='0';F.ip_mot='danado';fotoIps()}]]})}
 function motivoRevision(){return F.rev&&F.rev.cnt==='no'?'cnt_apagado':F.rev&&['roja','danada'].indexOf(F.rev.fibra)>=0?'fibra':''}
 function ips(){pantalla({atras:armar,paso:[9,NPASO],titulo:'Revisión de equipos',e:'💻🌐',h1:'Vea la COMPUTADORA: ¿tiene las 2 IP?',p:'Revise en la computadora si tiene las <b>2 direcciones IP</b>.',
@@ -781,5 +793,13 @@ function ini(){scan(document.body);new MutationObserver(function(ms){ms.forEach(
  .observe(document.body,{childList:true,subtree:true,characterData:true})}
 if(document.body)ini();else document.addEventListener('DOMContentLoaded',ini)})();
 </script>
+<style id="bienv2027">.bv-foto{display:block;width:calc(100% + 8px);margin:0 -4px;border-radius:20px;box-shadow:0 10px 30px rgba(0,0,0,.35)}
+body.bienvF .q>.e{margin:0 0 6px}body.bienvF .q h1{text-align:left;margin:14px 4px 2px;font-size:30px}body.bienvF .q p{text-align:left;margin:0 4px}
+.bv-card{margin:12px 16px;padding:6px 16px;border-radius:18px;background:rgba(17,29,54,.6);border:1px solid rgba(140,170,220,.35)}
+.bv-fila{display:flex;gap:14px;align-items:center;padding:12px 0;font-size:19px}.bv-fila+.bv-fila{border-top:1px solid rgba(140,170,220,.25)}
+.bv-fila small{display:block;color:#a9b8d6;font-size:15px}.bv-ico{font-size:26px;width:32px;text-align:center}
+.bv-tit{font-size:21px;font-weight:800;padding:12px 0 6px}.bv-act{display:flex;gap:14px;align-items:center;padding:11px 0;font-size:18px}.bv-act+.bv-act{border-top:1px solid rgba(140,170,220,.25)}
+.bv-act i{flex:0 0 34px;height:34px;border-radius:50%;background:#2c4470;display:flex;align-items:center;justify-content:center;font-style:normal;font-weight:800}
+.bv-nota{margin:8px 18px;font-size:15px;color:#c9d5ec}</style>
 </body>
 </html>

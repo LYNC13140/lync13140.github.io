@@ -135,7 +135,7 @@ button[style*="background:#1f6feb"]{background:linear-gradient(135deg,#6d5dfc,#3
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
 </head>
 <body>
-<div id="app"></div><div id="verApp" style="text-align:center;font-size:11px;opacity:.55;padding:10px 0 18px">versión 20-nov 13:45</div>
+<div id="app"></div><div id="verApp" style="text-align:center;font-size:11px;opacity:.55;padding:10px 0 18px">versión 20-nov 16:55</div>
 <script>
 (function(){
 var tg=window.Telegram&&window.Telegram.WebApp,D=null,F={};
@@ -298,7 +298,7 @@ function modos(){   // 🎛️ solo supervisor nacional / administrador (el serv
          ['🗳️ ELECCIONES','r',c('elecciones','Activar ELECCIONES','🗳️','<b>Día de elecciones:</b> los tickets se mandan a los 30 minutos de caído, sin preguntar.')],
          ['⛔ VOLVER A MODO NORMAL','n',c('normal','Volver a MODO NORMAL','⛔','Se cierra y se guarda la jornada de hoy (informe en la página web). Ya no se pedirán tests.')]].filter(function(o){return !(D.jm===''&&/NORMAL/.test(o[0]))||true})})}
 function otrsEnvio(){   // 🎫 manual / automático: solo supervisor nacional y administrador (el servidor lo vuelve a revisar). La clave NUNCA se pone aquí.
-  var o=D.om||{},auto=o.m==='crear';
+  var o=D.oe||((D.om&&D.om.m)?D.om:{}),auto=o.m==='crear';
   var p='<b>'+(auto?'🤖 AUTOMÁTICO':'✋ MANUAL')+'</b> · '+(auto?'el programa crea, revisa y da seguimiento a los tickets solo.':'el programa prepara el ticket y una persona lo sube a OTRS desde la página web.')
     +(o.sim?'<br><br>🧪 Ahora está en <b>modo prueba</b>: los tickets se SIMULAN (no van a OTRS).':'')
     +'<br><br>📦 Autorizados esperando: <b>'+(o.n||0)+'</b>'+(o.pa?' · ⏳ por autorizar: <b>'+o.pa+'</b>':'')
@@ -483,7 +483,7 @@ function escuela(c,pt,volver){var x=busca(c,pt);if(!x)return inicio();var l=x.l,
   var fnz={};CZK.concat(['quitar']).forEach(function(k){fnz['cz_'+k]=function(){causaPanel(x,k,function(){escuela(c,pt,volver)})}});
   pantalla({fn:fnz,atras:volver||inicio,tit:esc(x.c)+' · '+esc(x.n),sub:'Punto '+x.pt,html:h,
     ops:[['📞 LLAMAR AL OPERADOR','g',function(){hacer({accion:'llamar',cod:x.c})}],['📷 VER LAS FOTOS','b',function(){hacer({accion:'fotos',cod:x.c})}],
-      ].concat(D.pp?[['📢 PEDIRLE LA PRUEBA '+sig,'a',function(){if(D.jm==='')return sinJornada();hacer({accion:'pedir',n:sig,cods:[x.c]})}]]:[]).concat([['🛠️ REPORTAR DAÑO (TICKET)','r',function(){danio(x.c,function(){escuela(c,pt,volver)})}]]).concat(puedeEncerar()?[['🧹 ENCERAR ESTA ESCUELA (volver a empezar)','n',function(){encerar([x.c],0,function(){escuela(c,pt,volver)})},1]]:[]),
+      ].concat(D.pp?[['📢 PEDIRLE LA PRUEBA '+sig,'a',function(){if(D.jm==='')return sinJornada();hacer({accion:'pedir',n:sig,cods:[x.c]})}]]:[]).concat([['🛠️ REPORTAR DAÑO (TICKET)','r',function(){danio(x.c,function(){escuela(c,pt,volver)})}]]).concat(puedeEncerar()?[['🏫 PONER EN CERO ESTA ESCUELA (vuelve a pedir todo)','n',function(){encerar([x.c],0,function(){escuela(c,pt,volver)})},1]]:[]),
     nota:D.ch?'Teléfonos y fotos se ven aquí mismo.':'Teléfonos y fotos le llegan en el chat del bot.'})}
 
 // 🧹 ENCERAR: poner en cero (solo PRUEBAS / SIMULACRO)
@@ -493,13 +493,13 @@ function encerar(cods,todo,volver){vibra('mal');var que=todo?'TODAS sus escuelas
     p:'Se anula lo que hicieron en este '+modoNom()+': <b>salida, llegada y pruebas de conexión</b>.<br><br>Sus operadores y asistentes reciben un aviso y <b>vuelven a hacer TODO desde el principio</b>.<br><br><small>Lo anulado no se borra: queda guardado como «encerado».</small>',
     ops:[['🧹 SÍ, PONER EN CERO','r',function(){hacer(todo?{accion:'encerar',todo:1}:{accion:'encerar',cods:cods})}],['↩ No, volver','n',volver||inicio,1]]})}
 function encerarMenu(){if(!puedeEncerar())return pantalla({atras:inicio,e:'⛔',h1:'Solo en PRUEBAS o SIMULACRO',p:'Encerar solo se puede cuando está activado el modo pruebas o simulacro.',ops:[['↩ Volver','n',inicio,1]]});
-  pantalla({atras:inicio,tit:'🧹 Encerar',e:'🧹',h1:'Encerar (volver a empezar)',p:'Si alguien se <b>adelantó</b> o hizo mal la prueba, póngalo en <b>cero</b> y vuelve a hacer todo.<br><br>Para <b>una escuela</b>: ábrala en 🏫 MIS ESCUELAS y toque <b>🧹 ENCERAR ESTA ESCUELA</b>.',
-    ops:[['🏫 ELEGIR UNA ESCUELA','b',function(){escuelas('todas')}],['🧹 ENCERAR TODAS MIS ESCUELAS','r',function(){encerar([],1,encerarMenu)}],['↩ Volver','n',inicio,1]]})}
+  pantalla({atras:inicio,tit:'🧹 Encerar',e:'🧹',h1:'¿Qué quiere poner en CERO?',p:'<b>🏫 Una escuela</b>: SOLO esa escuela queda sin nada de lo que puso (llegada, fotos, pruebas) y se le vuelve a pedir todo.<br><br><b>🧹 Enceramiento TOTAL</b>: TODAS sus escuelas vuelven a empezar desde cero.',
+    ops:[['🏫 PONER EN CERO UNA ESCUELA','b',function(){escuelas('todas')}],['🧹 ENCERAMIENTO TOTAL (todas mis escuelas)','r',function(){encerar([],1,encerarMenu)}],['↩ Volver','n',inicio,1]]})}
 
 function escuelaCod(c,volver){
   pantalla({atras:volver,tit:'🏫 Escuela '+esc(c),e:'🏫',h1:'Escuela '+esc(c),p:'Esta escuela está bien, por eso no sale en la lista. Igual puede:',
     ops:[['📞 LLAMAR AL OPERADOR','g',function(){hacer({accion:'llamar',cod:c})}],['📷 VER LAS FOTOS','b',function(){hacer({accion:'fotos',cod:c})}]]
-      .concat(D.pp?[['📢 PEDIRLE UNA PRUEBA','a',function(){if(D.jm==='')return sinJornada();hacer({accion:'pedir',n:D.nx>3?3:D.nx,cods:[c]})}]]:[]).concat([['🛠️ REPORTAR DAÑO (TICKET)','r',function(){danio(c,function(){escuelaCod(c,volver)})}]]).concat(puedeEncerar()?[['🧹 ENCERAR ESTA ESCUELA (volver a empezar)','n',function(){encerar([c],0,function(){escuelaCod(c,volver)})},1]]:[])})}
+      .concat(D.pp?[['📢 PEDIRLE UNA PRUEBA','a',function(){if(D.jm==='')return sinJornada();hacer({accion:'pedir',n:D.nx>3?3:D.nx,cods:[c]})}]]:[]).concat([['🛠️ REPORTAR DAÑO (TICKET)','r',function(){danio(c,function(){escuelaCod(c,volver)})}]]).concat(puedeEncerar()?[['🏫 PONER EN CERO ESTA ESCUELA (vuelve a pedir todo)','n',function(){encerar([c],0,function(){escuelaCod(c,volver)})},1]]:[])})}
 
 // ------------------------------------------------------------ 4 · problemas
 function problemas(){var h='';
@@ -533,7 +533,7 @@ function confirma(a,cods){pantalla({atras:pedir,tit:'📢 Pedir prueba',e:'📢'
 // ------------------------------------------------------------ 6 · por autorizar
 var TIPO={fibra:'🧵 Fibra',equipo:'🖥️ Equipo',enlace:'📡 Enlace caído',otro:'❓ Otro',luz:'💡 Sin luz',lluvia:'🌧️ Lluvia',mojado:'💧 Equipo mojado',inundacion:'🌊 Inundación (equipo seco)',sinip:'🌐 Sin IP / configuración',apagado:'⚫ Equipo apagado'};
 var OMT={auto:'🤖 AUTOMÁTICO',manual:'✋ MANUAL'};
-function modosHtml(){var om=D.om||{},gs=Object.keys(om);if(!gs.length)return '';
+function modosHtml(){var om=D.om||{},gs=Object.keys(om).filter(function(g){return g.length>2});if(!gs.length)return '';
   return '<div class="av" style="text-align:left;background:#eef4ff;border:2px solid #4f8cff"><b class="t">🎛️ ¿Cómo se mandan los tickets '+(D.gen?'de cada grupo':'de su grupo')+'?</b>'
    +gs.map(function(g){var m=om[g];return '<div style="margin-top:8px"><b>'+esc(g)+'</b>: '+OMT[m]+'<div class="fila2" style="margin-top:4px">'
      +'<button class="op '+(m==='manual'?'g':'n')+' chico" style="margin:0" data-f="gm" data-g="'+esc(g)+'" data-m="manual">'+(m==='manual'?'✔ ':'')+'✋ MANUAL</button>'
