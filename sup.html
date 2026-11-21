@@ -102,7 +102,7 @@ h1,h2,h3,.top b,.grande,.k b{font-family:'Space Grotesk','Inter','Segoe UI',syst
 .av.ok{background:linear-gradient(160deg,rgba(34,197,94,.16),rgba(17,29,54,.8))!important;border-color:rgba(34,197,94,.55)!important;color:#c9f7d8}
 .sup a{color:#7dd3fc!important;text-shadow:0 0 16px rgba(34,211,238,.45)}
 /* colores puestos dentro del texto: los pasamos a versión que se lea en oscuro */
-[style*="background:#fff;"],[style*="background:#fff\""],[style*="background:#ffffff"],[style*="background:#eef2f7"]{background:var(--g-glass)!important;color:var(--txt)!important;border-color:var(--g-line2)!important}
+[style*="background:#fff;"],[style*="background:#fff\""],[style*="background:#ffffff"],[style*="background:#eef2f7"],[style*="background:#eef4ff"]{background:var(--g-glass)!important;color:var(--txt)!important;border-color:var(--g-line2)!important}
 [style*="background:#fff4dc"],[style*="background:#fff6df"],[style*="background:#fff3cd"]{background:rgba(245,158,11,.16)!important;color:#fde7b0!important}
 [style*="background:#fde2e1"],[style*="background:#fdeeee"]{background:rgba(244,63,94,.16)!important;color:#ffd5dc!important}
 [style*="background:#eaf8ef"]{background:rgba(34,197,94,.16)!important;color:#c9f7d8!important}
@@ -400,12 +400,19 @@ function tkBuscar(q){if(!D.ch)return;var t0=Date.now();pantalla({atras:tickets,t
     pantalla({atras:tickets,tit:'🔎 Buscar tickets',sub:'«'+esc(q)+'» · '+L.length+' escuela(s)',html:h,ops:[['🔎 BUSCAR OTRA','b',tickets],['🏠 VOLVER AL PANEL','n',inicio,1]]})},
   function(e){pantalla({atras:tickets,tit:'🔎 Buscar tickets',e:'⚠️',h1:'No se pudo',p:esc(e.message||''),ops:[['↩ VOLVER','n',tickets]]})})}
 
-function tkVer(msg){var T=TK||{l:[]};var col={por_autorizar:'#a855f7',por_general:'#f59e0b',reabrir:'#e5484d',por_crear:'#e5484d',seguimiento:'#f5a524',intermitente:'#f5a524',creado:'#4f8cff',en_revision:'#30a46c',consulta_op:'#a855f7'};
+var TKF='';
+function tkVer(msg){var T=TK||{l:[]},gms=Object.keys(T.gm||{}),todos=T.l;
+  T={__proto__:T,l:!TKF?todos:todos.filter(function(x){return TKF==='pend'?['por_crear','seguimiento','intermitente','reabrir'].indexOf(x.e)>=0:TKF==='abi'?['creado','seguimiento','intermitente'].indexOf(x.e)>=0:['por_autorizar','por_general'].indexOf(x.e)>=0})};var col={por_autorizar:'#a855f7',por_general:'#f59e0b',reabrir:'#e5484d',por_crear:'#e5484d',seguimiento:'#f5a524',intermitente:'#f5a524',creado:'#4f8cff',en_revision:'#30a46c',consulta_op:'#a855f7'};
   var h=(msg?'<div class="av ok" style="text-align:left;font-size:15px">'+msg+'</div>':'')
    +(T.sd?'<div class="av" style="background:#fde2e1;font-size:15px">🛑 <b>Base madre SIN DATOS</b>: no se manda nada a OTRS hasta que vuelvan los datos.</div>':'')
-   +'<div style="display:flex;gap:6px;flex-wrap:wrap;margin:8px 12px">'+[['📤 Pendientes',T.pend,'#e5484d'],['🎫 Abiertos',T.abiertos,'#4f8cff'],['⏳ Por autorizar',T.aut,'#a855f7']].map(function(x){return '<div style="flex:1;min-width:90px;background:#fff;border-radius:12px;padding:8px 10px;border-left:4px solid '+x[2]+'"><div style="font-size:12px;color:#5a6577">'+x[0]+'</div><b style="font-size:22px">'+(x[1]||0)+'</b></div>'}).join('')+'</div>'
-   +'<div style="margin:4px 14px;font-size:14px;color:#5a6577">Envío a OTRS: <b>'+(T.modo==='crear'?'🤖 AUTOMÁTICO':'✋ MANUAL')+'</b>'+(T.sim?' · 🧪 modo prueba (se simula)':'')+'</div>'
-   +'<div style="margin:8px 12px;display:flex;gap:6px"><input id="tkq" placeholder="🔎 Buscar: código, escuela o N.º de ticket" style="flex:1;font-size:16px;padding:10px;border-radius:10px;border:1px solid #ccd"><button class="op b chico" style="margin:0" data-f="buscar">Buscar</button></div>'
+   +'<div style="display:flex;gap:6px;flex-wrap:wrap;margin:8px 12px">'+[['pend','📤 Pendientes',T.pend,'#e5484d'],['abi','🎫 Abiertos',T.abiertos,'#4f8cff'],['aut','⏳ Por autorizar',T.aut,'#a855f7']].map(function(x){var on=TKF===x[0];return '<button data-f="f_'+x[0]+'" style="flex:1;min-width:90px;text-align:left;font-family:inherit;cursor:pointer;background:'+(on?x[3]:'#fff')+';color:'+(on?'#fff':'inherit')+';border:0;border-radius:12px;padding:8px 10px;border-left:4px solid '+x[3]+'"><div style="font-size:12px;opacity:.8">'+x[1]+(on?' ✔':'')+'</div><b style="font-size:22px">'+(x[2]||0)+'</b><div style="font-size:11px;opacity:.75">'+(on?'toque para ver todos':'toque para ver')+'</div></button>'}).join('')+'</div>'
+   +(TKF?'<div style="margin:2px 14px;font-size:14px">Mostrando solo: <b>'+{pend:'📤 Pendientes',abi:'🎫 Abiertos',aut:'⏳ Por autorizar'}[TKF]+'</b> · <span data-f="f_" style="color:#4f8cff;text-decoration:underline;cursor:pointer">ver todos</span></div>':'')
+   +(gms.length?'<div style="margin:6px 12px;padding:8px 10px;border-radius:12px;background:rgba(79,140,255,.14);border:2px solid #4f8cff"><b style="font-size:16px">🎛️ Envío a OTRS de su grupo</b>'+gms.map(function(g){var m=T.gm[g];return '<div style="margin-top:6px;font-size:14px"><b>'+esc(g)+'</b><div style="display:flex;gap:6px;margin-top:4px">'
+       +'<button class="op '+(m==='manual'?'g':'n')+' chico" style="margin:0;flex:1" data-f="gm" data-g="'+esc(g)+'" data-m="manual">'+(m==='manual'?'✔ ':'')+'✋ MANUAL</button>'
+       +'<button class="op '+(m==='auto'?'g':'n')+' chico" style="margin:0;flex:1" data-f="gm" data-g="'+esc(g)+'" data-m="auto">'+(m==='auto'?'✔ ':'')+'🤖 AUTOMÁTICO</button></div></div>'}).join('')
+       +'<div style="font-size:12px;opacity:.8;margin-top:4px">✋ Manual: usted decide cada ticket · 🤖 Automático: las reglas lo mandan solas'+(T.sim?' · 🧪 modo prueba (se simula)':'')+'</div></div>'
+     :'<div style="margin:4px 14px;font-size:14px;color:#5a6577">Envío a OTRS: <b>'+(T.modo==='crear'?'🤖 AUTOMÁTICO':'✋ MANUAL')+'</b>'+(T.sim?' · 🧪 modo prueba (se simula)':'')+'</div>')
+   +'<div style="margin:8px 12px;display:flex;gap:6px;align-items:stretch"><input id="tkq" placeholder="🔎 Código, escuela o N.º de ticket" style="flex:1 1 auto;min-width:0;font-size:17px;padding:12px;border-radius:12px;border:1px solid #ccd"><button class="op b chico" style="margin:0;flex:0 0 auto;width:auto;padding:12px 18px" data-f="buscar">🔎 Buscar</button></div>'
    +(T.cola&&T.cola.total?'<div style="margin:8px 12px;background:#fff4dc;border-radius:12px;padding:8px 10px"><b>⏳ Sin cerrar en OTRS: '+T.cola.total+'</b>'+(T.cola.d3?' · <b style="color:#b42318">'+T.cola.d3+' con 3 días o más</b>':'')+T.cola.top.map(function(x){return '<div style="font-size:14px">'+(x[2]>=3?'🔴':'🟠')+' <b>'+esc(x[0])+'</b> · ticket '+esc(x[1])+' · <b>'+x[2]+' días</b></div>'}).join('')+'</div>':'')
    +((T.al||[]).length?'<div style="margin:8px 12px;background:#fde2e1;border-radius:12px;padding:8px 10px"><b style="color:#b42318">🚨 Nunca atendidos</b>'+T.al.map(function(a){return '<div style="font-size:14px">'+(a[3]==='alta'?'🔴':'🟠')+' <b>'+esc(a[0])+'</b> '+esc(a[1])+' · '+a[2]+' sin atender</div>'}).join('')+'</div>':'')
    +(T.env&&T.env.total?'<div style="margin:4px 14px;font-size:14px">📤 Último envío: '+(T.env.activo?'⏳ enviando '+T.env.hechos+'/'+T.env.total:'✅ '+T.env.creados+' creados · '+T.env.no_duplicados+' ya tenían ticket')+'</div>':'')
@@ -425,6 +432,11 @@ function tkVer(msg){var T=TK||{l:[]};var col={por_autorizar:'#a855f7',por_genera
     fn['i'+i]=function(){if(confirm('🔁 ¿Insistir en el ticket '+x.t+' ('+x.c+')?\n\nSe agrega una nota al MISMO ticket (no se crea otro). Una vez cada 30 min.'))tkPedir({accion:'tk_insistir',cod:x.c},'Insistiendo en OTRS…')};
     fn['r'+i]=function(){tkPedir({accion:'tk_revisar',cod:x.c},'Revisando en OTRS…')};
     CZK.forEach(function(k){fn['c'+i+'_'+k]=function(){tkPedir({accion:'tk_causa_'+k,cod:x.c},'Guardando…')}})});
+  ['pend','abi','aut'].forEach(function(k){fn['f_'+k]=function(){TKF=TKF===k?'':k;tkVer()}});fn.f_=function(){TKF='';tkVer()};
+  fn.gm=function(el){var g=el.dataset.g,m=el.dataset.m;if((T.gm||{})[g]===m)return;
+    pantalla({atras:function(){tkVer()},tit:'🎛️ '+esc(g),e:m==='auto'?'🤖':'✋',h1:'¿Poner '+OMT[m]+'?',
+      p:m==='auto'?'Las reglas deciden solas: con fibra, equipo o caído mucho tiempo <b>se manda el ticket</b>; con SIN LUZ, lluvia o inundación <b>NO</b>. Le llega un informe.':'Todo lo nuevo llega a <b>📥 Por autorizar</b> y no se manda nada hasta que usted lo decida.',
+      ops:[['✅ SÍ, CAMBIAR','g',function(){hacer({accion:'otrs_gmodo',g:g,m:m})}],['↩ No, volver','n',function(){tkVer()},1]]})};
   fn.buscar=function(){var q=($('tkq').value||'').trim();if(q.length<2)return alert('Escriba al menos 2 letras o números');tkBuscar(q)};
   var ops=[['🔄 ACTUALIZAR','b',tickets]];
   if(T.nac&&T.cola&&T.cola.total)ops.push(['🔎 REVISAR EN OTRS LOS SIN CERRAR ('+T.cola.total+')','b',function(){tkPedir({accion:'tk_cola'},'Revisando la cola en OTRS…')}]);
