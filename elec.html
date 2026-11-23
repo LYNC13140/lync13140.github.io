@@ -168,6 +168,7 @@ function mapa(){if(!window.L){$('mapa').innerHTML='<div class="it">🗺️ Carga
     L.marker([x[3],x[4]],{icon:L.divIcon({className:'',html:'<span class="pt titila" style="background:#ff3b5c;width:16px;height:16px"></span>',iconSize:[16,16]})}).addTo(MAP)
      .bindPopup('<b>🚨 '+esc(x[5])+'</b><br>'+esc(x[0])+' · '+esc(x[1])+'<br>'+esc(x[2])+' · '+esc(x[6])+' (hace '+fmin(x[8])+')'+(x[9]?'<br>'+esc(x[9]):''))});
   if(b.length)MAP.fitBounds(b,{padding:[24,24],maxZoom:13});
+  try{var _w=0;new ResizeObserver(function(){var w=$('mapa').clientWidth;if(w&&w!==_w){_w=w;MAP.invalidateSize();if(b.length)MAP.fitBounds(b,{padding:[24,24],maxZoom:13})}}).observe($('mapa'))}catch(e){}
   [300,1200,3000].forEach(function(t){setTimeout(function(){if(MAP){MAP.invalidateSize();if(b.length)MAP.fitBounds(b,{padding:[24,24],maxZoom:13})}},t)})}
 function fmin(m){m=+m||0;return m<60?m+' min':Math.floor(m/60)+' h '+(m%60)+' min'}
 function lista(){[].forEach.call(document.querySelectorAll('[data-t]'),function(el){el.className=el.dataset.t===TAB?'on':''});var h='';
