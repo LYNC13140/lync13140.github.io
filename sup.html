@@ -223,11 +223,11 @@ function cargarZ(z,cb){
   var b=atob(t),u=new Uint8Array(b.length);for(var i=0;i<b.length;i++)u[i]=b.charCodeAt(i);
   if(!window.DecompressionStream)return cb(null,'Actualice Telegram o el teléfono para abrir el panel.');
   new Response(new Blob([u]).stream().pipeThrough(new DecompressionStream('deflate'))).text().then(function(s){cb(JSON.parse(s))}).catch(function(){cb(null)})}
-function estadoEsc(x){var mal=x.e==='F'||x.ls==='cer'||x.ls==='no'||x.p.indexOf('m')>=0,am=x.ls==='nov'||x.cm||x.p.indexOf('f')>=0;return mal?'r':!x.ls?'n':am?'a':''}
+function estadoEsc(x){var mal=x.e==='F'||x.ls==='cer'||x.ls==='no'||x.p.indexOf('m')>=0||!!x.ip,am=x.ls==='nov'||x.cm||x.p.indexOf('f')>=0;return mal?'r':!x.ls?'n':am?'a':''}
 function chipsEsc(x){var l=x.l,s='';
   s+=x.ls==='cer'?'📍🔒 cerrada':x.ls==='no'?'📍⛔ no llegó':l?'📍✅ '+l[0]:x.cm?'📍⬜ 🚧 problema en camino':'📍⬜ sin llegar';
   x.p.forEach(function(e,i){s+=' · 📶'+(i+1)+' '+(e==='b'?'✅':e==='m'?'❌':e==='f'?'⏰':'⬜')});
-  return (x.e==='F'?'🔴 <b>CAÍDO '+(x.es!=null?'hace '+dura(x.es):x.ed||'')+'</b> · ':x.e==='A'?'🟢 · ':'')+s}
+  return (x.e==='F'?'🔴 <b>CAÍDO '+(x.es!=null?'hace '+dura(x.es):x.ed||'')+'</b> · ':x.e==='A'?'🟢 · ':'')+(x.ip&&x.e!=='F'?'🌐 <b>IPs / configuración</b>'+(x.ipt?' (🎫 pedido)':'')+' · ':'')+s}
 function notaEsc(x){var n=[];if(x.o)n.push(esc(x.o));
   var i=x.p.indexOf('m');if(i>=0&&x.pd)n.push('prueba '+(i+1)+': '+esc(x.pd[i][2]||'con problema'));
   else{i=x.p.indexOf('f');if(i>=0&&x.pd&&x.pd[i][1])n.push('prueba '+(i+1)+' atrasada '+esc(x.pd[i][1]))}
@@ -442,7 +442,7 @@ function tkVer(msg){var T=TK||{l:[]},gms=Object.keys(T.gm||{}),todos=T.l;
        +'<div style="font-size:12px;opacity:.8;margin-top:4px">✋ Manual: usted decide cada ticket · 🤖 Automático: las reglas lo mandan solas'+(T.sim?' · 🧪 modo prueba (se simula)':'')+'</div></div>'
      :'<div style="margin:4px 14px;font-size:14px;color:#5a6577">Envío a OTRS: <b>'+(T.modo==='crear'?'🤖 AUTOMÁTICO':'✋ MANUAL')+'</b>'+(T.sim?' · 🧪 modo prueba (se simula)':'')+'</div>')
    +'<button class="op g chico" style="margin:8px 12px 0;width:calc(100% - 24px)" data-f="rep">📊 REPORTE DE TICKETS (creados · días sin resolver · cómo se resolvió)</button>'
-   +(gms.length?'<button class="op b chico" style="margin:8px 12px 0;width:calc(100% - 24px)" data-f="bte">🔎 Buscar un colegio en línea para reportar IPs (no le dio IP, falta 1, no conecta)</button>':'')
+   +(gms.length?'<button class="op b chico" style="margin:8px 12px 0;width:calc(100% - 24px)" data-f="bte">🔎 Buscar un colegio en línea con problema de IP / configuración</button>':'')
    +'<div style="margin:8px 12px;display:flex;gap:6px;align-items:stretch"><input id="tkq" placeholder="🔎 Código, escuela o N.º de ticket" style="flex:1 1 auto;min-width:0;font-size:17px;padding:12px;border-radius:12px;border:1px solid #ccd"><button class="op b chico" style="margin:0;flex:0 0 auto;width:auto;padding:12px 18px" data-f="buscar">🔎 Buscar</button></div>'
    +(T.cola&&T.cola.total?'<div style="margin:8px 12px;background:#fff4dc;border-radius:12px;padding:8px 10px"><b>⏳ Sin cerrar en OTRS: '+T.cola.total+'</b>'+(T.cola.d3?' · <b style="color:#b42318">'+T.cola.d3+' con 3 días o más</b>':'')+T.cola.top.map(function(x){return '<div style="font-size:14px">'+(x[2]>=3?'🔴':'🟠')+' <b>'+esc(x[0])+'</b> · ticket '+esc(x[1])+' · <b>'+x[2]+' días</b></div>'}).join('')+'</div>':'')
    +((T.al||[]).length?'<div style="margin:8px 12px;background:#fde2e1;border-radius:12px;padding:8px 10px"><b style="color:#b42318">🚨 Nunca atendidos</b>'+T.al.map(function(a){return '<div style="font-size:14px">'+(a[3]==='alta'?'🔴':'🟠')+' <b>'+esc(a[0])+'</b> '+esc(a[1])+' · '+a[2]+' sin atender</div>'}).join('')+'</div>':'')
@@ -514,7 +514,7 @@ function escuelas(fl){var filtros=[['todas','Todas'],['cai','🔴 Caídos'],['ma
     fn:{bq:function(){var c=(document.getElementById('bq').value||'').replace(/\D/g,'');if(!c)return;if(busca(c))escuela(c,1,function(){escuelas(fl)});else escuelaCod(c,function(){escuelas(fl)})},fil:function(el){escuelas(el.dataset.v)},ver:function(el){escuela(el.dataset.c,+el.dataset.p,function(){escuelas(fl)})}}})}
 
 // ------------------------------------------------------------ 3 · una escuela
-var SN={si:'sí',no:'no'};
+var SN={si:'sí',no:'no'},ESX={};
 function escuela(c,pt,volver){var x=busca(c,pt);if(!x)return inicio();var l=x.l,h='';
   h+='<div class="q" style="padding-top:8px"><div class="e" style="font-size:46px">👤</div><h1 style="font-size:21px">'+esc(x.o||'Sin operador en la lista')+'</h1><p>'+(x.e==='F'?'🔴 El monitoreo lo marca CAÍDO':x.e==='A'?'🟢 El monitoreo lo marca ACTIVO':'')+'</p></div><h3>Hoy</h3>';
   if(l&&l[8])h+='<div class="lin"><i>🚗</i><div>Salió '+esc(l[8])+(l[9]?' · '+esc(l[9])+' km':'')+'</div></div>';
@@ -527,17 +527,24 @@ function escuela(c,pt,volver){var x=busca(c,pt);if(!x)return inicio();var l=x.l,
   x.p.forEach(function(e,i){var d=(x.pd||[])[i]||['','',''];
     h+='<div class="lin"><i>'+(e==='b'?'✅':e==='m'?'❌':e==='f'?'⏰':'⬜')+'</i><div>Prueba '+(i+1)+(d[0]?' · '+esc(d[0]):'')+(d[1]?' ('+esc(d[1])+')':'')
       +'<small>'+(e==='b'?'Bien':e==='m'?esc(d[2]||'Con problema'):e==='f'?'Ya le tocaba y no la hace':'Todavía no le toca')+'</small></div></div>'});
-  if(x.e==='F'){var CZ=CZN,fz=czF(x),dz=czDec(x);
-    h+='<div style="margin:10px 12px;padding:10px 12px;border-radius:14px;border:2px solid '+(fz.length?'#1a7f37':'#e39a19')+';background:'+(fz.length?'#e8f5ec':'#fff4dc')+'"><b style="font-size:17px">🏷️ ¿Por qué se cayó?</b>'
+  if(x.e==='F'&&!ESX[x.c]){var fz0=czF(x),dz0=czDec(x);
+    h+='<div style="margin:10px 12px;padding:10px 12px;border-radius:14px;border:2px solid '+(fz0.length?'#1a7f37':'#e39a19')+'"><div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">'
+      +(fz0.length?fz0.map(function(k){return '<span style="background:#1a7f37;color:#fff;border-radius:10px;padding:6px 12px;font-size:15px;font-weight:700">✔ '+(CZN[k]||esc(k))+'</span>'}).join('')+'<span style="font-size:14px">→ '+(dz0==='crear'?'🎫 corresponde ticket':'✋ no se crea solo')+'</span>'
+        :'<span style="font-size:15px;color:#b45309">🏷️ Todavía no se marcó qué pasó</span>')
+      +'<button class="op b chico" style="margin:0 0 0 auto;flex:0 0 auto;width:auto;padding:8px 14px" data-f="gest">⚙️ GESTIONAR</button></div></div>'}
+  else if(x.e==='F'){var CZ=CZN,fz=czF(x),dz=czDec(x);
+    h+='<div style="margin:10px 12px;padding:10px 12px;border-radius:14px;border:2px solid '+(fz.length?'#1a7f37':'#e39a19')+';background:'+(fz.length?'#e8f5ec':'#fff4dc')+'"><b style="font-size:17px">🏷️ ¿Por qué se cayó?</b> <span data-f="gest" style="color:#4f8cff;text-decoration:underline;cursor:pointer;font-size:14px">✖ cerrar</span>'
       +(fz.length?' <b style="color:#1a7f37">'+esc(czTxt(x))+'</b><div style="font-weight:700;margin-top:4px;color:'+(dz==='crear'?'#c62828':'#1a7f37')+'">'+(dz==='crear'?'🎫 CORRESPONDE TICKET':'✋ NO se crea ticket solo (decide el administrador)')+'</div>':' <b style="color:#b45309">sin marcar</b>')
       +'<div style="font-size:13px;color:#5a6577;margin:4px 0">Puede marcar <b>varias</b> (toque otra vez para quitar). 🎫 Crea ticket: fibra, equipo dañado, proveedor, <b>equipo mojado</b>, <b>volvió la luz y sigue caído</b>. ✋ No crea: solo sin luz, inundación con equipo seco, lluvia.</div>'
       +'<div style="display:flex;gap:6px;flex-wrap:wrap">'+CZK.map(function(k){var on=fz.indexOf(k)>=0;return '<button class="op chico" style="margin:0;flex:1 1 45%;padding:10px 6px;font-size:15px;'+(on?'background:#1a7f37;color:#fff':'background:#fff;color:#1f2d3d;border:1px solid #ccd')+'" data-f="cz_'+k+'">'+(on?'✔ ':'')+CZ[k]+'</button>'}).join('')+'</div>'
       +(fz.length?'<button class="op chico" style="margin:6px 0 0;padding:6px 10px;font-size:13px;background:#eef2f7;color:#1f2d3d" data-f="cz_quitar">✖ Quitar todo</button>':'')+'</div>'}
+  if(x.ip&&x.e!=='F')h+='<div style="margin:10px 12px;padding:10px 12px;border-radius:14px;border:2px solid #e5484d"><b style="font-size:17px">🌐 Enlace ACTIVO con problema de IPs / configuración</b><div style="font-size:14px;margin-top:4px">'+esc(x.ip)+'</div>'
+    +(x.ipt?'<div style="font-size:14px;margin-top:4px">🎫 '+tkTxt(x)+'</div>':'<div style="font-size:14px;margin-top:4px;color:#b45309">👉 Toque <b>ENVIAR AL SUPERVISOR GENERAL</b> para pedir el ticket.</div>')+'</div>';
   var sig=x.p.indexOf('m')>=0?x.p.indexOf('m')+1:x.p.indexOf('f')>=0?x.p.indexOf('f')+1:Math.min(3,x.p.lastIndexOf('b')+2||1);
-  var fnz={};CZK.concat(['quitar']).forEach(function(k){fnz['cz_'+k]=function(){causaPanel(x,k,function(){escuela(c,pt,volver)})}});
+  var fnz={gest:function(){ESX[x.c]=!ESX[x.c];escuela(c,pt,volver)}};CZK.concat(['quitar']).forEach(function(k){fnz['cz_'+k]=function(){ESX[x.c]=false;causaPanel(x,k,function(){escuela(c,pt,volver)})}});
   pantalla({fn:fnz,atras:volver||inicio,tit:esc(x.c)+' · '+esc(x.n),sub:'Punto '+x.pt,html:h,
     ops:[['📞 LLAMAR AL OPERADOR','g',function(){hacer({accion:'llamar',cod:x.c})}],['📷 VER LAS FOTOS','b',function(){hacer({accion:'fotos',cod:x.c})}],
-      ].concat(x.e!=='F'?[['🌐 REPORTAR IPs (en línea pero sin IP / no conecta)','r',function(){incidIp(x.c,function(){escuela(c,pt,volver)})}]]:[]).concat(D.pp?[['📢 PEDIRLE LA PRUEBA '+sig,'a',function(){if(D.jm==='')return sinJornada();hacer({accion:'pedir',n:sig,cods:[x.c]})}]]:[]).concat(x.e==='F'?[['🛠️ REPORTAR DAÑO (TICKET)','r',function(){danio(x.c,function(){escuela(c,pt,volver)})}]]:[]).concat(puedeEncerar()?[['🏫 PONER EN CERO ESTA ESCUELA (vuelve a pedir todo)','n',function(){encerar([x.c],0,function(){escuela(c,pt,volver)})},1]]:[]),
+      ].concat(x.e!=='F'&&!x.ipt?[[x.ip?'🎫 ENVIAR AL SUPERVISOR GENERAL (IP / configuración)':'🌐 FALTA DE IP / CONFIGURACIÓN','r',function(){incidIp(x.c,function(){escuela(c,pt,volver)},x.ip)}]]:[]).concat(D.pp?[['📢 PEDIRLE LA PRUEBA '+sig,'a',function(){if(D.jm==='')return sinJornada();hacer({accion:'pedir',n:sig,cods:[x.c]})}]]:[]).concat(x.e==='F'?[['🛠️ REPORTAR DAÑO (TICKET)','r',function(){danio(x.c,function(){escuela(c,pt,volver)})}]]:[]).concat(puedeEncerar()?[['🏫 PONER EN CERO ESTA ESCUELA (vuelve a pedir todo)','n',function(){encerar([x.c],0,function(){escuela(c,pt,volver)})},1]]:[]),
     nota:D.ch?'Teléfonos y fotos se ven aquí mismo.':'Teléfonos y fotos le llegan en el chat del bot.'})}
 
 // 🧹 ENCERAR: poner en cero (solo PRUEBAS / SIMULACRO)
@@ -552,7 +559,7 @@ function encerarMenu(){if(!puedeEncerar())return pantalla({atras:inicio,e:'⛔',
 
 function escuelaCod(c,volver,bx){var nom=bx?bx[1]:'',est=bx?bx[3]:'';
   pantalla({atras:volver,tit:'🏫 '+esc(c)+(nom?' · '+esc(nom):''),e:'🏫',h1:esc(c)+(nom?' · '+esc(nom):''),p:(est==='ACTIVO'?'🟢 El monitoreo lo marca <b>ACTIVO</b> (enlace arriba).':est==='FALLO'?'🔴 El monitoreo lo marca <b>CAÍDO</b>.':'Esta escuela no tiene novedades, por eso no sale en la lista.')+(est==='ACTIVO'?'<br>Como está <b>en línea</b>, solo se puede reportar por <b>IPs</b> (no le dio IP, falta una, no conecta). Si el operador ya lo reportó, al reportarlo usted queda como <b>✔ supervisor confirma</b>.':''),
-    ops:[['🌐 REPORTAR IPs (en línea pero sin IP / no conecta)','r',function(){incidIp(c,function(){escuelaCod(c,volver,bx)})}],['📞 LLAMAR AL OPERADOR','g',function(){hacer({accion:'llamar',cod:c})}],['📷 VER LAS FOTOS','b',function(){hacer({accion:'fotos',cod:c})}]]
+    ops:[['🌐 FALTA DE IP / CONFIGURACIÓN','r',function(){incidIp(c,function(){escuelaCod(c,volver,bx)})}],['📞 LLAMAR AL OPERADOR','g',function(){hacer({accion:'llamar',cod:c})}],['📷 VER LAS FOTOS','b',function(){hacer({accion:'fotos',cod:c})}]]
       .concat(D.pp?[['📢 PEDIRLE UNA PRUEBA','a',function(){if(D.jm==='')return sinJornada();hacer({accion:'pedir',n:D.nx>3?3:D.nx,cods:[c]})}]]:[]).concat(est!=='ACTIVO'?[['🛠️ REPORTAR DAÑO (TICKET)','r',function(){danio(c,function(){escuelaCod(c,volver,bx)})}]]:[]).concat(puedeEncerar()?[['🏫 PONER EN CERO ESTA ESCUELA (vuelve a pedir todo)','n',function(){encerar([c],0,function(){escuelaCod(c,volver)})},1]]:[])})}
 
 // ------------------------------------------------------------ 4 · problemas
@@ -654,14 +661,12 @@ function danio(c,volver){var x=busca(c)||{n:''};
     ops:[['🧵 FIBRA','r',function(){danioOk(c,'fibra',volver)}],['🖥️ EQUIPO','r',function(){danioOk(c,'equipo',volver)}],['💧 EQUIPO MOJADO (inundación)','r',function(){danioOk(c,'mojado',volver)}],
       ['🌐 SIN IP / CONFIGURACIÓN','r',function(){danioOk(c,'sinip',volver)}],['📡 ENLACE CAÍDO','a',function(){danioOk(c,'enlace',volver)}],
       ['💡 SIN LUZ (no se crea ticket)','b',function(){luzOk(c,'luz',volver)}],['🌧️ LLUVIA (no se crea ticket)','b',function(){luzOk(c,'lluvia',volver)}],['🌊 INUNDACIÓN, EQUIPO SECO (no ticket)','b',function(){luzOk(c,'inundacion',volver)}],['⚫ EQUIPO APAGADO (lo apagaron · no ticket)','b',function(){luzOk(c,'apagado',volver)}],['❓ OTRO','n',function(){danioOk(c,'otro',volver)}]]})}
-function incidIp(c,volver){var x=busca(c)||{n:''};
-  var op=function(t,det){return function(){pantalla({atras:function(){incidIp(c,volver)},tit:'🌐 '+esc(c),e:'🎫',h1:'¿Reportar «'+esc(det)+'»?',
-    p:'En <b>'+esc(c)+(x.n?' · '+esc(x.n):'')+'</b>. Aunque el enlace esté <b>arriba</b>, queda como pedido de ticket'+(D.dos&&!D.gen?' y <b>lo autoriza el supervisor general</b>.':'.')+'<br><small>No se cierra solo porque el enlace esté arriba.</small>',
-    ops:[['✅ SÍ, REPORTAR','g',function(){hacer({accion:'danio',cod:c,tipo:t,detalle:det})}],['↩ No, volver','n',function(){incidIp(c,volver)},1]]})}};
-  pantalla({atras:volver,tit:'🌐 '+esc(c)+(x.n?' · '+esc(x.n):''),sub:D.dos&&!D.gen?'Usted lo pide; lo autoriza el supervisor general':'Se pide el ticket',e:'🌐❓',h1:'¿Qué pasa con las IPs?',
-    ops:[['🌐 NO LE DIO NINGUNA IP','r',op('sinip','No le dio ninguna IP')],['🌐 FALTA 1 IP (solo le dio una)','r',op('sinip','Falta 1 IP (solo le dio una)')],
-      ['🔌 TIENE IP PERO NO SE CONECTA','r',op('sinip','Tiene IP pero no se conecta')],
-      ['↩ Volver','n',volver,1]]})}
+function incidIp(c,volver,yaOp){var x=busca(c)||{n:''};
+  pantalla({atras:volver,tit:'🌐 '+esc(c)+(x.n?' · '+esc(x.n):''),e:'🌐⚠️',h1:'Enlace ACTIVO con problema de IP / configuración',
+    p:'La escuela <b>'+esc(c)+(x.n?' · '+esc(x.n):'')+'</b> tiene el enlace <b>activo</b>, pero no le dio IP, le falta una o no pasa el test de conexión (configuración de IP / máquina).'
+      +(yaOp?'<br><br>👷 Lo reportó el operador: <b>'+esc(yaOp)+'</b>.':'')
+      +'<br><br>Se envía '+(D.dos&&!D.gen?'al <b>supervisor general</b> para que autorice el ticket.':'el pedido de ticket.')+' <small>No se cierra solo porque el enlace esté arriba.</small>',
+    ops:[['🎫 SÍ, ENVIAR'+(D.dos&&!D.gen?' AL SUPERVISOR GENERAL':''),'g',function(){hacer({accion:'danio',cod:c,tipo:'sinip',detalle:'Enlace ACTIVO con problema de IP / configuración'+(yaOp?' (operador: '+yaOp+')':'')})}],['↩ No, volver','n',volver,1]]})}
 function luzOk(c,t,volver){pantalla({atras:function(){danio(c,volver)},tit:'🛠️ '+esc(c),e:t==='luz'?'💡':t==='inundacion'?'🌊':t==='apagado'?'⚫':'🌧️',h1:t==='luz'?'¿Marcar SIN LUZ?':t==='inundacion'?'¿Marcar INUNDACIÓN (equipo seco)?':t==='apagado'?'¿Marcar EQUIPO APAGADO?':'¿Marcar LLUVIA?',p:'En la escuela <b>'+esc(c)+'</b>. <b>No se crea ticket</b>: queda guardado como causa de la caída.',
   ops:[['✅ SÍ, MARCAR','g',function(){hacer({accion:'danio',cod:c,tipo:t})}],['↩ No, volver','n',function(){danio(c,volver)},1]]})}
 function danioOk(c,t,volver){pantalla({atras:function(){danio(c,volver)},tit:'🛠️ '+esc(c),e:'🎫',h1:'¿Generar el ticket?',p:esc(TIPO[t])+' en la escuela <b>'+esc(c)+'</b>.',
