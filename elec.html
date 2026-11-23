@@ -236,7 +236,7 @@ function mapa(){if(!window.L){$('mapa').innerHTML='<div class="it">🗺️ Carga
     L.polygon([[[-15,-95],[-15,-60],[10,-60],[10,-95]]].concat(hoyos),{pane:'mask',stroke:false,fillColor:'#070d1a',fillOpacity:.88,interactive:false}).addTo(MAP);
     gj.eachLayer(function(l){var k=l.feature.properties.nombre,c=cn[norm(k)]||{},ic=(c.inc?'🚨'+c.inc+' ':'')+(c.co?'🚨'+c.co+' ':'')+(c.sl?'⚡'+c.sl+' ':'')+(c.in?'🌊'+c.in+' ':'')+(c.ce?'🔒'+c.ce:'');
       L.marker(l.getBounds().getCenter(),{interactive:false,icon:L.divIcon({className:'',iconSize:null,html:'<div class="gcan">'+esc(k)+(ic?' <b>'+ic.trim()+'</b>':'')+'</div>'})}).addTo(MAP)});
-    GY=gj.getBounds();MAP.setMaxBounds(GY.pad(0.25));gyAjustar()});
+    GY=gj.getBounds();MAP.setMaxBounds(GY.pad(0.25));gyAjustar();MAP.on('zoomend moveend',function(){setTimeout(colision,30)});setTimeout(colision,60)});
   // botones encima del mapa: pausa y hora del satélite
   var ctl=L.control({position:'topright'});ctl.onAdd=function(){var d=L.DomUtil.create('div','satbox');d.innerHTML='<button id="satP" title="Pausar / mover las nubes">'+(SATP?'▶':'⏸')+'</button><span id="satH"></span>';
     L.DomEvent.disableClickPropagation(d);setTimeout(function(){var b=$('satP');if(b)b.onclick=function(){SATP=!SATP;b.textContent=SATP?'▶':'⏸';if(SATP){clearTimeout(SATT);satFrame(SATF.length-1)}else satAnimar()}},0);return d};ctl.addTo(MAP);
@@ -244,6 +244,9 @@ function mapa(){if(!window.L){$('mapa').innerHTML='<div class="it">🗺️ Carga
   gyAjustar();
   try{var _w=0;new ResizeObserver(function(){var w=$('mapa').clientWidth;if(w&&w!==_w){_w=w;gyAjustar()}}).observe($('mapa'))}catch(e){}
   [300,1200].forEach(function(t){setTimeout(gyAjustar,t)})}
+function colision(){var el=[].slice.call(document.querySelectorAll('#mapa .gcan'));el.forEach(function(x){x.style.visibility=''});
+  el.sort(function(a,b){return (b.querySelector('b')?1:0)-(a.querySelector('b')?1:0)});var ok=[];
+  el.forEach(function(x){var r=x.getBoundingClientRect();if(ok.some(function(o){return !(r.right<o.left||r.left>o.right||r.bottom<o.top||r.top>o.bottom)}))x.style.visibility='hidden';else ok.push(r)})}
 function satFrame(i){if(!SATF.length)return;SATI=(i+SATF.length)%SATF.length;SATF.forEach(function(f,j){f.l.setOpacity(j===SATI?.72:0)});
   var t=SATF[SATI].t,h=$('satH'),m=Math.max(0,Math.round((Date.now()-Date.parse(t))/60000));if(h)h.innerHTML='🛰️ <b>'+horaEc(t)+'</b> · hace '+m+' min'}
 function satAnimar(){clearTimeout(SATT);if(SATP||SATF.length<2)return;var paso=function(){satFrame(SATI+1);SATT=setTimeout(paso,SATI===SATF.length-1?2600:700)};SATT=setTimeout(paso,1500)}
