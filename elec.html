@@ -23,6 +23,7 @@ html,body{margin:0;background:var(--bg);color:var(--tx);font-family:-apple-syste
 .it b{font-size:15px}.it .d{font-size:13px;color:#d6e0f5;margin-top:3px}
 input{width:100%;font-size:16px;padding:11px;border-radius:12px;border:1px solid var(--line);background:#0f1c38;color:#fff;margin-top:10px}
 .av{height:10px;background:#0f1c38;border-radius:6px;overflow:hidden;margin-top:6px}.av div{height:100%;background:var(--ok)}
+.osmdark{filter:invert(1) hue-rotate(180deg) brightness(.85) contrast(.9)}.leaflet-control-attribution{font-size:9px;background:rgba(0,0,0,.5)!important;color:#aaa}.leaflet-control-attribution a{color:#9cf}
 </style>
 <style id="tema2026">
 /* ✨ TEMA 2026 «futurista» para las Mini Apps de Telegram — SOLO aspecto. No cambia nada de cómo funciona. */
@@ -156,8 +157,8 @@ function inicio(){var K=D.k||{},h='';
   mapa();lista()}
 window._lfOK=function(){if(D&&$('mapa'))inicio()};
 function mapa(){if(!window.L){$('mapa').innerHTML='<div class="it">🗺️ Cargando el mapa…</div>';return}
-  MAP=L.map('mapa',{zoomControl:true,attributionControl:false}).setView([-2.2,-79.9],8);
-  L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',{maxZoom:18}).addTo(MAP);
+  MAP=L.map('mapa',{zoomControl:true,attributionControl:true}).setView([-2.2,-79.9],8);
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap',className:'osmdark'}).addTo(MAP);
   var b=[],P=(D.p||[]).filter(function(x){return !FIL||FIL==='inc'?FIL!=='inc':x[5]===FIL});
   P.forEach(function(x){if(x[3]==null)return;var c=T[x[5]]||['','','#999'];b.push([x[3],x[4]]);
     L.circleMarker([x[3],x[4]],{radius:x[5]==='ri'?5:8,color:'#fff',weight:1.5,fillColor:c[2],fillOpacity:.9}).addTo(MAP)
