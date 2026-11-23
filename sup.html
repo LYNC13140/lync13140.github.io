@@ -190,6 +190,7 @@ function hacer(d){   // acciones del panel: con canal, se queda en la app y mues
     if(s===20)$('relojTxt').innerHTML='Hay <b>mucha gente</b> usando el sistema a la vez.<br>Espere, <b>no cierre</b>: puede tardar 1 a 2 minutos.'},1000);
   canal(D.ch,D.ci,D.fr,d).then(function(res){vibra(res.ok?'ok':'mal');
     if(res.au){pantalla({e:'🏛️',h1:'Abriendo el tablero de la Directora…'});location.href=res.au;return}
+    if(res.eu){pantalla({e:'💡',h1:'Abriendo el mapa de ELEC…'});location.href=res.eu;return}
     if(res.s&&!res.z){pantalla({e:'👷',h1:'Abriendo la pantalla del operador…'});location.replace('index.html?s='+res.s);return}
     var imgs=(res.imgs||[]).map(function(i){return '<div style="margin:10px 14px 0"><img src="'+esc(i[0])+'" style="width:100%;border-radius:14px;display:block" loading="lazy"><div style="font-size:14px;color:#5a6577;padding:4px 2px">'+esc(i[1])+'</div></div>'}).join('');
     pantalla({e:res.ok?'✅':'⚠️',h1:res.ok?'Listo':'No se pudo',html:'<div class="av '+(res.ok?'ok':'')+'" style="text-align:left;font-size:16px">'+(res.txt||'')+'</div>'+imgs,
