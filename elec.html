@@ -261,23 +261,26 @@ function esSeg(x){return /^(🪖|👮)/.test(String(x[5]||''))}
 function emo1(t){var m=String(t||'').match(/^(\p{Extended_Pictographic}\uFE0F?)/u);return m?m[1]:''}
 function fmin(m){m=+m||0;return m<60?m+' min':Math.floor(m/60)+' h '+(m%60)+' min'}
 function lista(){[].forEach.call(document.querySelectorAll('[data-t]'),function(el){el.className=el.dataset.t===TAB?'on':''});var h='';
-  if(TAB==='inc'){var I=D.i||[],it=function(x){var ab=x[7]==='abierta';return '<div class="it tap" data-c="'+esc(x[0])+'" style="border-left:5px solid '+(ab?'#ff3b5c':'#22c55e')+(ab?'':';opacity:.8')+'"><b>'+esc(x[5])+' · '+esc(x[0])+'</b> '+esc(x[1])+'<div class="d">'+esc(x[2])+' · '+esc(x[6])+' · '+(ab?'<b style="color:#ff6b6b">ABIERTA</b> hace '+fmin(x[8]):(/Volvió la luz/.test(x[10]||'')?'🔌 <b style="color:#22c55e">volvió la luz</b>':'✅ resuelta'+(x[10]?' por '+esc(x[10]):''))+(x[11]?' '+esc(x[11]):''))+'</div>'+(x[9]?'<div class="d">'+esc(x[9])+'</div>':'')+'<div class="d" style="color:#8fd8ff">👉 toque para ver quién está y sus teléfonos'+(ab?' · ✅ marcar resuelto':'')+'</div></div>'},
+  if(TAB==='inc'){var I=D.i||[],it=function(x){var ab=x[7]==='abierta';return '<div class="it tap" data-c="'+esc(x[0])+'" style="border-left:5px solid '+(ab?'#ff3b5c':'#22c55e')+(ab?'':';opacity:.8')+'"><b>'+esc(x[5])+' · '+esc(x[0])+'</b> '+esc(x[1])+'<div class="d">'+esc(x[2])+' · '+esc(x[6])+' · '+(ab?'<b style="color:#ff6b6b">ABIERTA</b> hace '+fmin(x[8])+(x[12]?' · <b style="color:#86efac">'+esc(x[12])+'</b>':''):(/Volvió la luz/.test(x[10]||'')?'🔌 <b style="color:#22c55e">volvió la luz</b>':'✅ resuelta'+(x[10]?' por '+esc(x[10]):''))+(x[11]?' '+esc(x[11]):''))+'</div>'+(x[9]?'<div class="d">'+esc(x[9])+'</div>':'')+'<div class="d" style="color:#8fd8ff">👉 toque para ver quién está y sus teléfonos'+(ab?' · ✅ marcar resuelto':'')+'</div></div>'},
       A=I.filter(function(x){return x[7]==='abierta'&&(FIL!=='se'||esSeg(x))}),R=I.filter(function(x){return x[7]!=='abierta'&&(FIL!=='se'||esSeg(x))});
     h=(A.length?A.map(it).join(''):'<div class="it">👍 No hay incidencias abiertas.</div>')+(R.length?'<div class="mu" style="margin-top:14px;font-weight:700">🗂️ Historial · resueltas en las últimas 24 h ('+R.length+')</div>'+R.map(it).join(''):'')}
   else if(TAB==='sec'){h=(D.s||[]).length?D.s.map(function(t){return '<div class="it"><div class="d" style="font-size:14px">'+esc(t)+'</div></div>'}).join(''):'<div class="it">Sin sectores sin luz ahora.</div>'}
-  else{var P=(D.p||[]).filter(function(x){return x[5]===TAB});h=P.length?P.map(function(x){return '<div class="it tap" data-c="'+esc(x[0])+'" style="border-left:5px solid '+T[x[5]][2]+'"><b>'+esc(x[0])+'</b> '+esc(x[1])+'<div class="d">'+esc(x[2])+' · '+esc(x[6])+(x[7]?' · 🔁 se repite hoy':'')+'</div></div>'}).join(''):'<div class="it">👍 Ninguna.</div>'}
+  else{var P=(D.p||[]).filter(function(x){return x[5]===TAB});h=P.length?P.map(function(x){return '<div class="it tap" data-c="'+esc(x[0])+'" style="border-left:5px solid '+T[x[5]][2]+'"><b>'+esc(x[0])+'</b> '+esc(x[1])+'<div class="d">'+esc(x[2])+' · '+esc(x[6])+(x[5]==='sl'&&x[9]?'<br>⏱️ '+esc(lineaCorte(x)):'')+(x[7]?' · 🔁 se repite hoy':'')+'</div></div>'}).join(''):'<div class="it">👍 Ninguna.</div>'}
   $('lis').innerHTML=h;[].forEach.call(document.querySelectorAll('#lis [data-c]'),function(el){el.onclick=function(){det(el.dataset.c)}})}
 // 📤 INFORME: un texto ordenado para mandar por WhatsApp, correo, Telegram… (sin teléfonos)
+function lineaCorte(x){return (x[9]?'se cortó la energía '+x[9]+' (se cayó el enlace)':'sin luz')+(x[10]?' · reportó '+x[10]:'')}
+function lineaVolvio(x){return (x[9]?'se cortó '+x[9]:'')+(x[10]?' · reportó '+x[10]:'')+(x[11]?' · volvió la energía '+x[11]:'')+(x[12]?' (estuvo '+x[12]+' sin luz)':'')}
 function informeTxt(){var K=D.k||{},I=D.i||[],P=D.p||[],L=[],li=function(x,t){return '• '+x[0]+' '+x[1]+(x[2]?' ('+x[2]+')':'')+(t?' — '+t:'')};
   L.push('💡 *INFORME ELEC · Luz, clima e incidencias · Guayas*');L.push('🕒 Datos de las '+(D.h||'')+(VIVO?' (en vivo '+VIVO+')':''));L.push('');
   L.push('🚨 Incidencias abiertas: *'+(K.ia||0)+'*');L.push('🪖 Seguridad (militares / policía): *'+(K.se||0)+'*');
   L.push('🚨 Contingencias: *'+(K.co||0)+'* · ⚡ Sin luz: *'+(K.sl||0)+'* · 🌊 Inundadas: *'+(K.in||0)+'*');
-  L.push('🌧️ Riesgo de lluvia: *'+(K.ri||0)+'* · ✅ Volvió la luz (24 h): *'+(K.vo||0)+'* · 🔒 Cerradas: *'+(K.ce||0)+'*');
+  L.push('🌧️ Riesgo de lluvia: *'+(K.ri||0)+'* · 🔒 Cerradas: *'+(K.ce||0)+'*');
   var A=I.filter(function(x){return x[7]==='abierta'}),S=A.filter(esSeg),O=A.filter(function(x){return !esSeg(x)});
   if(S.length){L.push('');L.push('🪖 *SEGURIDAD*');S.slice(0,25).forEach(function(x){L.push(li(x,x[5]+' desde '+x[6]+' (hace '+fmin(x[8])+')'+(x[9]?' · '+x[9]:'')))})}
   if(O.length){L.push('');L.push('🚨 *INCIDENCIAS ABIERTAS*');O.slice(0,30).forEach(function(x){L.push(li(x,x[5]+' desde '+x[6]+' (hace '+fmin(x[8])+')'+(x[9]?' · '+x[9]:'')))})}
-  [['co','🚨 *CONTINGENCIAS*'],['sl','⚡ *SIN LUZ*'],['in','🌊 *INUNDADAS*'],['ce','🔒 *CERRADAS / SIN INGRESO*'],['vo','✅ *VOLVIÓ LA LUZ*']].forEach(function(g){var l=P.filter(function(x){return x[5]===g[0]});
-    if(!l.length)return;L.push('');L.push(g[1]+' ('+l.length+')');l.slice(0,30).forEach(function(x){L.push(li(x,x[6]))});if(l.length>30)L.push('… y '+(l.length-30)+' más')});
+  L.push('_(Ya volvió la luz en '+(K.vo||0)+' escuela(s): no van en este informe, están en el historial)_');
+  [['sl','⚡ *SIN LUZ*'],['in','🌊 *INUNDADAS*'],['co','🚨 *CONTINGENCIAS*'],['ce','🔒 *CERRADAS / SIN INGRESO*']].forEach(function(g){var l=P.filter(function(x){return x[5]===g[0]});
+    if(!l.length)return;L.push('');L.push(g[1]+' ('+l.length+')');l.slice(0,40).forEach(function(x){L.push(li(x,g[0]==='sl'?lineaCorte(x):x[6]))});if(l.length>40)L.push('… y '+(l.length-40)+' más')});
   if((D.s||[]).length){L.push('');L.push('🗺️ *SECTORES SIN LUZ*');D.s.slice(0,8).forEach(function(t){L.push('• '+t)})}
   return L.join('\n')}
 function informe(){DET='inf';var t=informeTxt();
@@ -297,7 +300,7 @@ function histVolvio(){DET='hist';try{if(MAP)MAP.closePopup()}catch(x){}
   var V=(D.p||[]).filter(function(x){return x[5]==='vo'}),R=(D.i||[]).filter(function(x){return x[7]!=='abierta'});
   var h='<h2 style="margin:4px 0">✅ Volvió la luz · historial</h2><div class="mu">Últimas 24 h. Aquí no hay nada que resolver: cuando vuelve la luz, la incidencia de «sin luz» se cierra sola y queda aquí.</div>'
    +'<div class="mu" style="margin-top:12px;font-weight:800">🔌 ESCUELAS QUE RECUPERARON LA LUZ ('+V.length+')</div>'
-   +(V.length?V.map(function(x){return '<div class="it tap" data-c="'+esc(x[0])+'" style="border-left:5px solid #22c55e"><b>'+esc(x[0])+'</b> '+esc(x[1])+'<div class="d">'+esc(x[2])+' · '+esc(x[6])+'</div><div class="d" style="color:#8fd8ff">👉 toque para ver quién está y sus teléfonos</div></div>'}).join(''):'<div class="it">Ninguna en las últimas 24 h.</div>')
+   +(V.length?V.map(function(x){return '<div class="it tap" data-c="'+esc(x[0])+'" style="border-left:5px solid #22c55e"><b>'+esc(x[0])+'</b> '+esc(x[1])+'<div class="d">'+esc(x[2])+' · '+(x[9]||x[11]?'⚡ '+esc(lineaVolvio(x)):esc(x[6]))+'</div><div class="d" style="color:#8fd8ff">👉 toque para ver quién está y sus teléfonos</div></div>'}).join(''):'<div class="it">Ninguna en las últimas 24 h.</div>')
    +'<div class="mu" style="margin-top:14px;font-weight:800">🗂️ INCIDENCIAS CERRADAS ('+R.length+')</div>'
    +(R.length?R.map(function(x){var v=/Volvió la luz/.test(x[10]||'');return '<div class="it tap" data-c="'+esc(x[0])+'" style="border-left:5px solid #22c55e;opacity:.9"><b>'+esc(x[5])+' · '+esc(x[0])+'</b> '+esc(x[1])+'<div class="d">'+esc(x[2])+' · reportada '+esc(x[6])+' · '+(v?'🔌 volvió la luz':'✅ resuelta'+(x[10]?' por '+esc(x[10]):''))+(x[11]?' '+esc(x[11]):'')+'</div></div>'}).join(''):'<div class="it">Ninguna cerrada en las últimas 24 h.</div>')
    +'<button class="bt g" onclick="cerrarDet()">↩ VOLVER A LA PÁGINA</button>';
@@ -317,7 +320,7 @@ function verDet(x,msg){var A=(x.i||[]).filter(function(i){return i[3]==='abierta
    +'<div class="mu" style="margin-top:12px;font-weight:800">👥 QUIÉN ESTÁ</div>'
    +((x.pe||[]).length?x.pe.map(function(p){var t=String(p[2]||'').replace(/[^0-9+]/g,'');return '<div class="it"><div class="d">'+esc(p[0])+'</div><b>'+esc(p[1]||'—')+'</b><br>'+(t?'<a class="tel" href="tel:'+esc(t)+'">📞 '+esc(p[2])+'</a>':'<span class="mu">sin teléfono</span>')+'</div>'}).join(''):'<div class="it">Sin personal registrado en esta escuela.</div>')
    +'<div class="mu" style="margin-top:14px;font-weight:800">🚨 INCIDENCIAS ABIERTAS ('+A.length+')</div>'
-   +(A.length?A.map(function(i){return '<div class="it" style="border-left:5px solid #ff3b5c"><b>'+esc(i[1])+'</b><div class="d">'+esc(i[2].slice(5))+(i[5]?' · reportó '+esc(i[5]):'')+'</div>'+(i[4]?'<div class="d">«'+esc(i[4])+'»</div>':'')
+   +(A.length?A.map(function(i){return '<div class="it" style="border-left:5px solid #ff3b5c"><b>'+esc(i[1])+'</b><div class="d">'+esc(i[2].slice(5))+(i[5]?' · reportó '+esc(i[5]):'')+(i[9]?' · <b style="color:#86efac">'+esc(i[9])+'</b>':'')+'</div>'+(i[4]?'<div class="d">«'+esc(i[4])+'»</div>':'')
       +'<button class="bt v" data-r="'+esc(i[0])+'">✅ YA SE RESOLVIÓ · '+esc(i[1])+'</button></div>'}).join('')
       +(A.length>1?'<button class="bt v" data-r="*">✅ TODO RESUELTO EN ESTA ESCUELA ('+A.length+')</button>':''):'<div class="it">👍 Ninguna abierta.</div>')
    +(R.length?'<div class="mu" style="margin-top:14px;font-weight:800">🗂️ HISTORIAL</div>'+R.map(function(i){return '<div class="it" style="opacity:.85;border-left:5px solid #22c55e"><b>'+esc(i[1])+'</b> · ✅ resuelta<div class="d">Reportada '+esc(i[2].slice(5))+(i[5]?' por '+esc(i[5]):'')+'</div><div class="d">Resuelta '+esc(i[7].slice(5))+(i[6]?' por '+esc(i[6]):'')+(i[8]?' · «'+esc(i[8])+'»':'')+'</div></div>'}).join(''):'')
