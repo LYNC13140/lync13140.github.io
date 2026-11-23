@@ -441,6 +441,7 @@ function problema(){   // 🛠️ reportar daño / problema desde la escuela, si
   pantalla({atras:home,titulo:'Incidencia',e:'🛠️',h1:'¿Qué INCIDENCIA hay en el recinto?',p:'Siempre con foto.',ops:[['📶 NO HAY INTERNET / ENLACE CAÍDO','r',function(){mandar('No hay internet / enlace caído')}],
     ['✂️ CORTE DE FIBRA','r',function(){mandar('Corte de fibra')}],['📴 EQUIPOS DE CNT APAGADOS','r',function(){mandar('Equipos de CNT apagados')}],['🌊 INUNDACIÓN','a',function(){mandar('Inundación')}],
     ['🖥️ EQUIPO DAÑADO','a',function(){mandar('Equipo dañado')}],['🌐 EL EQUIPO NO TIENE IP','a',function(){mandar('El equipo no tiene IP (sin IP asignada / configuración)')}],['💡 SE FUE LA LUZ','a',function(){mandar('Se fue la luz')}],['🔒 NO ME DEJAN ENTRAR / CERRARON','a',function(){mandar('No lo dejan entrar / cerraron')}],
+    ['🪖 NO HAY MILITARES / POLICÍA','r',function(){mandar('No hay militares / policía en el recinto')}],['👮 PROBLEMA CON MILITARES / POLICÍA (seguridad)','r',function(){mandar('Problema de seguridad con militares / policía')}],
     ['📝 OTRO','b',function(){mandar('Otro')}]]})}
 function ayuda(){pantalla({atras:home,e:'❓',h1:'¿Cómo se usa?',extra:'<div class="sup" style="text-align:left;font-size:18px;line-height:1.5">'
   +'1️⃣ Al llegar toque <b>📍 ESTOY EN EL RECINTO</b>.<br>'

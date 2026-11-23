@@ -138,6 +138,7 @@ button[style*="background:#1f6feb"]{background:linear-gradient(135deg,#6d5dfc,#3
 .ley{display:flex;flex-wrap:wrap;gap:8px;font-size:12px;color:var(--mu);margin-top:8px}.ley span{display:inline-flex;align-items:center;gap:4px}
 .pt{width:12px;height:12px;border-radius:50%;display:inline-block;border:2px solid #fff}
 @keyframes lat{0%{transform:scale(.6);opacity:1}100%{transform:scale(2.6);opacity:0}}
+.ince{display:flex;align-items:center;justify-content:center;width:30px;height:30px;border-radius:50%;background:#ff3b5c;border:2px solid #fff;font-size:17px;line-height:1;box-shadow:0 4px 14px -4px #000}.ince.seg{background:#0f172a;border-color:#ffd400;width:34px;height:34px;font-size:21px}.ince.seg.titila:after{border-color:#ffd400}
 .titila{position:relative}.titila:after{content:'';position:absolute;inset:-2px;border-radius:50%;border:3px solid #ff3b5c;animation:lat 1.3s ease-out infinite}
 .tabs{display:flex;gap:6px;margin-top:14px;overflow-x:auto}.tabs button{flex:0 0 auto;padding:9px 12px;border-radius:12px;border:1px solid var(--line);background:var(--card);color:var(--tx);font-size:14px;font-weight:700}
 .tabs button.on{background:#2f80ed;border-color:#2f80ed}
@@ -187,6 +188,8 @@ function inicio(){var K=D.k||{},h='';
   if(document.referrer.indexOf('sup.html')>=0)h+='<div style="margin:10px 0 0;padding:10px 12px;border-radius:12px;background:rgba(168,85,247,.18);border:1px solid rgba(168,85,247,.5);font-weight:700">🧪 VIENDO COMO ELEC · así le sale a ELEC</div>';
   h+='<div class="top"><h1>💡 Luz, clima e incidencias · Guayas</h1><div class="mu">Datos de las '+esc(D.h)+(VIVO?'<span class="vivo">● EN VIVO '+esc(VIVO)+'</span>':'')+' · toque un cuadro para ver solo eso en el mapa · toque una escuela para ver quién está y sus teléfonos</div></div>';
   h+='<div class="k '+(K.ia?'bad':'ok')+'" data-f="inc" style="margin-top:12px;min-height:0"><small>🚨 Incidencias abiertas (reportadas en el sitio)</small><i>🚨</i><b>'+(K.ia||0)+'</b></div>';
+  h+='<button class="bt a" id="inf" style="min-height:46px;font-size:15px">📤 ENVIAR INFORME (WhatsApp, correo, Telegram…)</button>';
+  h+='<div class="k '+(FIL==='se'?'on ':'')+(K.se?'bad':'ok')+'" data-f="se" style="margin-top:10px;min-height:0"><small>🪖 Seguridad: sin militares / policía o problema con ellos</small><i>👮</i><b>'+(K.se||0)+'</b></div>';
   h+='<div class="grid3">'+['co','sl','in','ri','vo','ce'].map(function(k){var v=K[k]||0;return '<div class="k '+(FIL===k?'on ':'')+(v?(k==='vo'?'ok':k==='ri'||k==='ce'?'warn':'bad'):'')+'" data-f="'+k+'"><small>'+T[k][1]+'</small><i>'+T[k][0]+'</i><b>'+v+'</b></div>'}).join('')+'</div>';
   h+='<div id="mapa"></div><div class="ley">'+Object.keys(T).map(function(k){return '<span><span class="pt" style="background:'+T[k][2]+'"></span>'+T[k][1]+'</span>'}).join('')+'<span><span class="pt titila" style="background:#ff3b5c"></span>incidencia abierta</span><span>🛰️ nubes: rojo/negro = tormenta · amarillo/verde = lluvia · gris = sin lluvia</span>'+(FIL?' · <a href="#" id="todo" style="color:#8fd8ff">ver todo</a>':'')+'</div>';
   h+='<button class="bt v" id="hvo" style="min-height:44px;font-size:15px">✅ VOLVIÓ LA LUZ · ver historial ('+(K.vo||0)+')</button>';
@@ -194,9 +197,9 @@ function inicio(){var K=D.k||{},h='';
   h+='<div class="mu" style="margin-top:14px">'+(C?'🟢 Se actualiza sola cada 30 segundos.':'Para ver datos nuevos, cierre y vuelva a tocar <b>🗺️ VER MAPA E INCIDENCIAS</b>.')+'</div>';
   if(document.referrer.indexOf('sup.html')>=0)h+='<button onclick="history.back()" style="margin-top:14px;width:100%;min-height:52px;border-radius:14px;border:0;font:800 17px Arial;background:linear-gradient(135deg,#334155,#475569);color:#fff">↩ VOLVER A MI PANEL</button>';
   $('app').innerHTML=h;
-  [].forEach.call(document.querySelectorAll('[data-f]'),function(el){el.onclick=function(){var f=el.dataset.f;if(f==='vo')return histVolvio();FIL=FIL===f?'':f;if(f!=='inc')TAB=['sl','in','vo'].indexOf(f)>=0?f:TAB;else TAB='inc';inicio()}});
+  [].forEach.call(document.querySelectorAll('[data-f]'),function(el){el.onclick=function(){var f=el.dataset.f;if(f==='vo')return histVolvio();FIL=FIL===f?'':f;if(f==='se')TAB='inc';if(f!=='inc')TAB=['sl','in','vo'].indexOf(f)>=0?f:TAB;else TAB='inc';inicio()}});
   [].forEach.call(document.querySelectorAll('[data-t]'),function(el){el.onclick=function(){TAB=el.dataset.t;lista()}});
-  if($('hvo'))$('hvo').onclick=histVolvio;
+  if($('hvo'))$('hvo').onclick=histVolvio;if($('inf'))$('inf').onclick=informe;
   if($('todo'))$('todo').onclick=function(e){e.preventDefault();FIL='';inicio()};
   mapa();lista()}
 window.addEventListener('resize',function(){if(window.MAP)MAP.invalidateSize()});
@@ -223,12 +226,12 @@ function mapa(){if(!window.L){$('mapa').innerHTML='<div class="it">🗺️ Carga
       {pane:'sat',opacity:0,maxNativeZoom:6,maxZoom:16,bounds:[[-4.5,-82],[0.5,-78]],attribution:'NASA GIBS · NOAA GOES-19'});l.addTo(MAP);SATF.push({t:t,l:l})})(isoMenos(ult,i*10))}
   satFrame(VISTA&&VISTA.s!=null?VISTA.s:SATF.length-1);satAnimar();
   // escuelas e incidencias
-  var P=(D.p||[]).filter(function(x){return !FIL||FIL==='inc'?FIL!=='inc':x[5]===FIL});
+  var P=(D.p||[]).filter(function(x){return FIL==='se'?false:!FIL||FIL==='inc'?FIL!=='inc':x[5]===FIL});
   P.forEach(function(x){if(x[3]==null)return;var c=T[x[5]]||['','','#999'];
     L.circleMarker([x[3],x[4]],{radius:x[5]==='ri'?5:7,color:'#0b1730',weight:1.5,fillColor:c[2],fillOpacity:1}).addTo(MAP)
      .bindPopup('<b>'+esc(x[0])+' · '+esc(x[1])+'</b><br>'+esc(x[2])+'<br>'+esc(x[6])+(x[7]?'<br>🔁 se repite hoy':'')+(x[8]?'<br><small>'+esc(x[8])+'</small>':'')+'<br><button class="pop-b" onclick="det(\''+esc(x[0])+'\')">📋 Ver escuela y teléfonos</button>')});
-  (D.i||[]).filter(function(x){return x[7]==='abierta'&&x[3]!=null&&(!FIL||FIL==='inc')}).forEach(function(x){
-    L.marker([x[3],x[4]],{zIndexOffset:900,icon:L.divIcon({className:'',html:'<span class="pt titila" style="background:#ff3b5c;width:16px;height:16px"></span>',iconSize:[16,16]})}).addTo(MAP)
+  (D.i||[]).filter(function(x){return x[7]==='abierta'&&x[3]!=null&&(!FIL||FIL==='inc'||(FIL==='se'&&esSeg(x)))}).forEach(function(x){var sg=esSeg(x),em=emo1(x[5]);
+    L.marker([x[3],x[4]],{zIndexOffset:sg?1000:900,icon:L.divIcon({className:'',html:'<div class="ince titila'+(sg?' seg':'')+'">'+esc(em||'🚨')+'</div>',iconSize:sg?[34,34]:[30,30],iconAnchor:sg?[17,17]:[15,15]})}).addTo(MAP)
      .bindPopup('<b>🚨 '+esc(x[5])+'</b><br>'+esc(x[0])+' · '+esc(x[1])+'<br>'+esc(x[2])+' · '+esc(x[6])+' (hace '+fmin(x[8])+')'+(x[9]?'<br>'+esc(x[9]):'')+'<br><button class="pop-b" onclick="det(\''+esc(x[0])+'\')">📋 Ver escuela · ✅ resolver</button>')});
   // cantones de Guayas: contorno, lo de afuera oscuro y el nombre con sus novedades
   var M=MAP;cargarGeo(function(g){if(!g||M!==MAP)return;
@@ -254,14 +257,41 @@ function colision(){var el=[].slice.call(document.querySelectorAll('#mapa .gcan'
 function satFrame(i){if(!SATF.length)return;SATI=(i+SATF.length)%SATF.length;SATF.forEach(function(f,j){f.l.setOpacity(j===SATI?.72:0)});
   var t=SATF[SATI].t,h=$('satH'),m=Math.max(0,Math.round((Date.now()-Date.parse(t))/60000));if(h)h.innerHTML='🛰️ <b>'+horaEc(t)+'</b> · hace '+m+' min'}
 function satAnimar(){clearTimeout(SATT);if(SATP||SATF.length<2)return;var paso=function(){satFrame(SATI+1);SATT=setTimeout(paso,SATI===SATF.length-1?2600:700)};SATT=setTimeout(paso,1500)}
+function esSeg(x){return /^(🪖|👮)/.test(String(x[5]||''))}
+function emo1(t){var m=String(t||'').match(/^(\p{Extended_Pictographic}\uFE0F?)/u);return m?m[1]:''}
 function fmin(m){m=+m||0;return m<60?m+' min':Math.floor(m/60)+' h '+(m%60)+' min'}
 function lista(){[].forEach.call(document.querySelectorAll('[data-t]'),function(el){el.className=el.dataset.t===TAB?'on':''});var h='';
   if(TAB==='inc'){var I=D.i||[],it=function(x){var ab=x[7]==='abierta';return '<div class="it tap" data-c="'+esc(x[0])+'" style="border-left:5px solid '+(ab?'#ff3b5c':'#22c55e')+(ab?'':';opacity:.8')+'"><b>'+esc(x[5])+' · '+esc(x[0])+'</b> '+esc(x[1])+'<div class="d">'+esc(x[2])+' · '+esc(x[6])+' · '+(ab?'<b style="color:#ff6b6b">ABIERTA</b> hace '+fmin(x[8]):(/Volvió la luz/.test(x[10]||'')?'🔌 <b style="color:#22c55e">volvió la luz</b>':'✅ resuelta'+(x[10]?' por '+esc(x[10]):''))+(x[11]?' '+esc(x[11]):''))+'</div>'+(x[9]?'<div class="d">'+esc(x[9])+'</div>':'')+'<div class="d" style="color:#8fd8ff">👉 toque para ver quién está y sus teléfonos'+(ab?' · ✅ marcar resuelto':'')+'</div></div>'},
-      A=I.filter(function(x){return x[7]==='abierta'}),R=I.filter(function(x){return x[7]!=='abierta'});
+      A=I.filter(function(x){return x[7]==='abierta'&&(FIL!=='se'||esSeg(x))}),R=I.filter(function(x){return x[7]!=='abierta'&&(FIL!=='se'||esSeg(x))});
     h=(A.length?A.map(it).join(''):'<div class="it">👍 No hay incidencias abiertas.</div>')+(R.length?'<div class="mu" style="margin-top:14px;font-weight:700">🗂️ Historial · resueltas en las últimas 24 h ('+R.length+')</div>'+R.map(it).join(''):'')}
   else if(TAB==='sec'){h=(D.s||[]).length?D.s.map(function(t){return '<div class="it"><div class="d" style="font-size:14px">'+esc(t)+'</div></div>'}).join(''):'<div class="it">Sin sectores sin luz ahora.</div>'}
   else{var P=(D.p||[]).filter(function(x){return x[5]===TAB});h=P.length?P.map(function(x){return '<div class="it tap" data-c="'+esc(x[0])+'" style="border-left:5px solid '+T[x[5]][2]+'"><b>'+esc(x[0])+'</b> '+esc(x[1])+'<div class="d">'+esc(x[2])+' · '+esc(x[6])+(x[7]?' · 🔁 se repite hoy':'')+'</div></div>'}).join(''):'<div class="it">👍 Ninguna.</div>'}
   $('lis').innerHTML=h;[].forEach.call(document.querySelectorAll('#lis [data-c]'),function(el){el.onclick=function(){det(el.dataset.c)}})}
+// 📤 INFORME: un texto ordenado para mandar por WhatsApp, correo, Telegram… (sin teléfonos)
+function informeTxt(){var K=D.k||{},I=D.i||[],P=D.p||[],L=[],li=function(x,t){return '• '+x[0]+' '+x[1]+(x[2]?' ('+x[2]+')':'')+(t?' — '+t:'')};
+  L.push('💡 *INFORME ELEC · Luz, clima e incidencias · Guayas*');L.push('🕒 Datos de las '+(D.h||'')+(VIVO?' (en vivo '+VIVO+')':''));L.push('');
+  L.push('🚨 Incidencias abiertas: *'+(K.ia||0)+'*');L.push('🪖 Seguridad (militares / policía): *'+(K.se||0)+'*');
+  L.push('🚨 Contingencias: *'+(K.co||0)+'* · ⚡ Sin luz: *'+(K.sl||0)+'* · 🌊 Inundadas: *'+(K.in||0)+'*');
+  L.push('🌧️ Riesgo de lluvia: *'+(K.ri||0)+'* · ✅ Volvió la luz (24 h): *'+(K.vo||0)+'* · 🔒 Cerradas: *'+(K.ce||0)+'*');
+  var A=I.filter(function(x){return x[7]==='abierta'}),S=A.filter(esSeg),O=A.filter(function(x){return !esSeg(x)});
+  if(S.length){L.push('');L.push('🪖 *SEGURIDAD*');S.slice(0,25).forEach(function(x){L.push(li(x,x[5]+' desde '+x[6]+' (hace '+fmin(x[8])+')'+(x[9]?' · '+x[9]:'')))})}
+  if(O.length){L.push('');L.push('🚨 *INCIDENCIAS ABIERTAS*');O.slice(0,30).forEach(function(x){L.push(li(x,x[5]+' desde '+x[6]+' (hace '+fmin(x[8])+')'+(x[9]?' · '+x[9]:'')))})}
+  [['co','🚨 *CONTINGENCIAS*'],['sl','⚡ *SIN LUZ*'],['in','🌊 *INUNDADAS*'],['ce','🔒 *CERRADAS / SIN INGRESO*'],['vo','✅ *VOLVIÓ LA LUZ*']].forEach(function(g){var l=P.filter(function(x){return x[5]===g[0]});
+    if(!l.length)return;L.push('');L.push(g[1]+' ('+l.length+')');l.slice(0,30).forEach(function(x){L.push(li(x,x[6]))});if(l.length>30)L.push('… y '+(l.length-30)+' más')});
+  if((D.s||[]).length){L.push('');L.push('🗺️ *SECTORES SIN LUZ*');D.s.slice(0,8).forEach(function(t){L.push('• '+t)})}
+  return L.join('\n')}
+function informe(){DET='inf';var t=informeTxt();
+  var o=ov('<h2 style="margin:4px 0">📤 Enviar informe</h2><div class="mu">Revise el texto y toque <b>COMPARTIR</b>: el teléfono le deja elegir WhatsApp, correo, Telegram o la app que quiera.</div>'
+   +'<textarea id="inftx" style="font-family:inherit;width:100%;min-height:46vh;margin-top:10px;font-size:14px;padding:10px;border-radius:12px;border:1px solid #2a3f6b;background:#0f1c38;color:#fff;box-sizing:border-box">'+esc(t)+'</textarea>'
+   +'<button class="bt v" id="infsh">📤 COMPARTIR (WhatsApp, correo…)</button><button class="bt a" id="inftg">✈️ MANDAR POR TELEGRAM</button><button class="bt a" id="infcp">📋 COPIAR EL TEXTO</button><div id="infmsg" class="mu" style="margin-top:8px;text-align:center"></div>'
+   +'<button class="bt g" onclick="cerrarDet()">↩ VOLVER A LA PÁGINA</button>');
+  var tx=function(){return $('inftx').value},msg=function(m){$('infmsg').innerHTML=m};
+  var copiar=function(){var v=tx();var ok=function(){msg('✅ Copiado. Ahora péguelo en WhatsApp o donde lo necesite.')};
+    if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(v).then(ok,function(){$('inftx').select();try{document.execCommand('copy');ok()}catch(x){msg('Mantenga el dedo sobre el texto → Copiar.')}});
+    else{$('inftx').select();try{document.execCommand('copy');ok()}catch(x){msg('Mantenga el dedo sobre el texto → Copiar.')}}};
+  $('infcp').onclick=copiar;
+  $('infsh').onclick=function(){var v=tx();if(navigator.share)navigator.share({title:'Informe ELEC · Guayas',text:v}).catch(function(e){if(e&&e.name!=='AbortError')copiar()});else{copiar();msg('📋 Su teléfono no abre el menú de compartir desde aquí: el texto ya está <b>copiado</b>, péguelo en WhatsApp o donde quiera.')}};
+  $('inftg').onclick=function(){var u='https://t.me/share/url?url='+encodeURIComponent(' ')+'&text='+encodeURIComponent(tx().slice(0,3500));try{if(tg&&tg.openTelegramLink)return tg.openTelegramLink(u)}catch(x){}window.open(u,'_blank')}}
 // ✅ Volvió la luz: página de HISTORIAL (ya no son incidencias para resolver) · ↩ vuelve a la página para seguir gestionando
 function histVolvio(){DET='hist';try{if(MAP)MAP.closePopup()}catch(x){}
   var V=(D.p||[]).filter(function(x){return x[5]==='vo'}),R=(D.i||[]).filter(function(x){return x[7]!=='abierta'});
