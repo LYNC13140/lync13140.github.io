@@ -32,6 +32,9 @@ input{width:100%;font-size:16px;padding:11px;border-radius:12px;border:1px solid
 .vivo{display:inline-block;margin-left:6px;padding:2px 8px;border-radius:999px;background:#16a34a;color:#fff;font-size:11px;font-weight:800}
 .it.tap{cursor:pointer}.it.tap:active{transform:scale(.99)}
 .pop-b{margin-top:6px;padding:6px 10px;border:0;border-radius:10px;background:#1d4ed8;color:#fff;font-weight:700;cursor:pointer}
+.gcan{transform:translate(-50%,-50%);white-space:nowrap;color:#fff;font-size:11px;font-weight:700;text-shadow:0 0 3px #000,0 0 3px #000;pointer-events:none}.gcan b{color:#ffd400}
+.satbox{display:flex;gap:6px;align-items:center;background:rgba(5,10,23,.85);border:1px solid #2a3f6b;border-radius:10px;padding:4px 8px;color:#e9f1ff;font-size:12px}.satbox button{border:0;border-radius:8px;background:#1d4ed8;color:#fff;font-weight:800;padding:4px 8px;cursor:pointer}
+.leaflet-container{background:#070d1a}
 </style>
 <style id="tema2026">
 /* ✨ TEMA 2026 «futurista» para las Mini Apps de Telegram — SOLO aspecto. No cambia nada de cómo funciona. */
@@ -184,7 +187,7 @@ function inicio(){var K=D.k||{},h='';
   h+='<div class="top"><h1>💡 Luz, clima e incidencias · Guayas</h1><div class="mu">Datos de las '+esc(D.h)+(VIVO?'<span class="vivo">● EN VIVO '+esc(VIVO)+'</span>':'')+' · toque un cuadro para ver solo eso en el mapa · toque una escuela para ver quién está y sus teléfonos</div></div>';
   h+='<div class="k '+(K.ia?'bad':'ok')+'" data-f="inc" style="margin-top:12px;min-height:0"><small>🚨 Incidencias abiertas (reportadas en el sitio)</small><i>🚨</i><b>'+(K.ia||0)+'</b></div>';
   h+='<div class="grid3">'+['co','sl','in','ri','vo','ce'].map(function(k){var v=K[k]||0;return '<div class="k '+(FIL===k?'on ':'')+(v?(k==='vo'?'ok':k==='ri'||k==='ce'?'warn':'bad'):'')+'" data-f="'+k+'"><small>'+T[k][1]+'</small><i>'+T[k][0]+'</i><b>'+v+'</b></div>'}).join('')+'</div>';
-  h+='<div id="mapa"></div><div class="ley">'+Object.keys(T).map(function(k){return '<span><span class="pt" style="background:'+T[k][2]+'"></span>'+T[k][1]+'</span>'}).join('')+'<span><span class="pt titila" style="background:#ff3b5c"></span>incidencia abierta</span>'+(FIL?' · <a href="#" id="todo" style="color:#8fd8ff">ver todo</a>':'')+'</div>';
+  h+='<div id="mapa"></div><div class="ley">'+Object.keys(T).map(function(k){return '<span><span class="pt" style="background:'+T[k][2]+'"></span>'+T[k][1]+'</span>'}).join('')+'<span><span class="pt titila" style="background:#ff3b5c"></span>incidencia abierta</span><span>🛰️ nubes: rojo/negro = tormenta · amarillo/verde = lluvia · gris = sin lluvia</span>'+(FIL?' · <a href="#" id="todo" style="color:#8fd8ff">ver todo</a>':'')+'</div>';
   h+='<div class="tabs">'+[['inc','🚨 Incidencias'],['sl','⚡ Sin luz'],['in','🌊 Inundadas'],['vo','✅ Volvió la luz'],['sec','🗺️ Sectores']].map(function(t){return '<button data-t="'+t[0]+'" class="'+(TAB===t[0]?'on':'')+'">'+t[1]+'</button>'}).join('')+'</div><div id="lis"></div>';
   h+='<div class="mu" style="margin-top:14px">'+(C?'🟢 Se actualiza sola cada minuto y medio.':'Para ver datos nuevos, cierre y vuelva a tocar <b>🗺️ VER MAPA E INCIDENCIAS</b>.')+'</div>';
   if(document.referrer.indexOf('sup.html')>=0)h+='<button onclick="history.back()" style="margin-top:14px;width:100%;min-height:52px;border-radius:14px;border:0;font:800 17px Arial;background:linear-gradient(135deg,#334155,#475569);color:#fff">↩ VOLVER A MI PANEL</button>';
@@ -195,21 +198,55 @@ function inicio(){var K=D.k||{},h='';
   mapa();lista()}
 window.addEventListener('resize',function(){if(window.MAP)MAP.invalidateSize()});
 window._lfOK=function(){if(D&&$('mapa'))inicio()};
+// 🗺️ Mapa igual al de la página de Luz: solo Guayas (cantones), fondo oscuro, nubes del satélite GOES-19 animadas y las escuelas
+var GEO=null,SATF=[],SATI=0,SATT=null,SATP=false;
+function cargarGeo(cb){if(GEO)return cb(GEO);fetch('guayas_cantones.geojson').then(function(r){return r.json()}).then(function(g){GEO=g;cb(g)}).catch(function(){cb(null)})}
+function isoMenos(iso,min){return new Date(Date.parse(iso)-min*60000).toISOString().slice(0,19)+'Z'}
+function horaEc(iso){return new Date(Date.parse(iso)-5*3600000).toISOString().slice(11,16)}
+function satUlt(){var t=D.sat&&D.sat.ir;if(t&&Date.now()-Date.parse(t)<3*3600000)return t.slice(0,19).replace(/Z?$/,'Z');
+  var d=new Date(Date.now()-25*60000);d.setUTCMinutes(Math.floor(d.getUTCMinutes()/10)*10,0,0);return d.toISOString().slice(0,19)+'Z'}
 function mapa(){if(!window.L){$('mapa').innerHTML='<div class="it">🗺️ Cargando el mapa…</div>';return}
+  clearTimeout(SATT);SATF=[];
   var GY=L.latLngBounds([[-3.12,-80.78],[-1.38,-79.08]]);
-  MAP=L.map('mapa',{zoomControl:true,attributionControl:true,maxBounds:GY.pad(0.15),maxBoundsViscosity:1}).fitBounds(GY);
-  var gyAjustar=function(){if(!MAP||!$('mapa').clientWidth)return;MAP.invalidateSize();MAP.setMinZoom(0);MAP.fitBounds(GY);MAP.setMinZoom(MAP.getZoom())};
-  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap',className:'osmdark'}).addTo(MAP);
-  var b=[],P=(D.p||[]).filter(function(x){return !FIL||FIL==='inc'?FIL!=='inc':x[5]===FIL});
-  P.forEach(function(x){if(x[3]==null)return;var c=T[x[5]]||['','','#999'];b.push([x[3],x[4]]);
-    L.circleMarker([x[3],x[4]],{radius:x[5]==='ri'?5:8,color:'#fff',weight:1.5,fillColor:c[2],fillOpacity:.9}).addTo(MAP)
+  MAP=L.map('mapa',{zoomControl:true,attributionControl:true,zoomSnap:0.25,maxBounds:GY.pad(0.25),maxBoundsViscosity:0.9}).fitBounds(GY);
+  var gyAjustar=function(){if(!MAP||!$('mapa').clientWidth)return;MAP.invalidateSize();MAP.setMinZoom(0);MAP.fitBounds(GY,{padding:[6,6]});MAP.setMinZoom(MAP.getZoom())};
+  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}',{maxZoom:16,attribution:'Mapa: Esri'}).addTo(MAP);
+  MAP.createPane('sat');MAP.getPane('sat').style.zIndex=350;MAP.createPane('mask');MAP.getPane('mask').style.zIndex=380;
+  MAP.createPane('etiq');MAP.getPane('etiq').style.zIndex=390;MAP.getPane('etiq').style.pointerEvents='none';
+  L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Reference/MapServer/tile/{z}/{y}/{x}',{pane:'etiq',maxZoom:16,opacity:.9}).addTo(MAP);
+  // 🛰️ nubes: GOES-19 infrarrojo (NASA GIBS), las últimas 2 horas cada 10 min, se mueven solas
+  var ult=satUlt();for(var i=11;i>=0;i--){(function(t){var l=L.tileLayer('https://gibs.earthdata.nasa.gov/wmts/epsg3857/best/GOES-East_ABI_Band13_Clean_Infrared/default/'+t+'/GoogleMapsCompatible_Level6/{z}/{y}/{x}.png',
+      {pane:'sat',opacity:0,maxNativeZoom:6,maxZoom:16,bounds:[[-4.5,-82],[0.5,-78]],attribution:'NASA GIBS · NOAA GOES-19'});l.addTo(MAP);SATF.push({t:t,l:l})})(isoMenos(ult,i*10))}
+  satFrame(SATF.length-1);satAnimar();
+  // escuelas e incidencias
+  var P=(D.p||[]).filter(function(x){return !FIL||FIL==='inc'?FIL!=='inc':x[5]===FIL});
+  P.forEach(function(x){if(x[3]==null)return;var c=T[x[5]]||['','','#999'];
+    L.circleMarker([x[3],x[4]],{radius:x[5]==='ri'?5:7,color:'#0b1730',weight:1.5,fillColor:c[2],fillOpacity:1}).addTo(MAP)
      .bindPopup('<b>'+esc(x[0])+' · '+esc(x[1])+'</b><br>'+esc(x[2])+'<br>'+esc(x[6])+(x[7]?'<br>🔁 se repite hoy':'')+(x[8]?'<br><small>'+esc(x[8])+'</small>':'')+'<br><button class="pop-b" onclick="det(\''+esc(x[0])+'\')">📋 Ver escuela y teléfonos</button>')});
-  (D.i||[]).filter(function(x){return x[7]==='abierta'&&x[3]!=null&&(!FIL||FIL==='inc')}).forEach(function(x){b.push([x[3],x[4]]);
-    L.marker([x[3],x[4]],{icon:L.divIcon({className:'',html:'<span class="pt titila" style="background:#ff3b5c;width:16px;height:16px"></span>',iconSize:[16,16]})}).addTo(MAP)
+  (D.i||[]).filter(function(x){return x[7]==='abierta'&&x[3]!=null&&(!FIL||FIL==='inc')}).forEach(function(x){
+    L.marker([x[3],x[4]],{zIndexOffset:900,icon:L.divIcon({className:'',html:'<span class="pt titila" style="background:#ff3b5c;width:16px;height:16px"></span>',iconSize:[16,16]})}).addTo(MAP)
      .bindPopup('<b>🚨 '+esc(x[5])+'</b><br>'+esc(x[0])+' · '+esc(x[1])+'<br>'+esc(x[2])+' · '+esc(x[6])+' (hace '+fmin(x[8])+')'+(x[9]?'<br>'+esc(x[9]):'')+'<br><button class="pop-b" onclick="det(\''+esc(x[0])+'\')">📋 Ver escuela · ✅ resolver</button>')});
+  // cantones de Guayas: contorno, lo de afuera oscuro y el nombre con sus novedades
+  var M=MAP;cargarGeo(function(g){if(!g||M!==MAP)return;
+    var cnt={};(D.p||[]).forEach(function(x){if(['co','sl','in','ce'].indexOf(x[5])<0)return;var k=String(x[2]||'').toUpperCase();(cnt[k]=cnt[k]||{})[x[5]]=(cnt[k][x[5]]||0)+1});
+    (D.i||[]).forEach(function(x){if(x[7]!=='abierta')return;var k=String(x[2]||'').toUpperCase();(cnt[k]=cnt[k]||{}).inc=(cnt[k].inc||0)+1});
+    var norm=function(s){return String(s||'').toUpperCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^A-Z ]/g,'').trim()},cn={};Object.keys(cnt).forEach(function(k){cn[norm(k)]=cnt[k]});
+    var gj=L.geoJSON(g,{style:function(f){var c=cn[norm(f.properties.nombre)]||{};var col=c.co?'#ff2d2d':c.ce?'#b06bff':c.sl?'#ffd400':c.in?'#4f8cff':'';return {color:'#ffffff',weight:1,opacity:.6,fillColor:col||'transparent',fillOpacity:col?.16:0}},interactive:false}).addTo(MAP);
+    var hoyos=[];g.features.forEach(function(f){f.geometry.coordinates.forEach(function(pl){hoyos.push(pl[0].map(function(p){return [p[1],p[0]]}))})});
+    L.polygon([[[-15,-95],[-15,-60],[10,-60],[10,-95]]].concat(hoyos),{pane:'mask',stroke:false,fillColor:'#070d1a',fillOpacity:.88,interactive:false}).addTo(MAP);
+    gj.eachLayer(function(l){var k=l.feature.properties.nombre,c=cn[norm(k)]||{},ic=(c.inc?'🚨'+c.inc+' ':'')+(c.co?'🚨'+c.co+' ':'')+(c.sl?'⚡'+c.sl+' ':'')+(c.in?'🌊'+c.in+' ':'')+(c.ce?'🔒'+c.ce:'');
+      L.marker(l.getBounds().getCenter(),{interactive:false,icon:L.divIcon({className:'',iconSize:null,html:'<div class="gcan">'+esc(k)+(ic?' <b>'+ic.trim()+'</b>':'')+'</div>'})}).addTo(MAP)});
+    GY=gj.getBounds();MAP.setMaxBounds(GY.pad(0.25));gyAjustar()});
+  // botones encima del mapa: pausa y hora del satélite
+  var ctl=L.control({position:'topright'});ctl.onAdd=function(){var d=L.DomUtil.create('div','satbox');d.innerHTML='<button id="satP" title="Pausar / mover las nubes">'+(SATP?'▶':'⏸')+'</button><span id="satH"></span>';
+    L.DomEvent.disableClickPropagation(d);setTimeout(function(){var b=$('satP');if(b)b.onclick=function(){SATP=!SATP;b.textContent=SATP?'▶':'⏸';if(SATP){clearTimeout(SATT);satFrame(SATF.length-1)}else satAnimar()}},0);return d};ctl.addTo(MAP);
+  satFrame(SATI);
   gyAjustar();
   try{var _w=0;new ResizeObserver(function(){var w=$('mapa').clientWidth;if(w&&w!==_w){_w=w;gyAjustar()}}).observe($('mapa'))}catch(e){}
   [300,1200].forEach(function(t){setTimeout(gyAjustar,t)})}
+function satFrame(i){if(!SATF.length)return;SATI=(i+SATF.length)%SATF.length;SATF.forEach(function(f,j){f.l.setOpacity(j===SATI?.72:0)});
+  var t=SATF[SATI].t,h=$('satH'),m=Math.max(0,Math.round((Date.now()-Date.parse(t))/60000));if(h)h.innerHTML='🛰️ <b>'+horaEc(t)+'</b> · hace '+m+' min'}
+function satAnimar(){clearTimeout(SATT);if(SATP||SATF.length<2)return;var paso=function(){satFrame(SATI+1);SATT=setTimeout(paso,SATI===SATF.length-1?2600:700)};SATT=setTimeout(paso,1500)}
 function fmin(m){m=+m||0;return m<60?m+' min':Math.floor(m/60)+' h '+(m%60)+' min'}
 function lista(){[].forEach.call(document.querySelectorAll('[data-t]'),function(el){el.className=el.dataset.t===TAB?'on':''});var h='';
   if(TAB==='inc'){var I=D.i||[],it=function(x){var ab=x[7]==='abierta';return '<div class="it tap" data-c="'+esc(x[0])+'" style="border-left:5px solid '+(ab?'#ff3b5c':'#22c55e')+(ab?'':';opacity:.8')+'"><b>'+esc(x[5])+' · '+esc(x[0])+'</b> '+esc(x[1])+'<div class="d">'+esc(x[2])+' · '+esc(x[6])+' · '+(ab?'<b style="color:#ff6b6b">ABIERTA</b> hace '+fmin(x[8]):'✅ resuelta')+'</div>'+(x[9]?'<div class="d">'+esc(x[9])+'</div>':'')+'<div class="d" style="color:#8fd8ff">👉 toque para ver quién está y sus teléfonos'+(ab?' · ✅ marcar resuelto':'')+'</div></div>'},
