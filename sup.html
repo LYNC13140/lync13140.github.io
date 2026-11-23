@@ -170,12 +170,16 @@ function postRelay(FR,path,opt){var l=[FR].concat((opt.alt||ALT).filter(function
 function canal(CH,CI,FR,d){ALT=(typeof D!=='undefined'&&D&&D.frs)||ALT;
   var id=Math.random().toString(36).slice(2,10)+Date.now().toString(36),t0=Math.floor(Date.now()/1000)-3;
   return postRelay(FR,CH.c,{body:JSON.stringify({chat:CI,k:CH.k,id:id,d:d})}).then(function(x){FR=x.rel;
-    return new Promise(function(ok,mal){var n=0;(function mira(){n++;
+    return new Promise(function(ok,mal){var n=0,sinLat=0;(function mira(){n++;
       fetch(FR+'/'+CH.r+'/json?poll=1&since='+t0).then(function(r){return r.text()}).then(function(tx){var hallado=null;
         tx.split('\n').forEach(function(l){try{var e=JSON.parse(l);if(e.event!=='message')return;
           if(e.title===id&&e.attachment)hallado=fetch(e.attachment.url).then(function(r){return r.json()});
           else{var m=JSON.parse(e.message);if(m.id===id)hallado=Promise.resolve(m)}}catch(x){}});
         if(hallado)return hallado.then(ok,mal);
+        if((n===3||n===5||(n>5&&n%5===0))&&CH.l&&FR.indexOf('ntfy.sh')<0){   // 💓 ¿la PC está viva? si dejó de latir, se avisa YA (no se espera 3 min)
+          return fetch(FR+'/'+CH.l+'/json?poll=1&since='+(n<10?'180s':'100s')).then(function(r){return r.ok?r.text():'?'}).then(function(t){
+            if(t!=='?'&&!/"event":"message"/.test(t)&&++sinLat>=2){var xq=new Error('La PC del monitoreo no está funcionando ahora (apagada, sin internet o el programa cerrado). Avise al administrador.');xq.pc=true;return mal(xq)}
+            setTimeout(mira,2000)}).catch(function(){setTimeout(mira,2000)})}
         if(n>(d.accion==='texto'||d.accion==='cb'||d.accion==='mas'?40:32))return mal(new Error('La PC no respondió (¿está prendida?)'));setTimeout(mira,n<6?2000:n<15?4000:6000)})
       .catch(function(){if(n>40)return mal(new Error('Sin internet'));setTimeout(mira,2500)})})()})})}
 
@@ -400,7 +404,32 @@ function tkBuscar(q){if(!D.ch)return;var t0=Date.now();pantalla({atras:tickets,t
     pantalla({atras:tickets,tit:'🔎 Buscar tickets',sub:'«'+esc(q)+'» · '+L.length+' escuela(s)',html:h,ops:[['🔎 BUSCAR OTRA','b',tickets],['🏠 VOLVER AL PANEL','n',inicio,1]]})},
   function(e){pantalla({atras:tickets,tit:'🔎 Buscar tickets',e:'⚠️',h1:'No se pudo',p:esc(e.message||''),ops:[['↩ VOLVER','n',tickets]]})})}
 
-var TKF='',TKX={};
+var TKF='',TKX={},TKRD=30,TKRT='ab',TKR=null;
+function tkReporte(dias){if(!D.ch)return alert('Abra el panel otra vez desde el chat');TKRD=dias||30;
+  pantalla({atras:tickets,tit:'📊 Reporte de tickets',e:'<span class="girar">⏳</span>',h1:'Armando el reporte…',p:'Últimos '+TKRD+' días'});
+  canal(D.ch,D.ci,D.fr,{accion:'tk_reporte',dias:TKRD}).then(function(res){TKR=res.tkr||{};tkRepVer()},function(e){pantalla({atras:tickets,tit:'📊 Reporte de tickets',e:'⚠️',h1:'No se pudo',p:esc(e.message||''),ops:[['🔄 INTENTAR OTRA VEZ','b',function(){tkReporte(TKRD)}],['↩ VOLVER','n',tickets,1]]})})}
+function tkRepVer(msg){var R=TKR||{},K=R.k||{},fn={};if(R.error)return pantalla({atras:tickets,tit:'📊 Reporte de tickets',e:'⚠️',h1:'No se pudo',p:esc(R.error),ops:[['↩ VOLVER','n',tickets,1]]});
+  var kp=function(t,v,c,f){return '<button data-f="'+f+'" style="flex:1;min-width:30%;text-align:left;font-family:inherit;cursor:pointer;border:0;border-radius:12px;padding:8px 10px;background:'+(TKRT===f.slice(2)?c:'#fff')+';color:'+(TKRT===f.slice(2)?'#fff':'inherit')+';border-left:4px solid '+c+'"><div style="font-size:12px;opacity:.85">'+t+'</div><b style="font-size:22px">'+(v==null?'—':v)+'</b></button>'};
+  var h=(msg?'<div class="av ok" style="text-align:left">'+msg+'</div>':'')
+   +'<div style="display:flex;gap:6px;margin:8px 12px">'+[7,30,90].map(function(d){return '<button data-f="d'+d+'" class="op '+(R.dias===d?'g':'n')+' chico" style="margin:0;flex:1">'+(R.dias===d?'✔ ':'')+d+' días</button>'}).join('')+'</div>'
+   +'<div style="display:flex;gap:6px;flex-wrap:wrap;margin:8px 12px">'+kp('🎫 Creados',K.creados,'#4f8cff','t_to')+kp('⏳ Sin resolver',K.abiertos,'#e5484d','t_ab')+kp('✅ Resueltos',K.resueltos,'#1a7f37','t_rs')+'</div>'
+   +'<div style="margin:4px 14px;font-size:14px;line-height:1.6">📅 Hoy se crearon: <b>'+(K.creados_hoy||0)+'</b> · 🔴 con <b>3 días o más</b> sin resolver: <b>'+(K.d3||0)+'</b>'+(K.max_d?' (el más viejo: <b>'+K.max_d+' días</b>)':'')
+   +'<br>⏱️ Tiempo promedio en resolverse: <b>'+(K.prom_h==null?'—':(K.prom_h>=24?(K.prom_h/24).toFixed(1)+' días':K.prom_h+' h'))+'</b>'+(K.cerrados_caidos?' · ⚠️ <b>'+K.cerrados_caidos+'</b> cerrados en OTRS pero el enlace sigue caído':'')+'</div>';
+  var L=TKRT==='rs'?R.rs||[]:TKRT==='ab'?R.ab||[]:(R.ab||[]).concat(R.rs||[]);
+  h+=L.length?L.map(function(x){var res=!!x.fi;
+    return '<div style="margin:8px 12px;background:#fff;border-radius:14px;padding:10px 12px;border-left:5px solid '+(res?(x.ok?'#1a7f37':'#f5a524'):((x.d||0)>=3?'#e5484d':'#f5a524'))+'">'
+     +'<div style="font-size:16px"><b>'+esc(x.c)+'</b> '+esc(x.n)+' <span style="font-size:12px;opacity:.7">'+esc(x.g)+'</span></div>'
+     +'<div style="font-size:14px">🎫 N.º <b>'+esc(x.t)+'</b> · '+esc(x.tp)+(x.vi?' · '+esc(x.vi):'')+'</div>'
+     +'<div style="font-size:13px">🕐 Creado: <b>'+esc(x.cr)+'</b>'+(x.m&&x.m!=='Normal'?' · '+esc(x.m):'')+'</div>'
+     +(res?'<div style="font-size:13px">✅ Resuelto: <b>'+esc(x.fi)+'</b> ('+esc(x.co)+') · demoró <b>'+(x.h==null?'—':(x.h>=24?(x.h/24).toFixed(1)+' días':x.h+' h'))+'</b></div>'
+          +'<div style="font-size:13px">🛠️ Cómo se resolvió: <b>'+(x.so?esc(x.so):'<i>OTRS no dejó la solución escrita</i>')+'</b></div>'+(x.ok?'':'<div style="font-size:13px;color:#b45309">⚠️ Cerrado en OTRS pero el enlace sigue CAÍDO</div>')
+        :'<div style="font-size:14px;color:'+((x.d||0)>=3?'#b42318':'#b45309')+'">⏳ <b>'+(x.d==null?'—':x.d+' días')+'</b> sin resolver · '+esc(x.e)+' · '+(x.up?'🟢 el enlace ya está arriba':'🔴 enlace caído')+'</div>')
+     +(x.dt?'<div style="font-size:12px;opacity:.75">'+esc(x.dt)+'</div>':'')+'</div>'}).join(''):'<div class="av ok">👍 Nada en este período.</div>';
+  [7,30,90].forEach(function(d){fn['d'+d]=function(){tkReporte(d)}});['to','ab','rs'].forEach(function(k){fn['t_'+k]=function(){TKRT=k;tkRepVer()}});
+  pantalla({atras:tickets,tit:'📊 Reporte de tickets',sub:'Últimos '+R.dias+' días · '+esc(R.h||''),html:h,fn:fn,
+    ops:[['📥 MANDARME EL EXCEL COMPLETO AL CHAT','b',function(){pantalla({atras:tkRepVer,tit:'📊 Reporte',e:'<span class="girar">⏳</span>',h1:'Armando el Excel…'});
+      canal(D.ch,D.ci,D.fr,{accion:'tk_reporte_xlsx',dias:R.dias}).then(function(res){tkRepVer(res.tkmsg||'📥 Listo.')},function(e){tkRepVer('⚠️ '+esc(e.message||'No se pudo'))})}],
+      ['🎫 VOLVER A TICKETS','n',tickets,1]]})}
 function tkVer(msg){var T=TK||{l:[]},gms=Object.keys(T.gm||{}),todos=T.l;
   T={__proto__:T,l:!TKF?todos:todos.filter(function(x){return TKF==='pend'?['por_crear','seguimiento','intermitente','reabrir'].indexOf(x.e)>=0:TKF==='abi'?['creado','seguimiento','intermitente'].indexOf(x.e)>=0:['por_autorizar','por_general'].indexOf(x.e)>=0})};var col={por_autorizar:'#a855f7',por_general:'#f59e0b',reabrir:'#e5484d',por_crear:'#e5484d',seguimiento:'#f5a524',intermitente:'#f5a524',creado:'#4f8cff',en_revision:'#30a46c',consulta_op:'#a855f7'};
   var h=(msg?'<div class="av ok" style="text-align:left;font-size:15px">'+msg+'</div>':'')
@@ -412,6 +441,7 @@ function tkVer(msg){var T=TK||{l:[]},gms=Object.keys(T.gm||{}),todos=T.l;
        +'<button class="op '+(m==='auto'?'g':'n')+' chico" style="margin:0;flex:1" data-f="gm" data-g="'+esc(g)+'" data-m="auto">'+(m==='auto'?'✔ ':'')+'🤖 AUTOMÁTICO</button></div></div>'}).join('')
        +'<div style="font-size:12px;opacity:.8;margin-top:4px">✋ Manual: usted decide cada ticket · 🤖 Automático: las reglas lo mandan solas'+(T.sim?' · 🧪 modo prueba (se simula)':'')+'</div></div>'
      :'<div style="margin:4px 14px;font-size:14px;color:#5a6577">Envío a OTRS: <b>'+(T.modo==='crear'?'🤖 AUTOMÁTICO':'✋ MANUAL')+'</b>'+(T.sim?' · 🧪 modo prueba (se simula)':'')+'</div>')
+   +'<button class="op g chico" style="margin:8px 12px 0;width:calc(100% - 24px)" data-f="rep">📊 REPORTE DE TICKETS (creados · días sin resolver · cómo se resolvió)</button>'
    +(gms.length?'<button class="op b chico" style="margin:8px 12px 0;width:calc(100% - 24px)" data-f="bte">🔎 Buscar un colegio en línea para reportar IPs (no le dio IP, falta 1, no conecta)</button>':'')
    +'<div style="margin:8px 12px;display:flex;gap:6px;align-items:stretch"><input id="tkq" placeholder="🔎 Código, escuela o N.º de ticket" style="flex:1 1 auto;min-width:0;font-size:17px;padding:12px;border-radius:12px;border:1px solid #ccd"><button class="op b chico" style="margin:0;flex:0 0 auto;width:auto;padding:12px 18px" data-f="buscar">🔎 Buscar</button></div>'
    +(T.cola&&T.cola.total?'<div style="margin:8px 12px;background:#fff4dc;border-radius:12px;padding:8px 10px"><b>⏳ Sin cerrar en OTRS: '+T.cola.total+'</b>'+(T.cola.d3?' · <b style="color:#b42318">'+T.cola.d3+' con 3 días o más</b>':'')+T.cola.top.map(function(x){return '<div style="font-size:14px">'+(x[2]>=3?'🔴':'🟠')+' <b>'+esc(x[0])+'</b> · ticket '+esc(x[1])+' · <b>'+x[2]+' días</b></div>'}).join('')+'</div>':'')
@@ -446,7 +476,7 @@ function tkVer(msg){var T=TK||{l:[]},gms=Object.keys(T.gm||{}),todos=T.l;
     pantalla({atras:function(){tkVer()},tit:'🎛️ '+esc(g),e:m==='auto'?'🤖':'✋',h1:'¿Poner '+OMT[m]+'?',
       p:m==='auto'?'Las reglas deciden solas: con fibra, equipo o caído mucho tiempo <b>se manda el ticket</b>; con SIN LUZ, lluvia o inundación <b>NO</b>. Le llega un informe.':'Todo lo nuevo llega a <b>📥 Por autorizar</b> y no se manda nada hasta que usted lo decida.',
       ops:[['✅ SÍ, CAMBIAR','g',function(){hacer({accion:'otrs_gmodo',g:g,m:m})}],['↩ No, volver','n',function(){tkVer()},1]]})};
-  fn.bte=function(){buscarTodo()};
+  fn.bte=function(){buscarTodo()};fn.rep=function(){tkReporte(TKRD)};
   fn.buscar=function(){var q=($('tkq').value||'').trim();if(q.length<2)return alert('Escriba al menos 2 letras o números');tkBuscar(q)};
   var ops=[['🔄 ACTUALIZAR','b',tickets]];
   if(T.nac&&T.cola&&T.cola.total)ops.push(['🔎 REVISAR EN OTRS LOS SIN CERRAR ('+T.cola.total+')','b',function(){tkPedir({accion:'tk_cola'},'Revisando la cola en OTRS…')}]);

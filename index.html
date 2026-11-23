@@ -166,23 +166,25 @@ function canal(CH,CI,FR,d){
   var id=d._pid||(Math.random().toString(36).slice(2,10)+Date.now().toString(36)),t0=Math.floor(Date.now()/1000)-3;d._pid=id;if(!d.t_cli)d.t_cli=Date.now();   // reintento = mismo número: la PC no lo duplica
   return postRelay(FR,CH.c,{body:JSON.stringify({chat:CI,k:CH.k,id:id,d:d})})
    .then(function(x){FR=x.rel;
-    return new Promise(function(ok,mal){var n=0;(function mira(){n++;
+    return new Promise(function(ok,mal){var n=0,sinLat=0;(function mira(){n++;
       fetch(FR+'/'+CH.r+'/json?poll=1&since='+t0).then(function(r){return r.text()}).then(function(tx){var hallado=null;
         tx.split('\n').forEach(function(l){try{var e=JSON.parse(l);if(e.event!=='message')return;
           if(e.title===id&&e.attachment)hallado=fetch(e.attachment.url).then(function(r){return r.json()});
           else{var m=JSON.parse(e.message);if(m.id===id)hallado=Promise.resolve(m)}}catch(x){}});
         if(hallado)return hallado.then(ok,mal);
         if(n>32){var xp=new Error('La PC no respondió (¿está prendida?)');xp.pc=true;return mal(xp)}
-        if(n===5&&CH.l&&FR.indexOf('ntfy.sh')<0){   // 💓 ¿la PC está viva? (late cada minuto): si no late, se avisa YA y no se hace esperar 2–3 min
-          return fetch(FR+'/'+CH.l+'/json?poll=1&since=4m').then(function(r){return r.ok?r.text():'?'}).then(function(t){
-            if(t!=='?'&&!/"event":"message"/.test(t)){var xq=new Error('La PC del monitoreo no está funcionando');xq.pc=true;return mal(xq)}
+        if((n===3||n===5||(n>5&&n%5===0))&&CH.l&&FR.indexOf('ntfy.sh')<0){   // 💓 ¿la PC está viva? (late cada minuto): se mira a los ~6 s y luego seguido; si dejó de latir, se avisa YA
+          return fetch(FR+'/'+CH.l+'/json?poll=1&since='+(n<10?'180s':'100s')).then(function(r){return r.ok?r.text():'?'}).then(function(t){
+            if(t!=='?'&&!/"event":"message"/.test(t)&&++sinLat>=2){var xq=new Error('La PC del monitoreo no está funcionando');xq.pc=true;return mal(xq)}
             setTimeout(mira,2000)}).catch(function(){setTimeout(mira,2000)})}
         setTimeout(mira,n<6?2000:n<15?4000:6000)})
       .catch(function(){if(n>32)return mal(new Error('Sin internet'));setTimeout(mira,4000)})})()})})}
 
 var LLENO=false;   // el servidor gratis de mensajes/fotos llegó a su límite: se usa Telegram
-function relojEspera(h1){var t0=Date.now();pantalla({e:'<span class="girar">⏳</span>',h1:h1||'Enviando…',p:'<span id="reloj" style="font-size:22px;font-weight:800">⏱️ 0:00</span><br><span id="relojTxt">Normalmente tarda menos de 30 segundos.</span>'});
+var ENV_ID=0;
+function relojEspera(h1,saltar){var t0=Date.now();pantalla({e:'<span class="girar">⏳</span>',h1:h1||'Enviando…',p:'<span id="reloj" style="font-size:22px;font-weight:800">⏱️ 0:00</span><br><span id="relojTxt">Normalmente tarda menos de 30 segundos.</span><div id="relojBtn"></div>'});
   var iv=setInterval(function(){var r=$('reloj');if(!r)return clearInterval(iv);var s=Math.floor((Date.now()-t0)/1000);r.textContent='⏱️ '+Math.floor(s/60)+':'+pad(s%60);
+    if(s===12&&saltar&&$('relojBtn')){var b=document.createElement('button');b.className='op g';b.style.marginTop='14px';b.innerHTML='⏭️ NO ESPERAR · ya salió, se procesa solo';b.onclick=function(){clearInterval(iv);saltar()};$('relojBtn').appendChild(b)}
     if(s===20)$('relojTxt').innerHTML='Hay <b>mucha gente</b> enviando a la vez.<br>Espere, <b>no cierre</b>: puede tardar hasta 1 a 2 minutos.';
     if(s===60)$('relojTxt').innerHTML='Sigue en la fila… ya casi. <b>No cierre.</b>'},1000)}
 var GUARDABLE=['llegada','prueba','camino','mensaje','kit','retiro'];
@@ -197,8 +199,10 @@ function pcApagada(d){vibra('mal');   // 🔌 la PC del monitoreo no responde: m
 function porCanal(d){   // llegada, prueba, camino… se quedan en la app
   if(GUARDABLE.indexOf(d.accion)>=0&&(F.pend||navigator.onLine===false))return guardarCola(d);   // 📦 sin señal: se guarda
   if(LLENO)return porTelegram(d);
-  relojEspera('Enviando…');
-  canal(E.ch,E.ci,E.fr,d).then(function(res){vibra(res.ok?'ok':'mal');if(res.ok)pcPendLimpiar();if(res.z&&!res.s){pantalla({e:'🧑‍✈️',h1:'Volviendo a su panel…'});location.replace('sup.html?z='+res.z);return}if(res.s){try{E=leerS(res.s);S0=res.s}catch(x){}}
+  var mi=++ENV_ID;
+  relojEspera('Enviando…',GUARDABLE.indexOf(d.accion)>=0?function(){ENV_ID++;pcPend(d);vibra('ok');
+    pantalla({e:'📨',h1:'Quedó en camino',p:'Su '+(d.accion==='prueba'?'prueba':d.accion==='llegada'?'llegada':'reporte')+' <b>ya salió</b> y la PC del monitoreo lo procesa sola cuando conteste. <b>No lo repita.</b>',ops:[['🏠 CONTINUAR','g',home]]})}:null);
+  canal(E.ch,E.ci,E.fr,d).then(function(res){if(mi!==ENV_ID){if(res.ok)pcPendLimpiar();return}vibra(res.ok?'ok':'mal');if(res.ok)pcPendLimpiar();if(res.z&&!res.s){pantalla({e:'🧑‍✈️',h1:'Volviendo a su panel…'});location.replace('sup.html?z='+res.z);return}if(res.s){try{E=leerS(res.s);S0=res.s}catch(x){}}
     var nl=d.accion==='llegada'&&d.llegada==='no';
     var ops=nl?[['📞 LLAMAR A MI SUPERVISOR','g',function(){porCanal({accion:'supervisor'})}],['💬 MANDAR MENSAJE AL SUPERVISOR','b',mensaje],['🏠 INICIO','n',home,1]]
       :d.accion==='supervisor'?[['💬 MANDAR MENSAJE','b',mensaje],['🏠 CONTINUAR','g',home]]
@@ -216,7 +220,7 @@ function porCanal(d){   // llegada, prueba, camino… se quedan en la app
         extra:'<details style="margin:0 16px"><summary style="font-size:16px;color:#5a6577">Ver el detalle</summary><div class="sup" style="text-align:left;font-size:16px;line-height:1.45">'+(res.txt||'')+'</div></details>',ops:[['⏳ CONTINUAR','g',home]]});
     pantalla({e:nl?'📨📞':res.ok?'✅':'⚠️',h1:nl?'Su supervisor ya sabe':res.ok?'Listo':'No se pudo',p:nl?'Ahora <b>llame a su supervisor</b> o mándele un mensaje.':'',
       extra:'<div class="sup" style="text-align:left;font-size:17px;line-height:1.45">'+(res.txt||'')+'</div>',ops:ops})})
-  .catch(function(e){if(e.lleno){LLENO=true;return porTelegram(d)}
+  .catch(function(e){if(mi!==ENV_ID)return;if(e.lleno){LLENO=true;return porTelegram(d)}
     if(e.pc){pcPend(d);return pcApagada(d)}                                   // 🔌 ya está en el servidor de paso: la PC lo atiende al volver
     if(e.envio&&GUARDABLE.indexOf(d.accion)>=0)return guardarCola(d);
     var gd=GUARDABLE.indexOf(d.accion)>=0?[['📦 GUARDAR Y ENVIAR DESPUÉS','g',function(){guardarCola(d)}]]:[];
