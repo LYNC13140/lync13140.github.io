@@ -24,6 +24,14 @@ html,body{margin:0;background:var(--bg);color:var(--tx);font-family:-apple-syste
 input{width:100%;font-size:16px;padding:11px;border-radius:12px;border:1px solid var(--line);background:#0f1c38;color:#fff;margin-top:10px}
 .av{height:10px;background:#0f1c38;border-radius:6px;overflow:hidden;margin-top:6px}.av div{height:100%;background:var(--ok)}
 .osmdark{filter:invert(1) hue-rotate(180deg) brightness(.85) contrast(.9)}.leaflet-control-attribution{font-size:9px;background:rgba(0,0,0,.5)!important;color:#aaa}.leaflet-control-attribution a{color:#9cf}
+
+.ov{position:fixed;inset:0;z-index:2000;background:#050a17;overflow:auto;padding:12px 12px calc(24px + env(safe-area-inset-bottom))}
+.bt{display:block;width:100%;min-height:50px;border:0;border-radius:14px;font:800 16px Arial;color:#fff;margin-top:10px;cursor:pointer}
+.bt.v{background:linear-gradient(135deg,#15803d,#22c55e)}.bt.g{background:linear-gradient(135deg,#334155,#475569)}.bt.a{background:linear-gradient(135deg,#1d4ed8,#3b82f6)}
+.tel{display:inline-block;margin-top:6px;padding:9px 14px;border-radius:12px;background:#1d4ed8;color:#fff;font-weight:800;text-decoration:none;font-size:16px}
+.vivo{display:inline-block;margin-left:6px;padding:2px 8px;border-radius:999px;background:#16a34a;color:#fff;font-size:11px;font-weight:800}
+.it.tap{cursor:pointer}.it.tap:active{transform:scale(.99)}
+.pop-b{margin-top:6px;padding:6px 10px;border:0;border-radius:10px;background:#1d4ed8;color:#fff;font-weight:700;cursor:pointer}
 </style>
 <style id="tema2026">
 /* ✨ TEMA 2026 «futurista» para las Mini Apps de Telegram — SOLO aspecto. No cambia nada de cómo funciona. */
@@ -135,7 +143,37 @@ button[style*="background:#1f6feb"]{background:linear-gradient(135deg,#6d5dfc,#3
 <body><div id="app">Cargando…</div>
 <script>
 var tg=window.Telegram&&window.Telegram.WebApp;try{tg.ready();tg.expand()}catch(e){}
-var D=null,$=function(i){return document.getElementById(i)},MAP=null,CAPA=null,FIL='',TAB='inc';
+var D=null,$=function(i){return document.getElementById(i)},MAP=null,CAPA=null,FIL='',TAB='inc',C=null,VIVO='',DET=null;
+var ALT=[];   // servidores de reserva (si el de casa está lleno o caído)
+function postRelay(FR,path,opt){var l=[FR].concat((opt.alt||ALT).filter(function(x){return x&&x!==FR})),i=0,lleno=false;
+  return new Promise(function(ok,mal){(function prueba(){var R=l[i];
+    var ctl=window.AbortController?new AbortController():null,tt=setTimeout(function(){if(ctl)ctl.abort()},opt.ms||20000);
+    fetch(R+'/'+path,{method:opt.method||'POST',headers:opt.headers||{},body:opt.body,signal:ctl?ctl.signal:undefined}).then(function(r){clearTimeout(tt);
+      if(r.ok)return ok({r:r,rel:R});if(r.status===429||r.status===413||r.status===507)lleno=true;sig(r.status)},function(){clearTimeout(tt);sig(0)});
+    function sig(st){i++;if(i<l.length)return prueba();var x=new Error(lleno?'lleno':st?'envío':'Sin señal');x.envio=!lleno;x.lleno=lleno;mal(x)}})()})}
+function canal(CH,CI,FR,d){ALT=(C&&C.frs)||ALT;
+  var id=Math.random().toString(36).slice(2,10)+Date.now().toString(36),t0=Math.floor(Date.now()/1000)-3;
+  return postRelay(FR,CH.c,{body:JSON.stringify({chat:CI,k:CH.k,id:id,d:d})}).then(function(x){FR=x.rel;
+    return new Promise(function(ok,mal){var n=0,sinLat=0;(function mira(){n++;
+      fetch(FR+'/'+CH.r+'/json?poll=1&since='+t0).then(function(r){return r.text()}).then(function(tx){var hallado=null;
+        tx.split('\n').forEach(function(l){try{var e=JSON.parse(l);if(e.event!=='message')return;
+          if(e.title===id&&e.attachment)hallado=fetch(e.attachment.url).then(function(r){return r.json()});
+          else{var m=JSON.parse(e.message);if(m.id===id)hallado=Promise.resolve(m)}}catch(x){}});
+        if(hallado)return hallado.then(ok,mal);
+        if((n===3||n===5||(n>5&&n%5===0))&&CH.l&&FR.indexOf('ntfy.sh')<0){   // 💓 ¿la PC está viva? si dejó de latir, se avisa YA (no se espera 3 min)
+          return fetch(FR+'/'+CH.l+'/json?poll=1&since='+(n<10?'180s':'100s')).then(function(r){return r.ok?r.text():'?'}).then(function(t){
+            if(t!=='?'&&!/"event":"message"/.test(t)&&++sinLat>=2){var xq=new Error('La PC del monitoreo no está funcionando ahora (apagada, sin internet o el programa cerrado). Avise al administrador.');xq.pc=true;return mal(xq)}
+            setTimeout(mira,2000)}).catch(function(){setTimeout(mira,2000)})}
+        if(n>(d.accion==='texto'||d.accion==='cb'||d.accion==='mas'?40:32))return mal(new Error('La PC no respondió (¿está prendida?)'));setTimeout(mira,n<6?2000:n<15?4000:6000)})
+      .catch(function(){if(n>40)return mal(new Error('Sin internet'));setTimeout(mira,2500)})})()})})}
+
+function cargarC(){var m=location.search.match(/[?&]c=([^&]+)/);if(!m)return;try{var t=m[1].replace(/-/g,'+').replace(/_/g,'/');while(t.length%4)t+='=';C=JSON.parse(atob(t))}catch(x){C=null}}
+cargarC();
+function pedir(d){if(!C)return Promise.reject(new Error('Para ver teléfonos y marcar ✅ resuelto, cierre y vuelva a tocar 🗺️ VER MAPA E INCIDENCIAS en el chat (botón nuevo).'));
+  return canal(C.ch,C.ci,C.fr,d).then(function(r){if(r.luz){D=r.luz;VIVO=new Date().toTimeString().slice(0,5)}return r})}
+function refrescar(){if(!C||DET||document.hidden)return;var y=window.scrollY;pedir({accion:'luz_datos'}).then(function(){if(!DET){inicio();window.scrollTo(0,y)}},function(){})}
+setInterval(refrescar,90000);
+
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
 function cargarZ(z,cb){var t=z.replace(/-/g,'+').replace(/_/g,'/');while(t.length%4)t+='=';var b=atob(t),u=new Uint8Array(b.length);for(var i=0;i<b.length;i++)u[i]=b.charCodeAt(i);
   if(!window.DecompressionStream)return cb(null,'Actualice Telegram o el teléfono para abrir el mapa.');
@@ -143,12 +181,12 @@ function cargarZ(z,cb){var t=z.replace(/-/g,'+').replace(/_/g,'/');while(t.lengt
 var T={co:['🚨','Contingencias','#ff3b5c'],sl:['⚡','Sin luz','#f59e0b'],in:['🌊','Inundadas','#3b82f6'],ri:['🌧️','Riesgo de lluvia','#a855f7'],vo:['✅','Volvió la luz (24 h)','#22c55e'],ce:['🔒','Cerradas / sin ingreso','#94a3b8']};
 function inicio(){var K=D.k||{},h='';
   if(document.referrer.indexOf('sup.html')>=0)h+='<div style="margin:10px 0 0;padding:10px 12px;border-radius:12px;background:rgba(168,85,247,.18);border:1px solid rgba(168,85,247,.5);font-weight:700">🧪 VIENDO COMO ELEC · así le sale a ELEC</div>';
-  h+='<div class="top"><h1>💡 Luz, clima e incidencias · Guayas</h1><div class="mu">Datos de las '+esc(D.h)+' · toque un cuadro para ver solo eso en el mapa</div></div>';
+  h+='<div class="top"><h1>💡 Luz, clima e incidencias · Guayas</h1><div class="mu">Datos de las '+esc(D.h)+(VIVO?'<span class="vivo">● EN VIVO '+esc(VIVO)+'</span>':'')+' · toque un cuadro para ver solo eso en el mapa · toque una escuela para ver quién está y sus teléfonos</div></div>';
   h+='<div class="k '+(K.ia?'bad':'ok')+'" data-f="inc" style="margin-top:12px;min-height:0"><small>🚨 Incidencias abiertas (reportadas en el sitio)</small><i>🚨</i><b>'+(K.ia||0)+'</b></div>';
   h+='<div class="grid3">'+['co','sl','in','ri','vo','ce'].map(function(k){var v=K[k]||0;return '<div class="k '+(FIL===k?'on ':'')+(v?(k==='vo'?'ok':k==='ri'||k==='ce'?'warn':'bad'):'')+'" data-f="'+k+'"><small>'+T[k][1]+'</small><i>'+T[k][0]+'</i><b>'+v+'</b></div>'}).join('')+'</div>';
   h+='<div id="mapa"></div><div class="ley">'+Object.keys(T).map(function(k){return '<span><span class="pt" style="background:'+T[k][2]+'"></span>'+T[k][1]+'</span>'}).join('')+'<span><span class="pt titila" style="background:#ff3b5c"></span>incidencia abierta</span>'+(FIL?' · <a href="#" id="todo" style="color:#8fd8ff">ver todo</a>':'')+'</div>';
   h+='<div class="tabs">'+[['inc','🚨 Incidencias'],['sl','⚡ Sin luz'],['in','🌊 Inundadas'],['vo','✅ Volvió la luz'],['sec','🗺️ Sectores']].map(function(t){return '<button data-t="'+t[0]+'" class="'+(TAB===t[0]?'on':'')+'">'+t[1]+'</button>'}).join('')+'</div><div id="lis"></div>';
-  h+='<div class="mu" style="margin-top:14px">Para ver datos nuevos, cierre y vuelva a tocar <b>🗺️ VER MAPA E INCIDENCIAS</b>.</div>';
+  h+='<div class="mu" style="margin-top:14px">'+(C?'🟢 Se actualiza sola cada minuto y medio.':'Para ver datos nuevos, cierre y vuelva a tocar <b>🗺️ VER MAPA E INCIDENCIAS</b>.')+'</div>';
   if(document.referrer.indexOf('sup.html')>=0)h+='<button onclick="history.back()" style="margin-top:14px;width:100%;min-height:52px;border-radius:14px;border:0;font:800 17px Arial;background:linear-gradient(135deg,#334155,#475569);color:#fff">↩ VOLVER A MI PANEL</button>';
   $('app').innerHTML=h;
   [].forEach.call(document.querySelectorAll('[data-f]'),function(el){el.onclick=function(){var f=el.dataset.f;FIL=FIL===f?'':f;if(f!=='inc')TAB=['sl','in','vo'].indexOf(f)>=0?f:TAB;else TAB='inc';inicio()}});
@@ -165,22 +203,49 @@ function mapa(){if(!window.L){$('mapa').innerHTML='<div class="it">🗺️ Carga
   var b=[],P=(D.p||[]).filter(function(x){return !FIL||FIL==='inc'?FIL!=='inc':x[5]===FIL});
   P.forEach(function(x){if(x[3]==null)return;var c=T[x[5]]||['','','#999'];b.push([x[3],x[4]]);
     L.circleMarker([x[3],x[4]],{radius:x[5]==='ri'?5:8,color:'#fff',weight:1.5,fillColor:c[2],fillOpacity:.9}).addTo(MAP)
-     .bindPopup('<b>'+esc(x[0])+' · '+esc(x[1])+'</b><br>'+esc(x[2])+'<br>'+esc(x[6])+(x[7]?'<br>🔁 se repite hoy':'')+(x[8]?'<br><small>'+esc(x[8])+'</small>':''))});
+     .bindPopup('<b>'+esc(x[0])+' · '+esc(x[1])+'</b><br>'+esc(x[2])+'<br>'+esc(x[6])+(x[7]?'<br>🔁 se repite hoy':'')+(x[8]?'<br><small>'+esc(x[8])+'</small>':'')+'<br><button class="pop-b" onclick="det(\''+esc(x[0])+'\')">📋 Ver escuela y teléfonos</button>')});
   (D.i||[]).filter(function(x){return x[7]==='abierta'&&x[3]!=null&&(!FIL||FIL==='inc')}).forEach(function(x){b.push([x[3],x[4]]);
     L.marker([x[3],x[4]],{icon:L.divIcon({className:'',html:'<span class="pt titila" style="background:#ff3b5c;width:16px;height:16px"></span>',iconSize:[16,16]})}).addTo(MAP)
-     .bindPopup('<b>🚨 '+esc(x[5])+'</b><br>'+esc(x[0])+' · '+esc(x[1])+'<br>'+esc(x[2])+' · '+esc(x[6])+' (hace '+fmin(x[8])+')'+(x[9]?'<br>'+esc(x[9]):''))});
+     .bindPopup('<b>🚨 '+esc(x[5])+'</b><br>'+esc(x[0])+' · '+esc(x[1])+'<br>'+esc(x[2])+' · '+esc(x[6])+' (hace '+fmin(x[8])+')'+(x[9]?'<br>'+esc(x[9]):'')+'<br><button class="pop-b" onclick="det(\''+esc(x[0])+'\')">📋 Ver escuela · ✅ resolver</button>')});
   gyAjustar();
   try{var _w=0;new ResizeObserver(function(){var w=$('mapa').clientWidth;if(w&&w!==_w){_w=w;gyAjustar()}}).observe($('mapa'))}catch(e){}
   [300,1200].forEach(function(t){setTimeout(gyAjustar,t)})}
 function fmin(m){m=+m||0;return m<60?m+' min':Math.floor(m/60)+' h '+(m%60)+' min'}
 function lista(){[].forEach.call(document.querySelectorAll('[data-t]'),function(el){el.className=el.dataset.t===TAB?'on':''});var h='';
-  if(TAB==='inc'){var I=D.i||[];h=I.length?I.map(function(x){var ab=x[7]==='abierta';return '<div class="it" style="border-left:5px solid '+(ab?'#ff3b5c':'#22c55e')+'"><b>'+esc(x[5])+' · '+esc(x[0])+'</b> '+esc(x[1])+'<div class="d">'+esc(x[2])+' · '+esc(x[6])+' · '+(ab?'<b style="color:#ff6b6b">ABIERTA</b> hace '+fmin(x[8]):'✅ resuelta')+'</div>'+(x[9]?'<div class="d">'+esc(x[9])+'</div>':'')+'</div>'}).join(''):'<div class="it">👍 Sin incidencias en las últimas 24 h.</div>'}
+  if(TAB==='inc'){var I=D.i||[],it=function(x){var ab=x[7]==='abierta';return '<div class="it tap" data-c="'+esc(x[0])+'" style="border-left:5px solid '+(ab?'#ff3b5c':'#22c55e')+(ab?'':';opacity:.8')+'"><b>'+esc(x[5])+' · '+esc(x[0])+'</b> '+esc(x[1])+'<div class="d">'+esc(x[2])+' · '+esc(x[6])+' · '+(ab?'<b style="color:#ff6b6b">ABIERTA</b> hace '+fmin(x[8]):'✅ resuelta')+'</div>'+(x[9]?'<div class="d">'+esc(x[9])+'</div>':'')+'<div class="d" style="color:#8fd8ff">👉 toque para ver quién está y sus teléfonos'+(ab?' · ✅ marcar resuelto':'')+'</div></div>'},
+      A=I.filter(function(x){return x[7]==='abierta'}),R=I.filter(function(x){return x[7]!=='abierta'});
+    h=(A.length?A.map(it).join(''):'<div class="it">👍 No hay incidencias abiertas.</div>')+(R.length?'<div class="mu" style="margin-top:14px;font-weight:700">🗂️ Historial · resueltas en las últimas 24 h ('+R.length+')</div>'+R.map(it).join(''):'')}
   else if(TAB==='sec'){h=(D.s||[]).length?D.s.map(function(t){return '<div class="it"><div class="d" style="font-size:14px">'+esc(t)+'</div></div>'}).join(''):'<div class="it">Sin sectores sin luz ahora.</div>'}
-  else{var P=(D.p||[]).filter(function(x){return x[5]===TAB});h=P.length?P.map(function(x){return '<div class="it" style="border-left:5px solid '+T[x[5]][2]+'"><b>'+esc(x[0])+'</b> '+esc(x[1])+'<div class="d">'+esc(x[2])+' · '+esc(x[6])+(x[7]?' · 🔁 se repite hoy':'')+'</div></div>'}).join(''):'<div class="it">👍 Ninguna.</div>'}
-  $('lis').innerHTML=h}
+  else{var P=(D.p||[]).filter(function(x){return x[5]===TAB});h=P.length?P.map(function(x){return '<div class="it tap" data-c="'+esc(x[0])+'" style="border-left:5px solid '+T[x[5]][2]+'"><b>'+esc(x[0])+'</b> '+esc(x[1])+'<div class="d">'+esc(x[2])+' · '+esc(x[6])+(x[7]?' · 🔁 se repite hoy':'')+'</div></div>'}).join(''):'<div class="it">👍 Ninguna.</div>'}
+  $('lis').innerHTML=h;[].forEach.call(document.querySelectorAll('#lis [data-c]'),function(el){el.onclick=function(){det(el.dataset.c)}})}
+// 📋 Detalle de una escuela: quién está, sus teléfonos (solo llegan por la conexión con la PC, nunca en el enlace) y ✅ RESUELTO
+function cerrarDet(){DET=null;var o=$('ov');if(o)o.remove();document.body.style.overflow='';var y=window.scrollY;inicio();window.scrollTo(0,y)}
+function ov(h){var o=$('ov');if(!o){o=document.createElement('div');o.id='ov';o.className='ov';document.body.appendChild(o)}document.body.style.overflow='hidden';o.innerHTML=h;o.scrollTop=0;return o}
+function det(cod){DET=cod;try{if(MAP)MAP.closePopup()}catch(x){}
+  var loc=(D.i||[]).filter(function(x){return x[0]===cod}),pt=(D.p||[]).filter(function(x){return x[0]===cod})[0],nom=(loc[0]||pt||[])[1]||'';
+  ov('<h2 style="margin:4px 0">🏫 '+esc(cod)+' · '+esc(nom)+'</h2><div class="it" style="text-align:center"><span style="font-size:30px">⏳</span><br>Buscando quién está y sus teléfonos…</div><button class="bt g" onclick="cerrarDet()">↩ VOLVER AL MAPA</button>');
+  pedir({accion:'luz_det',cod:cod}).then(function(r){if(DET!==cod)return;if(!r.det)return verErr(cod,nom,r.msg||r.txt);verDet(r.det,r.msg)},function(e){if(DET===cod)verErr(cod,nom,e.message)})}
+function verErr(cod,nom,m){ov('<h2 style="margin:4px 0">🏫 '+esc(cod)+' · '+esc(nom)+'</h2><div class="it" style="border-left:5px solid #f59e0b">⚠️ '+esc(m||'No se pudo')+'</div>'+(C?'<button class="bt a" onclick="det(\''+esc(cod)+'\')">🔄 INTENTAR OTRA VEZ</button>':'')+'<button class="bt g" onclick="cerrarDet()">↩ VOLVER AL MAPA</button>')}
+function verDet(x,msg){var A=(x.i||[]).filter(function(i){return i[3]==='abierta'}),R=(x.i||[]).filter(function(i){return i[3]!=='abierta'});
+  var h=(msg?'<div class="it" style="border-left:5px solid #22c55e;font-weight:700">'+esc(msg)+'</div>':'')
+   +'<h2 style="margin:6px 0 2px">🏫 '+esc(x.c)+' · '+esc(x.n)+'</h2><div class="mu">'+esc(x.ca)+(x.ah?' · <b style="color:#ffc04d">'+esc(x.ah)+'</b>':'')+'</div>'
+   +'<div class="mu" style="margin-top:12px;font-weight:800">👥 QUIÉN ESTÁ</div>'
+   +((x.pe||[]).length?x.pe.map(function(p){var t=String(p[2]||'').replace(/[^0-9+]/g,'');return '<div class="it"><div class="d">'+esc(p[0])+'</div><b>'+esc(p[1]||'—')+'</b><br>'+(t?'<a class="tel" href="tel:'+esc(t)+'">📞 '+esc(p[2])+'</a>':'<span class="mu">sin teléfono</span>')+'</div>'}).join(''):'<div class="it">Sin personal registrado en esta escuela.</div>')
+   +'<div class="mu" style="margin-top:14px;font-weight:800">🚨 INCIDENCIAS ABIERTAS ('+A.length+')</div>'
+   +(A.length?A.map(function(i){return '<div class="it" style="border-left:5px solid #ff3b5c"><b>'+esc(i[1])+'</b><div class="d">'+esc(i[2].slice(5))+(i[5]?' · reportó '+esc(i[5]):'')+'</div>'+(i[4]?'<div class="d">«'+esc(i[4])+'»</div>':'')
+      +'<button class="bt v" data-r="'+esc(i[0])+'">✅ YA SE RESOLVIÓ · '+esc(i[1])+'</button></div>'}).join('')
+      +(A.length>1?'<button class="bt v" data-r="*">✅ TODO RESUELTO EN ESTA ESCUELA ('+A.length+')</button>':''):'<div class="it">👍 Ninguna abierta.</div>')
+   +(R.length?'<div class="mu" style="margin-top:14px;font-weight:800">🗂️ HISTORIAL</div>'+R.map(function(i){return '<div class="it" style="opacity:.85;border-left:5px solid #22c55e"><b>'+esc(i[1])+'</b> · ✅ resuelta<div class="d">Reportada '+esc(i[2].slice(5))+(i[5]?' por '+esc(i[5]):'')+'</div><div class="d">Resuelta '+esc(i[7].slice(5))+(i[6]?' por '+esc(i[6]):'')+(i[8]?' · «'+esc(i[8])+'»':'')+'</div></div>'}).join(''):'')
+   +'<button class="bt g" onclick="cerrarDet()">↩ VOLVER AL MAPA</button>';
+  var o=ov(h);[].forEach.call(o.querySelectorAll('[data-r]'),function(b){b.onclick=function(){resolver(x,b.dataset.r)}})}
+function resolver(x,id){var A=(x.i||[]).filter(function(i){return i[3]==='abierta'&&(id==='*'||i[0]===id)});if(!A.length)return;
+  var obs=prompt('✅ ¿Ya se resolvió '+(id==='*'?'TODO':'«'+A[0][1]+'»')+' en '+x.c+'?\n\nSi quiere, escriba qué se hizo (o deje vacío) y toque Aceptar.\nSe quita de las abiertas y queda en el historial.','');
+  if(obs===null)return;
+  ov('<h2 style="margin:4px 0">🏫 '+esc(x.c)+' · '+esc(x.n)+'</h2><div class="it" style="text-align:center"><span style="font-size:30px">⏳</span><br>Guardando «resuelto»…</div>');
+  pedir({accion:'luz_res',cod:x.c,id:id==='*'?'':id,obs:obs}).then(function(r){if(r.det)verDet(r.det,r.msg);else verErr(x.c,x.n,r.msg||r.txt);if(r.luz&&!DET)inicio()},function(e){verErr(x.c,x.n,e.message)})}
 var m=location.search.match(/[?&]z=([^&]+)/);
 if(!m)$('app').innerHTML='<div class="it">Abra esta página desde el bot de Telegram (botón 🗺️ VER MAPA E INCIDENCIAS).</div>';
-else cargarZ(m[1],function(d,err){if(!d){$('app').innerHTML='<div class="it">⚠️ '+esc(err||'No se pudo leer. Vuelva a tocar 🗺️ VER MAPA E INCIDENCIAS.')+'</div>';return}D=d;inicio()});
+else cargarZ(m[1],function(d,err){if(!d){$('app').innerHTML='<div class="it">⚠️ '+esc(err||'No se pudo leer. Vuelva a tocar 🗺️ VER MAPA E INCIDENCIAS.')+'</div>';return}D=d;inicio();if(C)pedir({accion:'luz_datos'}).then(function(){if(!DET)inicio()},function(){})});
 </script>
 <style id="emo2026c">img.emo{width:1.22em;height:1.22em;vertical-align:-.26em;display:inline-block;margin:0 .04em;object-fit:contain;border:0!important;background:none!important;box-shadow:none!important;padding:0!important;max-width:none}
 img.emo[alt="👥"],img.emo[alt="👤"],img.emo[alt="⚫"],img.emo[alt="🕴️"],img.emo[alt="🖤"],img.emo[alt="📞"],img.emo[alt="🔌"]{filter:brightness(1.7) saturate(1.1)}
