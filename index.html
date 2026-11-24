@@ -388,7 +388,7 @@ function home(){
   else {o.e='🎉';o.h1='¡Listo por hoy!';o.p='Muchas gracias por su trabajo.'}
   // 📦 «ESCANEAR MI KIT» quitado del operador y del asistente: los kits se escanean solo en la estación de recepción
   if(['llegada','reabrio'].indexOf(q)<0&&!gl){   // ya llegó: incidencias, actas y retiro siempre a mano
-    ops.push(['🛠️ INCIDENCIA EN EL RECINTO','a',problema]);ops.push(['📄 REPORTE FINAL DE ACTAS','b',actas]);ops.push(['🚪 ME RETIRO DEL COLEGIO','n',retiro,1])}
+    ops.push(['🛠️ INCIDENCIA EN EL RECINTO','a',problema]);ops.push(['🔄 CAMBIÓ LA SITUACIÓN (luz, agua, IP…)','b',cambio]);ops.push(['📄 REPORTE FINAL DE ACTAS','b',actas]);ops.push(['🚪 ME RETIRO DEL COLEGIO','n',retiro,1])}
   ops.push(['📞 MI SUPERVISOR','n',supervisor,1]);if(BOT)ops.push(['❓ AYUDA','n',ayuda,1]);
   var pp=BOT&&E.ch?pcPendLeer():[];if(pp.length&&!o.aviso)o.aviso='📨 Lo que mandó a las <b>'+hhmm(pp[pp.length-1].t)+'</b> está esperando a la PC del monitoreo. Se procesa solo cuando vuelva: <b>no lo repita</b>.';
   var nq=BOT?colaLeer().length:0;if(nq&&!o.aviso){o.aviso='📦 Hay <b>'+nq+'</b> envío(s) guardado(s) sin señal. Se mandan solos cuando vuelva la señal.';if(!gl&&!gp)ops.push(['🔄 ENVIAR LO GUARDADO','b',function(){enviarCola(true)},1])}
@@ -433,6 +433,22 @@ function retiroMandar(eq,mot,det){F={tipo:'retiro'};var go=function(){relojEsper
 function actas(){F={tipo:'actas'};var go=function(){relojEspera('Enviando el reporte…');accion({accion:'mensaje',texto:'📄 REPORTE FINAL DE ACTAS digitalizadas y procesadas'})};
   pantalla({atras:home,titulo:'Reporte final',e:'📄📷',h1:'REPORTE FINAL DE ACTAS',p:'Tome la foto del reporte de <b>actas digitalizadas y procesadas</b>.',
     ops:[['📷 TOMAR LA FOTO','b',function(){RELAY?camara('mensaje','REPORTE FINAL DE ACTAS',go):go()}]]})}
+// 🔄 CAMBIÓ LA SITUACIÓN: ve lo que reportó (con su hora) y cambia SOLO lo que cambió; queda el historial y le llega al supervisor
+var CMP={luz:['💡 Luz',{si:'SÍ hay',no:'NO hay'}],inundacion:['🌊 Inundación',{si:'SÍ hay',no:'no hay'}],abierta:['🏫 Escuela',{si:'abierta',no:'CERRADA'}],ips:['🌐 IP',{'2':'tiene las 2','1':'solo 1','0':'NINGUNA'}],equipos:['💻 Equipos',{si:'prenden',no:'NO prenden'}]};
+function cambio(){pantalla({e:'⏳',h1:'Buscando lo que usted reportó…',ops:[['🏠 VOLVER','n',home,1]]});
+  canal(E.ch,E.ci,E.fr,{accion:'cambio_ver'}).then(function(res){var v=res.cv||{};
+    if(!v.hora)return pantalla({e:'📍',h1:'Primero marque su llegada',p:'Cuando ya esté en el recinto y haya marcado su llegada, aquí puede avisar si algo cambió.',ops:[['🏠 VOLVER','n',home,1]]});
+    var h='<div style="text-align:left;font-size:17px;line-height:1.6;margin:0 16px">Así está <b>ahora</b> (llegó a las <b>'+v.hora+'</b>):<br>'+Object.keys(CMP).map(function(k){var c=CMP[k];return c[0]+': <b>'+(c[1][v[k]]||'—')+'</b>'}).join('<br>')
+      +(v.cambios&&v.cambios.length?'<div style="margin-top:10px;font-size:15px;color:#5a6577"><b>🕘 Historial de cambios</b><br>'+v.cambios.map(function(c){var k=CMP[c[1]]||['',{}];return c[0]+' · '+k[0]+': '+(k[1][c[2]]||c[2]||'—')+' → <b>'+(k[1][c[3]]||c[3])+'</b>'+(c[4]?' · '+esc(c[4]):'')}).join('<br>')+'</div>':'')+'</div>';
+    pantalla({e:'🔄',h1:'¿Qué cambió?',p:'Toque solo lo que cambió. No tiene que repetir su llegada.',extra:h,ops:Object.keys(CMP).map(function(k){return [CMP[k][0].toUpperCase(),'b',function(){cambioElegir(k,v[k])}]}).concat([['🏠 VOLVER','n',home,1]])})
+  },function(e){pantalla({e:'📵',h1:'No se pudo abrir',p:'Revise su señal e intente otra vez.',ops:[['🔄 INTENTAR OTRA VEZ','b',cambio],['🏠 VOLVER','n',home,1]]})})}
+function cambioElegir(k,act){var c=CMP[k];
+  pantalla({atras:cambio,e:'🔄',h1:c[0],p:'Ahora mismo: ¿cómo está? (antes: <b>'+(c[1][act]||'—')+'</b>)<br><input id="cmobs" placeholder="Observación (opcional)" style="width:100%;margin-top:10px;padding:12px;border-radius:12px;border:1px solid #2a3f6b;background:#0f1c38;color:#fff;font-size:16px;box-sizing:border-box">',
+    ops:Object.keys(c[1]).filter(function(x){return x!==act}).map(function(x){return [c[1][x].toUpperCase(),/NO|NINGUNA|CERRADA|solo/i.test(c[1][x])?'r':'g',function(){porCanal({accion:'cambio',campo:k,valor:x,obs:((document.getElementById('cmobs')||{}).value||'').trim().slice(0,200)})}]}).concat([['↩ VOLVER','n',cambio,1]])})}
+// 💡 corregir / actualizar la luz desde el panel (se fue · volvió · me equivoqué): alimenta supervisor, causa y ELEC
+function luzCorr(){var env=function(v){var obs=(document.getElementById('lzobs')||{}).value||'';porCanal({accion:'luz_corr',luz:v,obs:obs.trim().slice(0,200)})};
+  pantalla({e:'💡',h1:'La luz en la escuela',p:'Si la luz <b>se fue</b>, <b>volvió</b> o usted <b>se equivocó</b> al marcar, corríjalo aquí. Le llega a su supervisor.<br><input id="lzobs" placeholder="Observación (opcional)" style="width:100%;margin-top:10px;padding:12px;border-radius:12px;border:1px solid #2a3f6b;background:#0f1c38;color:#fff;font-size:16px;box-sizing:border-box">',
+    ops:[['⚡ NO HAY LUZ (se fue)','r',function(){env('no')}],['✅ SÍ HAY LUZ (volvió / me equivoqué)','g',function(){env('si')}],['↩ VOLVER','n',home,1]]})}
 function problema(){   // 🛠️ reportar daño / problema desde la escuela, sin salir de la app
   var mandar=function(tipo){escribir({atras:problema,titulo:'Incidencia',e:'🛠️',h1:tipo,p:'Cuente en pocas palabras (opcional).',ph:'Ej.: el router tiene la luz roja',boton:'SIGUIENTE',vacio:true,
     luego:function(t){var txt='🛠️ INCIDENCIA EN EL RECINTO: '+tipo+(t?' — '+t:'');F.fotos=null;F.fsim=null;
