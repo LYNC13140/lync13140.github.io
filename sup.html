@@ -526,18 +526,23 @@ function escuelas(fl){var filtros=[['todas','Todas'],['cai','🔴 Caídos'],['ma
 
 // ------------------------------------------------------------ 3 · una escuela
 var SN={si:'sí',no:'no'},ESX={};
-function escuela(c,pt,volver){var x=busca(c,pt);if(!x)return inicio();var l=x.l,h='';
+var TODO={},ESCV=null;
+function escuela(c,pt,volver){ESCV=volver||null;var x=busca(c,pt);if(!x)return inicio();var l=x.l,h='';
   h+='<div class="q" style="padding-top:8px"><div class="e" style="font-size:46px">👤</div><h1 style="font-size:21px">'+esc(x.o||'Sin operador en la lista')+'</h1><p>'+(x.e==='F'?'🔴 El monitoreo lo marca CAÍDO':x.e==='A'?'🟢 El monitoreo lo marca ACTIVO':'')+'</p></div><h3>Hoy</h3>';
   if(l&&l[8])h+='<div class="lin"><i>🚗</i><div>Salió '+esc(l[8])+(l[9]?' · '+esc(l[9])+' km':'')+'</div></div>';
   if(x.cm)h+='<div class="lin"><i>🚧</i><div>'+esc(x.cm[0])+' · '+esc(x.cm[1])+(x.cm[2]?'<small>km '+esc(x.cm[2])+' de su ruta</small>':'')+'</div></div>';
   if(x.ls==='no')h+='<div class="lin"><i>⛔</i><div>No pudo llegar '+esc(l[0])+'<small>'+esc(l[10])+'</small></div></div>';
-  else if(l)h+='<div class="lin"><i>'+(x.ls==='cer'?'🔒':'📍')+'</i><div>Llegó '+esc(l[0])+(l[1]!=null?' · a '+esc(l[1])+' m':'')+'<small>'
-    +(x.ls==='cer'?'ESCUELA CERRADA':'Abierta · acceso '+(l[3]==='no'?'⛔ difícil':'fácil')+' · inundación '+(l[4]==='si'?'⚠️ sí':'no')+' · corte en el sector '+(l[5]==='si'?'⚠️ sí':'no')
-    +' · luz en la escuela '+(l[6]==='no'?'⛔ NO':'sí')+' · equipos '+(l[7]==='si'?'prendidos':l[7]==='no/si'?'apagados → ya prendieron':l[7]==='no/no'?'⛔ NO prenden':'—'))+'</small></div></div>';
+  else if(l){var malL=x.ls==='cer'?['🔒 ESCUELA CERRADA']:[].concat(l[3]==='no'?['⛔ acceso difícil']:[],l[4]==='si'?['🌊 inundación']:[],l[6]==='no'?['⚡ NO hay luz en la escuela']:l[5]==='si'?['⚠️ corte de luz en el sector (la escuela sí tiene luz)']:[],l[7]==='no/no'?['⛔ equipos NO prenden']:[]);
+    var todoL='Abierta · acceso '+(l[3]==='no'?'⛔ difícil':'fácil')+' · inundación '+(l[4]==='si'?'⚠️ sí':'no')+' · corte en el sector '+(l[5]==='si'?'⚠️ sí':'no')
+    +' · luz en la escuela '+(l[6]==='no'?'⛔ NO':'sí')+' · equipos '+(l[7]==='si'?'prendidos':l[7]==='no/si'?'apagados → ya prendieron':l[7]==='no/no'?'⛔ NO prenden':'—');
+    h+='<div class="lin"><i>'+(x.ls==='cer'?'🔒':malL.length?'⚠️':'📍')+'</i><div>Llegó '+esc(l[0])+(l[1]!=null?' · a '+esc(l[1])+' m':'')+'<small>'
+    +(TODO[x.c]?esc(todoL):malL.length?'<b style="color:#ff8a8a">'+esc(malL.join(' · '))+'</b>':'✅ todo bien')+'</small></div></div>'}
   else h+='<div class="lin"><i>⬜</i><div>Todavía no llega</div></div>';
-  x.p.forEach(function(e,i){var d=(x.pd||[])[i]||['','',''];
+  var pOk=0;x.p.forEach(function(e,i){var d=(x.pd||[])[i]||['','',''];if(!TODO[x.c]&&(e==='b'||e==='')){if(e==='b')pOk++;return}
     h+='<div class="lin"><i>'+(e==='b'?'✅':e==='m'?'❌':e==='f'?'⏰':'⬜')+'</i><div>Prueba '+(i+1)+(d[0]?' · '+esc(d[0]):'')+(d[1]?' ('+esc(d[1])+')':'')
       +'<small>'+(e==='b'?'Bien':e==='m'?esc(d[2]||'Con problema'):e==='f'?'Ya le tocaba y no la hace':'Todavía no le toca')+'</small></div></div>'});
+  if(!TODO[x.c]&&pOk)h+='<div class="lin"><i>✅</i><div>'+pOk+' prueba(s) bien</div></div>';
+  h+='<div style="margin:2px 14px 8px"><a href="#" style="color:#8fd8ff;font-size:14px" onclick="TODO[\''+x.c+'\']=!TODO[\''+x.c+'\'];escuela(\''+x.c+'\','+(pt||1)+',ESCV);return false">'+(TODO[x.c]?'▲ ver solo lo que está mal':'📋 ver todo el día (también lo que está bien)')+'</a></div>';
   if(x.e==='F'&&!ESX[x.c]){var fz0=czF(x),dz0=czDec(x);
     h+='<div style="margin:10px 12px;padding:10px 12px;border-radius:14px;border:2px solid '+(fz0.length?'#1a7f37':'#e39a19')+'"><div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">'
       +(fz0.length?fz0.map(function(k){return '<span style="background:#1a7f37;color:#fff;border-radius:10px;padding:6px 12px;font-size:15px;font-weight:700">✔ '+(CZN[k]||esc(k))+czC(x,k)+'</span>'}).join('')+'<span style="font-size:14px">→ '+(dz0==='crear'?'🎫 corresponde ticket':'✋ no se crea solo')+'</span>'
