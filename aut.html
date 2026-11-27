@@ -121,7 +121,7 @@ button[style*="background:#1f6feb"]{background:linear-gradient(135deg,#6d5dfc,#3
    Claro/oscuro con prefers-color-scheme. Va al FINAL del <head> para pisar a los temas anteriores. */
 :root{
  --i-font:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro Text",system-ui,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
- --i-bg:#eef1f8;--i-card:#fff;--i-card2:#f5f7fc;--i-line:rgba(18,32,74,.10);--i-tx:#0b1220;--i-mu:#4a5671;
+ --i-bg:#eef1f8;--i-card:#fff;--i-card2:#f5f7fc;--i-line:rgba(18,32,74,.10);--i-tx:#0b1220;--i-mu:#414d68;
  --i-seg:rgba(70,90,140,.13);--i-seg-on:#fff;--i-inp:#fff;--i-link:#0a55d4;
  --i-bar:rgba(238,241,248,.80);--i-bar-solid:#eef1f8;
  --i-g:linear-gradient(135deg,#1d5fe0,#0679ad);--i-neon:#06b6d4;--i-ring:rgba(6,182,212,.55);
@@ -203,7 +203,7 @@ body::before{content:"";position:fixed;left:0;right:0;top:0;height:340px;z-index
 :root .op::after{background:linear-gradient(180deg,rgba(255,255,255,.14),transparent 50%)}
 :root .op:active{transform:scale(.97)!important;filter:brightness(1.06)}
 :root .op.chico,:root .bt{border-radius:999px}
-:root .op.g{background:linear-gradient(135deg,#0b7a3d,#0e9552)!important}
+:root .op.g{background:linear-gradient(135deg,#0a6b35,#0b7f45)!important}
 :root .op.r{background:linear-gradient(135deg,#bf1238,#e11d48)!important}
 :root .op.a{background:linear-gradient(135deg,#f5a30b,#fbc02d)!important;color:#2b1700!important}
 :root .op.b{background:var(--i-g)!important}
@@ -213,7 +213,7 @@ body::before{content:"";position:fixed;left:0;right:0;top:0;height:340px;z-index
 :root .badge{background:#fff!important;color:#c01f3a!important;box-shadow:0 2px 6px rgba(0,0,0,.25)!important;font-weight:800}
 :root .bt{min-height:50px;font-family:var(--i-font)!important;font-weight:700;letter-spacing:-.01em;box-shadow:0 12px 22px -14px rgba(10,30,80,.6),inset 0 1px 0 rgba(255,255,255,.28)}
 :root .bt:active{transform:scale(.97)}
-:root .bt.v{background:linear-gradient(135deg,#0b7a3d,#0e9552)}
+:root .bt.v{background:linear-gradient(135deg,#0a6b35,#0b7f45)}
 :root .bt.g{background:linear-gradient(135deg,#3a4764,#52627f)}
 :root .bt.a{background:linear-gradient(135deg,#1d4fd0,#0e6f9c)}
 :root .tel{border-radius:999px;min-height:44px;padding:11px 18px;background:linear-gradient(135deg,#1d4fd0,#0e6f9c);box-shadow:0 10px 20px -12px rgba(10,60,160,.7)}
@@ -353,10 +353,23 @@ body::before{content:"";position:fixed;left:0;right:0;top:0;height:340px;z-index
 }
 
 /* ---------- movimiento: solo si la persona no lo pidió reducido ---------- */
+/* ---------- pulido pro (auditoria): lectura y zonas tactiles ---------- */
+/* texto de version: 11px y opacidad .55 puestos en linea -> 12px y contraste pleno (Typography: texto >=12px; Accessibility: 4.5:1) */
+:root #verApp{font-size:12px!important;opacity:1!important;color:var(--i-mu)!important}
+/* tarjetas resueltas atenuadas en linea (opacity:.8) bajaban el contraste del texto secundario */
+:root .it[style*="opacity:.8"]{opacity:.94!important}
+/* enlace en linea pequeno: se amplia la zona de toque sin mover el texto (Touch: expandir hit area, 44px) */
+:root a[onclick]{position:relative}
+:root 
+/* numeros que cambian: cifras de ancho fijo para que no salten (Typography: tabular figures) */
+:root .esc b,:root .esc .m,:root .it .d,:root .it b,:root .av,:root .kp .k span,:root .tel,:root .bt{font-variant-numeric:tabular-nums}
+/* respeta texto grande del sistema sin romper filas */
+:root .esc,:root .it,:root .k{overflow-wrap:anywhere}
 @media (prefers-reduced-motion:no-preference){
  :root .op,:root .bt,:root .k,:root .esc,:root .it.tap,:root .fil button,:root .seg button,:root .tabs button{transition:transform .16s cubic-bezier(.2,.8,.2,1),box-shadow .2s,background-color .2s,filter .2s}
 }
-@media (prefers-reduced-motion:reduce){:root .op,:root .bt,:root .k,:root .esc{transition:none!important}}
+@media (prefers-reduced-motion:reduce){:root .op,:root .bt,:root .k,:root .esc,:root .it.tap,:root .fil button,:root .seg button,:root .tabs button{transition:none!important}
+ :root .op:active,:root .bt:active,:root .it.tap:active,:root .esc:active,:root .k:active{transform:none!important}}
 </style>
 </head>
 <body><div id="app">Cargando…</div>
