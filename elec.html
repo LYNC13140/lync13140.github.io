@@ -398,6 +398,37 @@ body::before{content:"";position:fixed;left:0;right:0;top:0;height:340px;z-index
 @media (prefers-reduced-motion:reduce){:root .op,:root .bt,:root .k,:root .esc,:root .it.tap,:root .fil button,:root .seg button,:root .tabs button{transition:none!important}
  :root .op:active,:root .bt:active,:root .it.tap:active,:root .esc:active,:root .k:active{transform:none!important}}
 </style>
+<style id="mapa-vivo">
+/* 🔴 MAPA EN VIVO — SOLO aspecto del mapa (pastilla, marcadores, leyenda, ventanas). No cambia datos ni lógica. */
+:root #mapa{height:55vh;min-height:320px;max-height:640px;border-radius:22px;overflow:hidden;position:relative}
+.mv-pill{display:inline-flex;align-items:center;gap:6px;margin:6px 0 0 10px!important;clear:both;padding:5px 11px;border-radius:999px;background:rgba(8,14,30,.86);color:#e9f1ff;font:600 12px/1.2 Inter,Arial,sans-serif;border:1px solid rgba(255,255,255,.16);box-shadow:0 4px 14px -4px #000;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);white-space:nowrap}
+.mv-pill b{font-weight:800;letter-spacing:.04em;color:#ff6b6b}
+.mv-dot{width:9px;height:9px;border-radius:50%;background:#94a3b8;display:inline-block;flex:none}
+.mv-pill.on .mv-dot{background:#ef4444;box-shadow:0 0 0 0 rgba(239,68,68,.7)}
+.mv-cen{display:inline-flex;align-items:center;margin:6px 0 0 10px!important;clear:both;min-height:36px;padding:6px 12px;border-radius:999px;border:1px solid rgba(255,255,255,.18);background:rgba(8,14,30,.86);color:#e9f1ff;font:700 12px Inter,Arial,sans-serif;cursor:pointer;box-shadow:0 4px 14px -4px #000}
+.mv-cen:active{transform:scale(.97)}
+.mv-leg{margin:0 0 8px 10px!important;max-width:200px;border-radius:14px;background:rgba(8,14,30,.88);color:#e9f1ff;border:1px solid rgba(255,255,255,.16);box-shadow:0 6px 18px -6px #000;font:600 11px/1.25 Inter,Arial,sans-serif;overflow:hidden;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
+.mv-lt{display:flex;width:100%;justify-content:space-between;gap:8px;min-height:34px;align-items:center;padding:6px 11px;border:0;background:transparent;color:inherit;font:800 12px Inter,Arial,sans-serif;cursor:pointer}
+.mv-lb{padding:0 11px 8px}.mv-leg.c .mv-lb{display:none}
+.mv-lb .r{display:flex;align-items:center;gap:6px;padding:2px 0;white-space:nowrap}.mv-lb .r b{margin-left:auto;padding-left:10px;font-variant-numeric:tabular-nums}.mv-lb .r.z{opacity:.45}
+.mv-lb .pt{width:10px;height:10px;border-width:1.5px;flex:none}
+.leaflet-interactive.mk{cursor:pointer;stroke-linejoin:round}
+.mk-sl{filter:drop-shadow(0 0 5px rgba(239,68,68,.95))}.mk-in{filter:drop-shadow(0 0 5px rgba(59,130,246,.95))}.mk-co{filter:drop-shadow(0 0 4px rgba(225,29,72,.9))}
+:root .leaflet-popup-content-wrapper{border-radius:16px;background:var(--i-card,#fff);color:var(--i-tx,#111);box-shadow:0 12px 32px -8px rgba(0,0,0,.55);border:1px solid var(--i-line,rgba(0,0,0,.1))}
+:root .leaflet-popup-tip{background:var(--i-card,#fff);border:1px solid var(--i-line,rgba(0,0,0,.1))}
+:root .leaflet-popup-content{color:var(--i-tx,#111);font-size:13px;line-height:1.45;margin:12px 14px}
+:root .leaflet-popup-close-button{color:var(--i-mu,#555)!important;width:32px;height:32px;font-size:20px;line-height:30px}
+:root .leaflet-popup-content .pop-b{min-height:40px;width:100%;border-radius:12px;font-size:14px}
+:root .leaflet-popup-content small{color:var(--i-mu,#555)}
+@media (max-width:430px){.mv-leg{max-width:178px}.mv-pill{font-size:11.5px}}
+@media (prefers-reduced-motion:no-preference){
+ .mv-pill.on .mv-dot{animation:mvp 1.6s ease-out infinite}
+ @keyframes mvp{0%{box-shadow:0 0 0 0 rgba(239,68,68,.75)}80%,100%{box-shadow:0 0 0 8px rgba(239,68,68,0)}}
+ .mk-sl{animation:mvh-r 1.8s ease-in-out infinite}.mk-in{animation:mvh-b 2.2s ease-in-out infinite}
+ @keyframes mvh-r{0%,100%{filter:drop-shadow(0 0 1px rgba(239,68,68,.9))}50%{filter:drop-shadow(0 0 9px rgba(239,68,68,1))}}
+ @keyframes mvh-b{0%,100%{filter:drop-shadow(0 0 1px rgba(59,130,246,.9))}50%{filter:drop-shadow(0 0 9px rgba(59,130,246,1))}}
+}
+</style>
 </head>
 <body><div id="app">Cargando…</div>
 <script>
@@ -438,7 +469,7 @@ function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){retur
 function cargarZ(z,cb){var t=z.replace(/-/g,'+').replace(/_/g,'/');while(t.length%4)t+='=';var b=atob(t),u=new Uint8Array(b.length);for(var i=0;i<b.length;i++)u[i]=b.charCodeAt(i);
   if(!window.DecompressionStream)return cb(null,'Actualice Telegram o el teléfono para abrir el mapa.');
   new Response(new Blob([u]).stream().pipeThrough(new DecompressionStream('deflate'))).text().then(function(s){cb(JSON.parse(s))}).catch(function(){cb(null)})}
-var T={co:['🚨','Contingencias','#ff3b5c'],sl:['⚡','Sin luz','#f59e0b'],in:['🌊','Inundadas','#3b82f6'],ri:['🌧️','Riesgo de lluvia','#a855f7'],vo:['✅','Volvió la luz (24 h)','#22c55e'],ce:['🔒','Cerradas / sin ingreso','#94a3b8']};
+var T={co:['🚨','Contingencias','#e11d48'],sl:['⚡','Sin luz (posible corte)','#ef4444'],in:['🌊','Inundadas','#3b82f6'],ri:['🌧️','Riesgo de lluvia','#f59e0b'],vo:['✅','Volvió la luz (24 h)','#22c55e'],ce:['🔒','Cerradas / sin ingreso','#94a3b8']};
 function inicio(){var K=D.k||{},h='';
   if(document.referrer.indexOf('sup.html')>=0)h+='<div style="margin:10px 0 0;padding:10px 12px;border-radius:12px;background:rgba(168,85,247,.18);border:1px solid rgba(168,85,247,.5);font-weight:700">🧪 VIENDO COMO ELEC · así le sale a ELEC</div>';
   h+='<div class="top"><h1>💡 Luz, clima e incidencias · Guayas</h1><div class="mu">Datos de las '+esc(D.h)+(VIVO?'<span class="vivo">● EN VIVO '+esc(VIVO)+'</span>':'')+' · toque un cuadro para ver solo eso en el mapa · toque una escuela para ver quién está y sus teléfonos</div></div>';
@@ -448,7 +479,7 @@ function inicio(){var K=D.k||{},h='';
   h+='<div class="grid3">'+['co','sl','in','ri','vo','ce'].map(function(k){var v=K[k]||0;return '<div class="k '+(FIL===k?'on ':'')+(v?(k==='vo'?'ok':k==='ri'||k==='ce'?'warn':'bad'):'')+'" data-f="'+k+'"><small>'+T[k][1]+'</small><i>'+T[k][0]+'</i><b>'+v+'</b></div>'}).join('')+'</div>';
   h+='<div id="mapa"></div><div class="ley">'+Object.keys(T).map(function(k){return '<span><span class="pt" style="background:'+T[k][2]+'"></span>'+T[k][1]+'</span>'}).join('')+'<span><span class="pt titila" style="background:#ff3b5c"></span>incidencia abierta</span><span>🛰️ nubes: rojo/negro = tormenta · amarillo/verde = lluvia · gris = sin lluvia</span>'+(FIL?' · <a href="#" id="todo" style="color:#8fd8ff">ver todo</a>':'')+'</div>';
   h+='<button class="bt v" id="hvo" style="min-height:44px;font-size:15px">✅ VOLVIÓ LA LUZ · ver historial ('+(K.vo||0)+')</button>';
-  h+='<div class="tabs">'+[['inc','🚨 Incidencias'],['sl','⚡ Sin luz'],['in','🌊 Inundadas'],['sec','🗺️ Sectores']].map(function(t){return '<button data-t="'+t[0]+'" class="'+(TAB===t[0]?'on':'')+'">'+t[1]+'</button>'}).join('')+'</div><div id="lis"></div>';
+  h+='<div class="tabs">'+[['inc','🚨 Incidencias'],['sl','⚡ Sin luz (posible corte)'],['in','🌊 Inundadas'],['sec','🗺️ Sectores']].map(function(t){return '<button data-t="'+t[0]+'" class="'+(TAB===t[0]?'on':'')+'">'+t[1]+'</button>'}).join('')+'</div><div id="lis"></div>';
   h+='<div class="mu" style="margin-top:14px">'+(C?'🟢 Se actualiza sola cada 30 segundos.':'Para ver datos nuevos, cierre y vuelva a tocar <b>🗺️ VER MAPA E INCIDENCIAS</b>.')+'</div>';
   if(document.referrer.indexOf('sup.html')>=0)h+='<button onclick="history.back()" style="margin-top:14px;width:100%;min-height:52px;border-radius:14px;border:0;font:800 17px Arial;background:linear-gradient(135deg,#334155,#475569);color:#fff">↩ VOLVER A MI PANEL</button>';
   $('app').innerHTML=h;
@@ -483,7 +514,7 @@ function mapa(){if(!window.L){$('mapa').innerHTML='<div class="it">🗺️ Carga
   // escuelas e incidencias
   var P=(D.p||[]).filter(function(x){return FIL==='se'?false:!FIL||FIL==='inc'?FIL!=='inc':x[5]===FIL});
   P.forEach(function(x){if(x[3]==null)return;var c=T[x[5]]||['','','#999'];
-    L.circleMarker([x[3],x[4]],{radius:x[5]==='ri'?5:7,color:'#0b1730',weight:1.5,fillColor:c[2],fillOpacity:1}).addTo(MAP)
+    L.circleMarker([x[3],x[4]],{radius:(x[5]==='sl'||x[5]==='in')?9:x[5]==='ri'?7:8,color:'#fff',weight:2,fillColor:c[2],fillOpacity:1,className:'mk mk-'+(T[x[5]]?x[5]:'ot')}).addTo(MAP)
      .bindPopup('<b>'+esc(x[0])+' · '+esc(x[1])+'</b><br>'+esc(x[2])+'<br>'+esc(x[6])+(x[7]?'<br>🔁 se repite hoy':'')+(x[8]?'<br><small>'+esc(x[8])+'</small>':'')+'<br><button class="pop-b" onclick="det(\''+esc(x[0])+'\')">📋 Ver escuela y teléfonos</button>')});
   (D.i||[]).filter(function(x){return x[7]==='abierta'&&x[3]!=null&&(!FIL||FIL==='inc'||(FIL==='se'&&esSeg(x)))}).forEach(function(x){var sg=esSeg(x),em=emo1(x[5]);
     L.marker([x[3],x[4]],{zIndexOffset:sg?1000:900,icon:L.divIcon({className:'',html:'<div class="ince titila'+(sg?' seg':'')+'">'+esc(em||'🚨')+'</div>',iconSize:sg?[34,34]:[30,30],iconAnchor:sg?[17,17]:[15,15]})}).addTo(MAP)
@@ -503,9 +534,27 @@ function mapa(){if(!window.L){$('mapa').innerHTML='<div class="it">🗺️ Carga
   var ctl=L.control({position:'topright'});ctl.onAdd=function(){var d=L.DomUtil.create('div','satbox');d.innerHTML='<button id="satP" title="Pausar / mover las nubes">'+(SATP?'▶':'⏸')+'</button><span id="satH"></span>';
     L.DomEvent.disableClickPropagation(d);setTimeout(function(){var b=$('satP');if(b)b.onclick=function(){SATP=!SATP;b.textContent=SATP?'▶':'⏸';if(SATP){clearTimeout(SATT);satFrame(SATF.length-1)}else satAnimar()}},0);return d};ctl.addTo(MAP);
   satFrame(SATI);
+  try{mapaVivo()}catch(e){}
   gyAjustar();
   try{var _w=0;new ResizeObserver(function(){var w=$('mapa').clientWidth;if(w&&w!==_w){_w=w;gyAjustar()}}).observe($('mapa'))}catch(e){}
   [300,1200].forEach(function(t){setTimeout(gyAjustar,t)})}
+
+// 🔴 Mapa «en vivo»: pastilla de hora, leyenda con conteos (de lo que está dibujado) y botón centrar — SOLO presentación
+var LEGC=null;
+function mapaVivo(){if(!MAP||!window.L)return;if(LEGC===null)LEGC=($('mapa').clientWidth||0)<520;var cnt={},inc=0,pts=[];
+  MAP.eachLayer(function(l){if(l instanceof L.CircleMarker){var m=/mk-(\w+)/.exec(l.options.className||'');if(m){cnt[m[1]]=(cnt[m[1]]||0)+1;pts.push(l.getLatLng())}}
+    else if(l instanceof L.Marker&&l.options.icon&&/class="ince/.test(l.options.icon.options.html||'')){inc++;pts.push(l.getLatLng())}});
+  var live=!!VIVO,hora=live?VIVO:(D&&D.h)||'';
+  var pill=L.control({position:'topleft'});pill.onAdd=function(){var d=L.DomUtil.create('div','mv-pill'+(live?' on':''));
+    d.innerHTML='<i class="mv-dot"></i>'+(live?'<b>EN VIVO</b> · actualizado '+esc(hora):'Datos de las '+esc(hora));d.title=live?'Se actualiza sola cada 30 s':'Sin canal en vivo';return d};pill.addTo(MAP);
+  var cen=L.control({position:'topleft'});cen.onAdd=function(){var b=L.DomUtil.create('button','mv-cen');b.type='button';b.innerHTML='📍 centrar';b.title='Ajustar el mapa a los puntos visibles';
+    L.DomEvent.disableClickPropagation(b);b.onclick=function(){if(pts.length)MAP.fitBounds(L.latLngBounds(pts),{padding:[40,40],maxZoom:14})};return b};cen.addTo(MAP);
+  var leg=L.control({position:'bottomleft'});leg.onAdd=function(){var d=L.DomUtil.create('div','mv-leg'+(LEGC?' c':''));var tot=0;
+    var rows=Object.keys(T).map(function(k){var n=cnt[k]||0;tot+=n;return '<div class="r'+(n?'':' z')+'"><span class="pt" style="background:'+T[k][2]+'"></span>'+T[k][1]+'<b>'+n+'</b></div>'}).join('');
+    if(cnt.ot){tot+=cnt.ot;rows+='<div class="r"><span class="pt" style="background:#94a3b8"></span>Otros<b>'+cnt.ot+'</b></div>'}
+    rows+='<div class="r'+(inc?'':' z')+'"><span class="pt" style="background:#ff3b5c"></span>Incidencias abiertas<b>'+inc+'</b></div>';
+    d.innerHTML='<button type="button" class="mv-lt" aria-expanded="'+(!LEGC)+'">Leyenda · '+(tot+inc)+' <span>'+(LEGC?'▸':'▾')+'</span></button><div class="mv-lb">'+rows+'</div>';
+    L.DomEvent.disableClickPropagation(d);d.querySelector('.mv-lt').onclick=function(){LEGC=!LEGC;d.classList.toggle('c',LEGC);this.setAttribute('aria-expanded',!LEGC);this.lastChild.textContent=LEGC?'▸':'▾'};return d};leg.addTo(MAP)}
 function colision(){var el=[].slice.call(document.querySelectorAll('#mapa .gcan'));el.forEach(function(x){x.style.visibility=''});
   el.sort(function(a,b){return (b.querySelector('b')?1:0)-(a.querySelector('b')?1:0)});var ok=[];
   el.forEach(function(x){var r=x.getBoundingClientRect();if(ok.some(function(o){return !(r.right<o.left||r.left>o.right||r.bottom<o.top||r.top>o.bottom)}))x.style.visibility='hidden';else ok.push(r)})}
@@ -528,13 +577,13 @@ function lineaVolvio(x){return (x[9]?'se cortó '+x[9]:'')+(x[10]?' · reportó 
 function informeTxt(){var K=D.k||{},I=D.i||[],P=D.p||[],L=[],li=function(x,t){return '• '+x[0]+' '+x[1]+(x[2]?' ('+x[2]+')':'')+(t?' — '+t:'')};
   L.push('💡 *INFORME ELEC · Luz, clima e incidencias · Guayas*');L.push('🕒 Datos de las '+(D.h||'')+(VIVO?' (en vivo '+VIVO+')':''));L.push('');
   L.push('🚨 Incidencias abiertas: *'+(K.ia||0)+'*');L.push('🪖 Seguridad (militares / policía): *'+(K.se||0)+'*');
-  L.push('🚨 Contingencias: *'+(K.co||0)+'* · ⚡ Sin luz: *'+(K.sl||0)+'* · 🌊 Inundadas: *'+(K.in||0)+'*');
+  L.push('🚨 Contingencias: *'+(K.co||0)+'* · ⚡ Equipo sin luz (posible corte de energía): *'+(K.sl||0)+'* · 🌊 Inundadas: *'+(K.in||0)+'*');
   L.push('🌧️ Riesgo de lluvia: *'+(K.ri||0)+'* · 🔒 Cerradas: *'+(K.ce||0)+'*');
   var A=I.filter(function(x){return x[7]==='abierta'}),S=A.filter(esSeg),O=A.filter(function(x){return !esSeg(x)});
   if(S.length){L.push('');L.push('🪖 *SEGURIDAD*');S.slice(0,25).forEach(function(x){L.push(li(x,x[5]+' desde '+x[6]+' (hace '+fmin(x[8])+')'+(x[9]?' · '+x[9]:'')))})}
   if(O.length){L.push('');L.push('🚨 *INCIDENCIAS ABIERTAS*');O.slice(0,30).forEach(function(x){L.push(li(x,x[5]+' desde '+x[6]+' (hace '+fmin(x[8])+')'+(x[9]?' · '+x[9]:'')))})}
   L.push('_(Ya volvió la luz en '+(K.vo||0)+' escuela(s): no van en este informe, están en el historial)_');
-  [['sl','⚡ *SIN LUZ*'],['in','🌊 *INUNDADAS*'],['co','🚨 *CONTINGENCIAS*'],['ce','🔒 *CERRADAS / SIN INGRESO*']].forEach(function(g){var l=P.filter(function(x){return x[5]===g[0]});
+  [['sl','⚡ *EQUIPO SIN LUZ · POSIBLE CORTE DE ENERGÍA EN EL SECTOR*'],['in','🌊 *INUNDADAS*'],['co','🚨 *CONTINGENCIAS*'],['ce','🔒 *CERRADAS / SIN INGRESO*']].forEach(function(g){var l=P.filter(function(x){return x[5]===g[0]});
     if(!l.length)return;L.push('');L.push(g[1]+' ('+l.length+')');l.slice(0,40).forEach(function(x){L.push(li(x,g[0]==='sl'?lineaCorte(x):x[6]))});if(l.length>40)L.push('… y '+(l.length-40)+' más')});
   if((D.s||[]).length){L.push('');L.push('🗺️ *SECTORES SIN LUZ*');D.s.slice(0,8).forEach(function(t){L.push('• '+t)})}
   return L.join('\n')}
