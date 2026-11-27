@@ -417,8 +417,11 @@ function postRelay(FR,path,opt){var l=[FR].concat((opt.alt||ALT).filter(function
     fetch(R+'/'+path,{method:opt.method||'POST',headers:opt.headers||{},body:opt.body,signal:ctl?ctl.signal:undefined}).then(function(r){clearTimeout(tt);
       if(r.ok)return ok({r:r,rel:R});if(r.status===429||r.status===413||r.status===507)lleno=true;sig(r.status)},function(){clearTimeout(tt);sig(0)});
     function sig(st){i++;if(i<l.length)return prueba();var x=new Error(lleno?'lleno':st?'envío':'Sin señal');x.envio=!lleno;x.lleno=lleno;mal(x)}})()})}
+function pantallaVieja(t){vibra('mal');pantalla({e:'🔄',h1:'Vuelva a entrar',p:t||'Esta pantalla está vieja. Ciérrela con la ✕ de arriba y vuelva a tocar <b>📱 ABRIR</b> en el chat del bot.',
+  ops:[['✕ CERRAR ESTA PANTALLA','b',function(){try{window.Telegram.WebApp.close()}catch(x){}}]]})}
 function canal(CH,CI,FR,d){
-  var id=d._pid||(Math.random().toString(36).slice(2,10)+Date.now().toString(36)),t0=Math.floor(Date.now()/1000)-3;d._pid=id;if(!d.t_cli)d.t_cli=Date.now();   // reintento = mismo número: la PC no lo duplica
+  var id=d._pid||(Math.random().toString(36).slice(2,10)+Date.now().toString(36)),t0=Math.floor(Date.now()/1000)-3;d._pid=id;if(!d.t_cli)d.t_cli=Date.now();if(!d.ab){try{d.ab=+(window.Telegram.WebApp.initDataUnsafe.auth_date)||0}catch(x){}}   // 🔄 cuándo se abrió esta pantalla (la PC avisa si quedó vieja)
+     // reintento = mismo número: la PC no lo duplica
   return postRelay(FR,CH.c,{body:JSON.stringify({chat:CI,k:CH.k,id:id,d:d})})
    .then(function(x){FR=x.rel;
     return new Promise(function(ok,mal){var n=0,sinLat=0;(function mira(){n++;
@@ -426,7 +429,7 @@ function canal(CH,CI,FR,d){
         tx.split('\n').forEach(function(l){try{var e=JSON.parse(l);if(e.event!=='message')return;
           if(e.title===id&&e.attachment)hallado=fetch(e.attachment.url).then(function(r){return r.json()});
           else{var m=JSON.parse(e.message);if(m.id===id)hallado=Promise.resolve(m)}}catch(x){}});
-        if(hallado)return hallado.then(ok,mal);
+        if(hallado)return hallado.then(function(m){if(m&&m.vieja)return pantallaVieja(m.txt);ok(m)},mal);
         if(n>32){var xp=new Error('La PC no respondió (¿está prendida?)');xp.pc=true;return mal(xp)}
         if((n===3||n===5||(n>5&&n%5===0))&&CH.l&&FR.indexOf('ntfy.sh')<0){   // 💓 ¿la PC está viva? (late cada minuto): se mira a los ~6 s y luego seguido; si dejó de latir, se avisa YA
           return fetch(FR+'/'+CH.l+'/json?poll=1&since='+(n<10?'180s':'100s')).then(function(r){return r.ok?r.text():'?'}).then(function(t){
@@ -544,17 +547,20 @@ if(tg){try{tg.ready();tg.expand();if(tg.disableVerticalSwipes)tg.disableVertical
 
 function api(url,cuerpo,tipo){return fetch(url,{method:'POST',headers:{'X-Init-Data':initData,'Content-Type':tipo||'application/json'},body:tipo?cuerpo:JSON.stringify(cuerpo||{})})
   .then(function(r){return r.json().then(function(j){if(!r.ok)throw new Error(j.error||('Error '+r.status));return j})})}
+function ubicLocal(d){   // 📍 ¿está en el punto? (cuenta en el teléfono, con el estado que tiene la pantalla)
+    var hol=Math.min(d.acc||0,50);
+    if(E.demo&&!E.real)return ({ok:true,distancia_m:0,lugar:'casa'});   // 🧪 «ver como»: simulado en su recinto (no se exige estar allí)
+    if(E.capacitacion&&E.casa)return ({ok:true,distancia_m:E.co?Math.round(metros(E.co[0],E.co[1],d.lat,d.lon)):null,lugar:'casa'});
+    if(E.capacitacion&&E.cpe){var mc=Math.round(metros(E.cpe[0],E.cpe[1],d.lat,d.lon));if(mc-hol<=(E.cpe[2]||300))return ({ok:true,distancia_m:mc,lugar:'cpe'})}
+    if(!E.co)return ({ok:true,distancia_m:null});
+    var m=Math.round(metros(E.co[0],E.co[1],d.lat,d.lon)),ok=m-hol<=E.lim;
+    return ({ok:ok,distancia_m:m,demo:!ok&&E.demo,error:ok?'':(E.capacitacion?'Está a '+km(m)+' de su recinto. En PRUEBAS debe estar en el CPE o en su recinto.':'Está a '+km(m)+' de su recinto. Debe estar a '+E.lim+' m o menos.')})}
 function accion(d){
   if(F&&F.fsim&&F.fsim.length&&!d.fsim&&d.accion!=='ubic')d.fsim=F.fsim.slice();   // 🧪 pruebas: fotos simuladas (no viajan)
   if(!BOT)return api('/tg/app/accion',d);
   if(d.accion==='ubic'){F.u={lat:d.lat,lon:d.lon,acc:d.acc};
-    var hol=Math.min(d.acc||0,50);
-    if(E.demo&&!E.real)return Promise.resolve({ok:true,distancia_m:0,lugar:'casa'});   // 🧪 «ver como»: simulado en su recinto (no se exige estar allí)
-    if(E.capacitacion&&E.casa)return Promise.resolve({ok:true,distancia_m:E.co?Math.round(metros(E.co[0],E.co[1],d.lat,d.lon)):null,lugar:'casa'});
-    if(E.capacitacion&&E.cpe){var mc=Math.round(metros(E.cpe[0],E.cpe[1],d.lat,d.lon));if(mc-hol<=(E.cpe[2]||300))return Promise.resolve({ok:true,distancia_m:mc,lugar:'cpe'})}
-    if(!E.co)return Promise.resolve({ok:true,distancia_m:null});
-    var m=Math.round(metros(E.co[0],E.co[1],d.lat,d.lon)),ok=m-hol<=E.lim;
-    return Promise.resolve({ok:ok,distancia_m:m,demo:!ok&&E.demo,error:ok?'':(E.capacitacion?'Está a '+km(m)+' de su recinto. En PRUEBAS debe estar en el CPE o en su recinto.':'Está a '+km(m)+' de su recinto. Debe estar a '+E.lim+' m o menos.')})}
+    var r0=ubicLocal(d);if(r0.ok||E.demo||!E.ch)return Promise.resolve(r0);
+    return canal(E.ch,E.ci,E.fr,{accion:'estado'}).then(function(res){if(res&&res.s){try{E=leerS(res.s);S0=res.s}catch(x){}}return ubicLocal(d)},function(){return r0})}   // 🔄 antes de decir «lejos», pregunta a la PC si cambió el modo (casa, pruebas…)
   if(d.accion==='llegada'||d.accion==='prueba'){if(F.u&&d.lat==null){d.lat=F.u.lat;d.lon=F.u.lon;d.acc=F.u.acc}}
   if((d.accion==='llegada'||d.accion==='camino')&&TR&&TR.pts&&TR.pts.length){d.ruta={ini:Math.round(TR.ini/1000),dest:TR.dest,pts:TR.pts.slice(-120)}}
   if(d.accion==='llegada'){trBorrar()}
