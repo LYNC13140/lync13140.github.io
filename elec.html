@@ -432,7 +432,7 @@ function pedir(d){if(!C)return Promise.reject(new Error('Para ver teléfonos y m
   return canal(C.ch,C.ci,C.fr,d).then(function(r){if(r.luz){D=r.luz;VIVO=new Date().toTimeString().slice(0,5)}return r})}
 var OCUP=false,VISTA=null,POP=false;function refrescar(){if(!C||DET||OCUP||POP||document.hidden)return;OCUP=true;var y=window.scrollY;pedir({accion:'luz_datos'}).then(function(){OCUP=false;if(DET||POP)return;
   VISTA=MAP?{c:MAP.getCenter(),z:MAP.getZoom(),s:SATI}:null;inicio();window.scrollTo(0,y);setTimeout(function(){VISTA=null},2500)},function(){OCUP=false})}
-setInterval(refrescar,30000);
+setInterval(refrescar,30000);setTimeout(refrescar,1200);   // ⚡ al abrir: trae enseguida los datos completos EN VIVO (el enlace puede venir aliviado)
 
 function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
 function cargarZ(z,cb){var t=z.replace(/-/g,'+').replace(/_/g,'/');while(t.length%4)t+='=';var b=atob(t),u=new Uint8Array(b.length);for(var i=0;i<b.length;i++)u[i]=b.charCodeAt(i);
