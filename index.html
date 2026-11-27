@@ -387,6 +387,15 @@ body::before{content:"";position:fixed;left:0;right:0;top:0;height:340px;z-index
 }
 @media (prefers-reduced-motion:reduce){:root .op,:root .bt,:root .k,:root .esc,:root .it.tap,:root .fil button,:root .seg button,:root .tabs button{transition:none!important}
  :root .op:active,:root .bt:active,:root .it.tap:active,:root .esc:active,:root .k:active{transform:none!important}}
+
+/* ---------- fondos con fotos de Guayaquil (SOLO aspecto; activo solo si el script #fondo-fotos cargó la foto) ---------- */
+#fx-fotos{position:fixed;inset:0;z-index:-1;pointer-events:none;overflow:hidden;display:none}
+html.fx-fotos #fx-fotos{display:block}
+#fx-fotos .fx-f{position:absolute;inset:0;background-size:cover;background-position:center;background-repeat:no-repeat;opacity:0;transition:opacity 1.2s ease;will-change:opacity}
+#fx-fotos .fx-f.on{opacity:1}
+#fx-fotos .fx-ov{position:absolute;inset:0;background:linear-gradient(180deg,rgba(244,247,252,.86),rgba(244,247,252,.93))}
+@media (prefers-color-scheme:dark){#fx-fotos .fx-ov{background:linear-gradient(180deg,rgba(6,12,24,.80),rgba(6,12,24,.90))}}
+@media (prefers-reduced-motion:reduce){#fx-fotos .fx-f{transition:none}}
 </style>
 </head>
 <body>
@@ -1085,5 +1094,36 @@ body.bienvF .q>.e{margin:0 0 6px}body.bienvF .q h1{text-align:left;margin:14px 4
 .bv-tit{font-size:21px;font-weight:800;padding:12px 0 6px}.bv-act{display:flex;gap:14px;align-items:center;padding:11px 0;font-size:18px}.bv-act+.bv-act{border-top:1px solid rgba(140,170,220,.25)}
 .bv-act i{flex:0 0 34px;height:34px;border-radius:50%;background:#2c4470;display:flex;align-items:center;justify-content:center;font-style:normal;font-weight:800}
 .bv-nota{margin:8px 18px;font-size:15px;color:#c9d5ec}</style>
+<script id="fondo-fotos">
+/* Fondo con fotos de Guayaquil: SOLO aspecto. No toca ningún elemento ni lógica de la página; si algo falla, no se ve nada. */
+(function(){try{
+var N=20,K='fxFotoUlt',T=40000,doc=document;
+function u(n){return 'fondos/'+(n<10?'0':'')+n+'.webp'}
+var ult=0;try{ult=+localStorage.getItem(K)||0}catch(e){}
+function otra(x){var n;do{n=1+Math.floor(Math.random()*N)}while(n===x);return n}
+var act=otra(ult);try{localStorage.setItem(K,act)}catch(e){}
+var w=doc.createElement('div');w.id='fx-fotos';w.setAttribute('aria-hidden','true');
+var a=doc.createElement('div'),b=doc.createElement('div'),o=doc.createElement('div');
+a.className='fx-f';b.className='fx-f';o.className='fx-ov';
+w.appendChild(a);w.appendChild(b);w.appendChild(o);
+var arr=[a,b],i=0;
+function carga(n,ok){var im=new Image();im.onload=function(){ok(im)};im.onerror=function(){};im.src=u(n)}
+carga(act,function(){
+ a.style.backgroundImage='url("'+u(act)+'")';a.className='fx-f on';
+ doc.body.appendChild(w);doc.documentElement.classList.add('fx-fotos');
+ var rm=false;try{rm=matchMedia('(prefers-reduced-motion:reduce)').matches}catch(e){}
+ if(rm)return;
+ setInterval(function(){try{
+  if(doc.hidden)return;
+  var n=otra(act);
+  carga(n,function(){
+   var d=arr[1-i];d.style.backgroundImage='url("'+u(n)+'")';
+   d.className='fx-f on';arr[i].className='fx-f';i=1-i;act=n;
+   try{localStorage.setItem(K,n)}catch(e){}
+  });
+ }catch(e){}},T);
+});
+}catch(e){}})();
+</script>
 </body>
 </html>
