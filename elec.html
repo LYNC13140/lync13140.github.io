@@ -439,7 +439,98 @@ html.fx-fotos #fx-fotos{display:block}
 }
 </style>
 </head>
-<body><div id="app">Cargando…</div>
+<body>
+<style id="fin-css">
+#fin-sesion{position:fixed;inset:0;z-index:2147483600;display:flex;align-items:center;justify-content:center;padding:16px;box-sizing:border-box;overflow:auto;-webkit-overflow-scrolling:touch;font-family:var(--i-font,-apple-system,BlinkMacSystemFont,"SF Pro Display",system-ui,"Segoe UI",Roboto,Arial,sans-serif);
+ --f-card:rgba(255,255,255,.80);--f-tx:#0b1220;--f-mu:#414d68;--f-ln:rgba(18,32,74,.14);--f-ov1:rgba(238,241,248,.80);--f-ov2:rgba(238,241,248,.93);--f-sh:0 24px 60px -18px rgba(15,25,60,.45)}
+@media (prefers-color-scheme:dark){#fin-sesion{--f-card:rgba(16,26,48,.78);--f-tx:#f1f5ff;--f-mu:#b4c0dc;--f-ln:rgba(160,190,255,.20);--f-ov1:rgba(6,12,24,.80);--f-ov2:rgba(6,12,24,.92);--f-sh:0 24px 60px -18px rgba(0,0,0,.7)}}
+#fin-sesion .fin-bg{position:fixed;inset:-24px;background-size:cover;background-position:center;filter:blur(16px) saturate(1.1)}
+#fin-sesion .fin-ov{position:fixed;inset:0;background:linear-gradient(180deg,var(--f-ov1),var(--f-ov2))}
+#fin-sesion .fin-card{position:relative;width:100%;max-width:420px;box-sizing:border-box;margin:auto;padding:26px 20px 20px;border-radius:30px;text-align:center;color:var(--f-tx);
+ background:var(--f-card);border:1px solid var(--f-ln);box-shadow:var(--f-sh),inset 0 1px 0 rgba(255,255,255,.25);-webkit-backdrop-filter:blur(22px) saturate(1.4);backdrop-filter:blur(22px) saturate(1.4)}
+#fin-sesion .fin-ill{width:min(46vw,176px);height:min(46vw,176px);margin:0 auto 14px;display:block;overflow:visible}
+#fin-sesion .fin-modo{display:inline-block;margin:0 0 10px;padding:5px 12px;border-radius:99px;font-size:13px;font-weight:800;letter-spacing:.06em;color:var(--f-mu);border:1px solid var(--f-ln);background:rgba(120,140,190,.12)}
+#fin-sesion h1{margin:0 0 10px;font-size:clamp(24px,7.4vw,30px);line-height:1.18;font-weight:800;letter-spacing:-.01em;color:var(--f-tx);word-wrap:break-word;overflow-wrap:anywhere}
+#fin-sesion p{margin:0 0 22px;font-size:clamp(16px,4.6vw,18px);line-height:1.45;color:var(--f-mu)}
+#fin-sesion p b{color:var(--f-tx)}
+#fin-sesion button{display:block;width:100%;min-height:64px;padding:14px 16px;border:0;border-radius:20px;cursor:pointer;font:800 clamp(20px,6vw,24px)/1.1 var(--i-font,Arial,sans-serif);letter-spacing:.08em;color:#fff;
+ background:linear-gradient(135deg,#1d5fe0,#0679ad);box-shadow:0 10px 26px -10px rgba(6,182,212,.75),0 0 0 1px rgba(255,255,255,.18) inset;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+#fin-sesion.fin-ok button{background:linear-gradient(135deg,#16a34a,#0b7a6d);box-shadow:0 10px 26px -10px rgba(22,163,74,.75),0 0 0 1px rgba(255,255,255,.18) inset}
+#fin-sesion button:active{transform:scale(.985);filter:brightness(.95)}
+#fin-sesion button:focus-visible{outline:3px solid #06b6d4;outline-offset:3px}
+@media (prefers-reduced-motion:no-preference){
+ #fin-sesion .fin-card{animation:fin-in .45s cubic-bezier(.2,.9,.3,1.1) both}
+ #fin-sesion .fin-halo{animation:fin-pulso 2.6s ease-in-out infinite;transform-origin:100px 100px}
+ #fin-sesion .fin-trazo{stroke-dasharray:120;stroke-dashoffset:120;animation:fin-dibuja .7s .25s ease-out forwards}
+ #fin-sesion .fin-gira{animation:fin-gira 5s linear infinite;transform-origin:100px 100px}
+ @keyframes fin-in{from{opacity:0;transform:translateY(18px) scale(.96)}to{opacity:1;transform:none}}
+ @keyframes fin-pulso{50%{transform:scale(1.07);opacity:.65}}
+ @keyframes fin-dibuja{to{stroke-dashoffset:0}}
+ @keyframes fin-gira{to{transform:rotate(360deg)}}
+}
+</style>
+<script id="fin-sesion-js">
+/* Pantalla final «CERRAR» (prueba terminada / el modo cambió / sesión vieja). Autónoma: sin librerías. FIN.mostrar({vieja,fin,titulo,texto,modo,txt}) */
+(function(){
+var W=window,done=false,IV=[],oSI=W.setInterval,oST=W.setTimeout;
+W.setInterval=function(){var i=oSI.apply(W,arguments);IV.push(i);return i};
+W.setTimeout=function(){return done?0:oST.apply(W,arguments)};   // ya terminó: nada se vuelve a programar (se cortan los sondeos/relojes)
+function tgw(){try{return W.Telegram&&W.Telegram.WebApp}catch(e){return null}}
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+function limpia(s){return esc(s).replace(/&lt;(\/?)b&gt;/gi,'<$1b>').replace(/&lt;br\s*\/?&gt;/gi,'<br>')}   // solo se permite negrita y salto de línea
+var MODOS={ensayo:'🧪 ENSAYO',simulacro:'🎯 SIMULACRO',elecciones:'🗳️ ELECCIONES'};
+function ilustra(fin){
+ var id='f'+(fin?'a':'b');
+ var defs='<defs><linearGradient id="'+id+'" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="'+(fin?'#34d399':'#38bdf8')+'"/><stop offset="1" stop-color="'+(fin?'#0b7a6d':'#1d5fe0')+'"/></linearGradient></defs>';
+ var col=fin?'#22c55e':'#06b6d4';
+ var base='<circle class="fin-halo" cx="100" cy="100" r="92" fill="'+col+'" opacity=".16"/><circle cx="100" cy="100" r="72" fill="url(#'+id+')"/><circle cx="100" cy="100" r="72" fill="none" stroke="rgba(255,255,255,.35)" stroke-width="2"/>';
+ var cuerpo=fin
+  ?'<path class="fin-trazo" d="M66 102 L90 126 L136 76" fill="none" stroke="#fff" stroke-width="15" stroke-linecap="round" stroke-linejoin="round"/>'
+   +'<circle cx="30" cy="48" r="5" fill="#fbbf24"/><circle cx="170" cy="38" r="4" fill="#f472b6"/><circle cx="178" cy="136" r="5" fill="#60a5fa"/><circle cx="24" cy="146" r="4" fill="#a78bfa"/>'
+  :'<g class="fin-gira"><path d="M62 98 A38 38 0 0 1 128 74" fill="none" stroke="#fff" stroke-width="12" stroke-linecap="round"/><path d="M138 102 A38 38 0 0 1 72 126" fill="none" stroke="#fff" stroke-width="12" stroke-linecap="round"/>'
+   +'<path d="M132 52 L136 84 L104 80 Z" fill="#fff" stroke="#fff" stroke-width="4" stroke-linejoin="round"/><path d="M68 148 L64 116 L96 120 Z" fill="#fff" stroke="#fff" stroke-width="4" stroke-linejoin="round"/></g>';
+ return '<svg class="fin-ill" viewBox="0 0 200 200" aria-hidden="true" focusable="false">'+defs+base+cuerpo+'</svg>'}
+function cerrar(){
+ var t=tgw(),dentro=false;
+ try{dentro=!!(t&&typeof t.close==='function'&&(t.initData||(t.initDataUnsafe&&t.initDataUnsafe.auth_date)))}catch(e){}
+ if(dentro){try{t.close();return}catch(e){}}
+ try{W.location.reload()}catch(e){}}
+function apaga(){
+ var t=tgw();
+ try{IV.forEach(function(i){clearInterval(i)})}catch(e){}
+ try{if(t){try{t.MainButton.hide()}catch(e){}try{t.BackButton.hide()}catch(e){}try{t.disableClosingConfirmation()}catch(e){}
+  var h=t.HapticFeedback;if(h)['impactOccurred','notificationOccurred','selectionChanged'].forEach(function(k){try{h[k]=function(){return h}}catch(e){}})}}catch(e){}
+ try{navigator.vibrate=function(){return false}}catch(e){}}
+function mostrar(o){
+ o=o||{};done=true;
+ var fin=!!(+o.fin||o.fin===true);
+ var titulo=o.titulo||(fin?'✅ La prueba terminó':'🔄 '+(o.txt||o.texto?'El sistema cambió':'El modo cambió'));
+ var texto=o.texto||o.txt||(fin?'Gracias por participar. Toque <b>CERRAR</b> y vuelva a entrar desde el bot cuando le avisen.':'Toque <b>CERRAR</b> y vuelva a abrir la aplicación desde el bot.');
+ var doc=document,el=doc.getElementById('fin-sesion');
+ if(!el){el=doc.createElement('div');el.id='fin-sesion';el.setAttribute('role','dialog');el.setAttribute('aria-modal','true');el.setAttribute('aria-labelledby','fin-t');el.setAttribute('aria-describedby','fin-p');
+  el.addEventListener('keydown',function(e){if(e.key==='Tab'||e.keyCode===9){e.preventDefault();var b=doc.getElementById('fin-btn');if(b)b.focus()}});
+  doc.body.appendChild(el)}
+ var foto='';try{var n=+localStorage.getItem('fxFotoUlt')||1;foto='fondos/'+(n<10?'0':'')+n+'.webp'}catch(e){foto='fondos/01.webp'}
+ el.className=fin?'fin-ok':'';
+ el.innerHTML='<div class="fin-bg" aria-hidden="true" style="background-image:url(\''+foto+'\')"></div><div class="fin-ov" aria-hidden="true"></div>'
+  +'<div class="fin-card">'+ilustra(fin)+(MODOS[o.modo]?'<div class="fin-modo">'+MODOS[o.modo]+'</div>':'')
+  +'<h1 id="fin-t">'+limpia(titulo)+'</h1><p id="fin-p">'+limpia(texto)+'</p><button type="button" id="fin-btn">CERRAR</button></div>';
+ var b=doc.getElementById('fin-btn');b.onclick=cerrar;
+ try{[].forEach.call(doc.body.children,function(c){if(c!==el&&c.tagName!=='SCRIPT'&&c.tagName!=='STYLE'){try{c.inert=true}catch(e){}c.setAttribute('aria-hidden','true')}})}catch(e){}
+ try{doc.activeElement&&doc.activeElement!==b&&doc.activeElement.blur&&doc.activeElement.blur()}catch(e){}
+ apaga();try{W.scrollTo(0,0)}catch(e){}try{b.focus()}catch(e){}
+ try{var t=tgw();if(t){t.ready&&t.ready();t.expand&&t.expand()}}catch(e){}
+ return true}
+function esVieja(x){return !!(x&&/\bvieja\b|\bviejo\b|sesi[oó]n vencida/i.test(x.message||x.txt||''))}
+W.FIN={mostrar:mostrar,activa:function(){return done},esVieja:esVieja,
+ envuelve:function(p){return p.catch(function(e){if(esVieja(e)){mostrar({texto:e.message});return new Promise(function(){})}throw e})},
+ chequeaIni:function(ini){   // la pantalla se abrió ANTES de que empezara la jornada/modo actual (ini = epoch en s o ms)
+  ini=+ini;if(!ini)return false;if(ini>1e12)ini=Math.floor(ini/1000);
+  var ad=0;try{ad=+(tgw().initDataUnsafe.auth_date)||0}catch(e){}
+  if(ad&&ad<ini){mostrar({fin:0});return true}return false}};
+})();
+</script>
+<div id="app">Cargando…</div>
 <script>
 var tg=window.Telegram&&window.Telegram.WebApp;try{tg.ready();tg.expand()}catch(e){}
 var D=null,$=function(i){return document.getElementById(i)},MAP=null,CAPA=null,FIL='',TAB='inc',C=null,VIVO='',DET=null,DETV=null;
@@ -447,10 +538,11 @@ var ALT=[];   // servidores de reserva (si el de casa está lleno o caído)
 function postRelay(FR,path,opt){var l=[FR].concat((opt.alt||ALT).filter(function(x){return x&&x!==FR})),i=0,lleno=false;
   return new Promise(function(ok,mal){(function prueba(){var R=l[i];
     var ctl=window.AbortController?new AbortController():null,tt=setTimeout(function(){if(ctl)ctl.abort()},opt.ms||20000);
-    fetch(R+'/'+path,{method:opt.method||'POST',headers:opt.headers||{},body:opt.body,signal:ctl?ctl.signal:undefined}).then(function(r){clearTimeout(tt);
+    fetch(R+'/'+path,{method:opt.method||'POST',headers:opt.headers||{},body:opt.body,signal:ctl?ctl.signal:undefined}).then(function(r){clearTimeout(tt);if(r.status===410){FIN.mostrar({vieja:1});return}
       if(r.ok)return ok({r:r,rel:R});if(r.status===429||r.status===413||r.status===507)lleno=true;sig(r.status)},function(){clearTimeout(tt);sig(0)});
     function sig(st){i++;if(i<l.length)return prueba();var x=new Error(lleno?'lleno':st?'envío':'Sin señal');x.envio=!lleno;x.lleno=lleno;mal(x)}})()})}
-function canal(CH,CI,FR,d){ALT=(C&&C.frs)||ALT;
+function canal(CH,CI,FR,d){return FIN.envuelve(canal0(CH,CI,FR,d))}
+function canal0(CH,CI,FR,d){ALT=(C&&C.frs)||ALT;
   var id=Math.random().toString(36).slice(2,10)+Date.now().toString(36),t0=Math.floor(Date.now()/1000)-3;
   return postRelay(FR,CH.c,{body:JSON.stringify({chat:CI,k:CH.k,id:id,d:d})}).then(function(x){FR=x.rel;
     return new Promise(function(ok,mal){var n=0,sinLat=0;(function mira(){n++;
@@ -458,7 +550,7 @@ function canal(CH,CI,FR,d){ALT=(C&&C.frs)||ALT;
         tx.split('\n').forEach(function(l){try{var e=JSON.parse(l);if(e.event!=='message')return;
           if(e.title===id&&e.attachment)hallado=fetch(e.attachment.url).then(function(r){return r.json()});
           else{var m=JSON.parse(e.message);if(m.id===id)hallado=Promise.resolve(m)}}catch(x){}});
-        if(hallado)return hallado.then(ok,mal);
+        if(hallado)return hallado.then(function(m){if(m&&m.vieja){FIN.mostrar(m);return}ok(m)},mal);
         if((n===3||n===5||(n>5&&n%5===0))&&CH.l&&FR.indexOf('ntfy.sh')<0){   // 💓 ¿la PC está viva? si dejó de latir, se avisa YA (no se espera 3 min)
           return fetch(FR+'/'+CH.l+'/json?poll=1&since='+(n<10?'180s':'100s')).then(function(r){return r.ok?r.text():'?'}).then(function(t){
             if(t!=='?'&&!/"event":"message"/.test(t)&&++sinLat>=2){var xq=new Error('La PC del monitoreo no está funcionando ahora (apagada, sin internet o el programa cerrado). Avise al administrador.');xq.pc=true;return mal(xq)}
@@ -646,7 +738,7 @@ function resolver(x,id){var A=(x.i||[]).filter(function(i){return i[3]==='abiert
   pedir({accion:'luz_res',cod:x.c,id:id==='*'?'':id,obs:obs}).then(function(r){if(r.det)verDet(r.det,r.msg);else verErr(x.c,x.n,r.msg||r.txt);if(r.luz&&!DET)inicio()},function(e){verErr(x.c,x.n,e.message)})}
 var m=location.search.match(/[?&]z=([^&]+)/);
 if(!m)$('app').innerHTML='<div class="it">Abra esta página desde el bot de Telegram (botón 🗺️ VER MAPA E INCIDENCIAS).</div>';
-else cargarZ(m[1],function(d,err){if(!d){$('app').innerHTML='<div class="it">⚠️ '+esc(err||'No se pudo leer. Vuelva a tocar 🗺️ VER MAPA E INCIDENCIAS.')+'</div>';return}D=d;inicio();if(C)pedir({accion:'luz_datos'}).then(function(){if(!DET)inicio()},function(){})});
+else cargarZ(m[1],function(d,err){if(!d){$('app').innerHTML='<div class="it">⚠️ '+esc(err||'No se pudo leer. Vuelva a tocar 🗺️ VER MAPA E INCIDENCIAS.')+'</div>';return}D=d;if(FIN.chequeaIni(D.ini))return;inicio();if(C)pedir({accion:'luz_datos'}).then(function(){if(!DET)inicio()},function(){})});
 </script>
 <style id="emo2026c">img.emo{width:1.22em;height:1.22em;vertical-align:-.26em;display:inline-block;margin:0 .04em;object-fit:contain;border:0!important;background:none!important;box-shadow:none!important;padding:0!important;max-width:none}
 img.emo[alt="👥"],img.emo[alt="👤"],img.emo[alt="⚫"],img.emo[alt="🕴️"],img.emo[alt="🖤"],img.emo[alt="📞"],img.emo[alt="🔌"]{filter:brightness(1.7) saturate(1.1)}
